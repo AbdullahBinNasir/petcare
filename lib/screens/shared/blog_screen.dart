@@ -1,0 +1,460 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:intl/intl.dart';
+import '../../models/blog_post_model.dart';
+import '../../models/user_model.dart';
+import '../../services/blog_service.dart';
+import '../../services/auth_service.dart';
+import 'blog_post_details_screen.dart';
+import 'create_blog_post_screen.dart';
+
+class BlogScreen extends StatefulWidget {
+  const BlogScreen({super.key});
+
+  @override
+  State<BlogScreen> createState() => _BlogScreenState();
+}
+
+class _BlogScreenState extends State<BlogScreen> with TickerProviderStateMixin {
+  late TabController _tabController;
+  final TextEditingController _searchController = TextEditingController();
+  bool _showFilters = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadBlogPosts();
+    });
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _loadBlogPosts() {
+    final blogService = Provider.of<BlogService>(context, listen: false);
+    final authService = Provider.of<AuthService>(context, listen: false);
+    
+    blogService.loadBlogPosts();
+    if (authService.currentUserModel != null) {
+      blogService.loadUserFavorites(authService.currentUserModel!.id);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final authService = Provider.of<AuthService>(context);
+    final canCreatePosts = authService.currentUserModel?.role == UserRole.veterinarian ||
+                          authService.currentUserModel?.role == UserRole.shelterAdmin;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Pet Care Tips'),
+        actions: [
+          IconButton(
+            icon: Icon(_showFilters ? Icons.filter_list_off : Icons.filter_list),
+            onPressed: () {
+              setState(() {
+                _showFilters = !_showFilters;
+              });
+            },
+          ),
+          if (canCreatePosts)
+            IconButton(
+              icon: const Icon(Icons.add),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const CreateBlogPostScreen(),
+                  ),
+                );
+              },
+            ),
+        ],
+        bottom: TabBar(
+          controller: _tabController,
+          tabs: const [
+            Tab(text: 'All Posts', icon: Icon(Icons.article)),
+            Tab(text: 'Favorites', icon: Icon(Icons.favorite)),
+          ],
+        ),
+      ),
+      body: Column(
+        children: [
+          _buildSearchBar(),
+          if (_showFilters) _buildFiltersSection(),
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                _buildAllPostsView(),
+                _buildFavoritesView(),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSearchBar() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      child: TextField(
+        controller: _searchController,
+        decoration: InputDecoration(
+          hintText: 'Search articles...',
+          prefixIcon: const Icon(Icons.search),
+          suffixIcon: _searchController.text.isNotEmpty
+              ? IconButton(
+                  icon: const Icon(Icons.clear),
+                  onPressed: () {
+                    _searchController.clear();
+                    Provider.of<BlogService>(context, listen: false).searchPosts('');
+                  },
+                )
+              : null,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+        onChanged: (value) {
+          Provider.of<BlogService>(context, listen: false).searchPosts(value);
+        },
+      ),
+    );
+  }
+
+  Widget _buildFiltersSection() {
+    return Consumer<BlogService>(
+      builder: (context, blogService, child) {
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: DropdownButtonFormField<BlogCategory?>(
+                      value: blogService.selectedCategory,
+                      decoration: const InputDecoration(
+                        labelText: 'Category',
+                        border: OutlineInputBorder(),
+                      ),
+                      items: [
+                        const DropdownMenuItem(
+                          value: null,
+                          child: Text('All Categories'),
+                        ),
+                        ...BlogCategory.values.map((category) {
+                          return DropdownMenuItem(
+                            value: category,
+                            child: Text(_getCategoryName(category)),
+                          );
+                        }),
+                      ],
+                      onChanged: (category) {
+                        blogService.filterByCategory(category);
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: DropdownButtonFormField<String>(
+                      value: blogService.sortBy,
+                      decoration: const InputDecoration(
+                        labelText: 'Sort By',
+                        border: OutlineInputBorder(),
+                      ),
+                      items: const [
+                        DropdownMenuItem(value: 'recent', child: Text('Most Recent')),
+                        DropdownMenuItem(value: 'popular', child: Text('Most Popular')),
+                        DropdownMenuItem(value: 'likes', child: Text('Most Liked')),
+                        DropdownMenuItem(value: 'oldest', child: Text('Oldest First')),
+                      ],
+                      onChanged: (sortBy) {
+                        if (sortBy != null) {
+                          blogService.sortPosts(sortBy);
+                        }
+                      },
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () {
+                      blogService.clearFilters();
+                      _searchController.clear();
+                    },
+                    child: const Text('Clear Filters'),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildAllPostsView() {
+    return Consumer<BlogService>(
+      builder: (context, blogService, child) {
+        if (blogService.isLoading) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        if (blogService.blogPosts.isEmpty) {
+          return const Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.article_outlined, size: 64, color: Colors.grey),
+                SizedBox(height: 16),
+                Text(
+                  'No articles found',
+                  style: TextStyle(fontSize: 18, color: Colors.grey),
+                ),
+              ],
+            ),
+          );
+        }
+
+        return ListView.builder(
+          padding: const EdgeInsets.all(16),
+          itemCount: blogService.blogPosts.length,
+          itemBuilder: (context, index) {
+            final post = blogService.blogPosts[index];
+            return _buildBlogPostCard(post);
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildFavoritesView() {
+    return Consumer2<BlogService, AuthService>(
+      builder: (context, blogService, authService, child) {
+        final userId = authService.currentUserModel?.id ?? '';
+        final favoritePosts = blogService.getFavoritePosts(userId);
+
+        if (favoritePosts.isEmpty) {
+          return const Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.favorite_border, size: 64, color: Colors.grey),
+                SizedBox(height: 16),
+                Text(
+                  'No favorite articles yet',
+                  style: TextStyle(fontSize: 18, color: Colors.grey),
+                ),
+                SizedBox(height: 8),
+                Text(
+                  'Tap the heart icon on articles to save them here',
+                  style: TextStyle(color: Colors.grey),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          );
+        }
+
+        return ListView.builder(
+          padding: const EdgeInsets.all(16),
+          itemCount: favoritePosts.length,
+          itemBuilder: (context, index) {
+            final post = favoritePosts[index];
+            return _buildBlogPostCard(post);
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildBlogPostCard(BlogPostModel post) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 16),
+      child: InkWell(
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => BlogPostDetailsScreen(post: post),
+            ),
+          );
+        },
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (post.featuredImageUrl != null)
+              ClipRRect(
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                child: AspectRatio(
+                  aspectRatio: 16 / 9,
+                  child: CachedNetworkImage(
+                    imageUrl: post.featuredImageUrl!,
+                    fit: BoxFit.cover,
+                    placeholder: (context, url) => Container(
+                      color: Colors.grey[200],
+                      child: const Center(child: CircularProgressIndicator()),
+                    ),
+                    errorWidget: (context, url, error) => Container(
+                      color: Colors.grey[200],
+                      child: const Icon(Icons.image_not_supported),
+                    ),
+                  ),
+                ),
+              ),
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).primaryColor.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          _getCategoryName(post.category),
+                          style: TextStyle(
+                            color: Theme.of(context).primaryColor,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                      const Spacer(),
+                      Text(
+                        post.formattedPublishDate,
+                        style: TextStyle(
+                          color: Colors.grey[600],
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    post.title,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    post.excerpt,
+                    style: TextStyle(
+                      color: Colors.grey[700],
+                      fontSize: 14,
+                      height: 1.4,
+                    ),
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 12,
+                        child: Text(
+                          post.authorName.isNotEmpty ? post.authorName[0].toUpperCase() : 'A',
+                          style: const TextStyle(fontSize: 12),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        post.authorName,
+                        style: TextStyle(
+                          fontWeight: FontWeight.w500,
+                          color: Colors.grey[700],
+                        ),
+                      ),
+                      const Spacer(),
+                      Row(
+                        children: [
+                          Icon(Icons.access_time, size: 14, color: Colors.grey[600]),
+                          const SizedBox(width: 4),
+                          Text(
+                            '${post.readTime} min read',
+                            style: TextStyle(
+                              color: Colors.grey[600],
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(width: 16),
+                      Row(
+                        children: [
+                          Icon(Icons.visibility, size: 14, color: Colors.grey[600]),
+                          const SizedBox(width: 4),
+                          Text(
+                            post.viewCount.toString(),
+                            style: TextStyle(
+                              color: Colors.grey[600],
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(width: 16),
+                      Row(
+                        children: [
+                          Icon(Icons.favorite, size: 14, color: Colors.grey[600]),
+                          const SizedBox(width: 4),
+                          Text(
+                            post.likeCount.toString(),
+                            style: TextStyle(
+                              color: Colors.grey[600],
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _getCategoryName(BlogCategory category) {
+    switch (category) {
+      case BlogCategory.training:
+        return 'Training';
+      case BlogCategory.nutrition:
+        return 'Nutrition';
+      case BlogCategory.health:
+        return 'Health';
+      case BlogCategory.grooming:
+        return 'Grooming';
+      case BlogCategory.behavior:
+        return 'Behavior';
+      case BlogCategory.general:
+        return 'General';
+    }
+  }
+}

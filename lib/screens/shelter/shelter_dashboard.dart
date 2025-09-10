@@ -2,6 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../services/auth_service.dart';
 import '../shared/profile_screen.dart';
+import '../shared/appointments_screen.dart';
+import '../shared/pet_store_screen.dart';
+import '../shared/blog_screen.dart';
+import '../shared/admin_store_management_screen.dart';
+import '../shared/admin_blog_management_screen.dart';
 
 class ShelterDashboard extends StatefulWidget {
   const ShelterDashboard({super.key});
@@ -17,9 +22,11 @@ class _ShelterDashboardState extends State<ShelterDashboard> {
   Widget build(BuildContext context) {
     final List<Widget> pages = [
       _buildHomeTab(),
-      _buildPetListingsTab(),
-      _buildAdoptionRequestsTab(),
-      _buildSuccessStoriesTab(),
+      const AppointmentsScreen(),
+      const PetStoreScreen(),
+      const BlogScreen(),
+      const AdminStoreManagementScreen(),
+      const AdminBlogManagementScreen(),
       const ProfileScreen(),
     ];
 
@@ -40,16 +47,24 @@ class _ShelterDashboardState extends State<ShelterDashboard> {
             label: 'Dashboard',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.pets),
-            label: 'Pet Listings',
+            icon: Icon(Icons.calendar_today),
+            label: 'Appointments',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.request_page),
-            label: 'Requests',
+            icon: Icon(Icons.store),
+            label: 'Store',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.favorite),
-            label: 'Success Stories',
+            icon: Icon(Icons.article),
+            label: 'Blog',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.admin_panel_settings),
+            label: 'Store Admin',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.edit),
+            label: 'Blog Admin',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.person),
@@ -224,23 +239,19 @@ class _ShelterDashboardState extends State<ShelterDashboard> {
               children: [
                 Expanded(
                   child: _buildActionCard(
-                    'Add Pet',
-                    Icons.add_circle,
+                    'Manage Store',
+                    Icons.admin_panel_settings,
                     Colors.blue,
-                    () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Add pet feature coming soon!')),
-                      );
-                    },
+                    () => setState(() => _currentIndex = 4),
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: _buildActionCard(
-                    'View Requests',
-                    Icons.request_page,
+                    'Manage Blog',
+                    Icons.edit,
                     Colors.orange,
-                    () => setState(() => _currentIndex = 2),
+                    () => setState(() => _currentIndex = 5),
                   ),
                 ),
               ],
@@ -251,106 +262,6 @@ class _ShelterDashboardState extends State<ShelterDashboard> {
     );
   }
 
-  Widget _buildPetListingsTab() {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Pet Listings'),
-        automaticallyImplyLeading: false,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.add),
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Add pet listing feature coming soon!')),
-              );
-            },
-          ),
-        ],
-      ),
-      body: const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.pets, size: 64, color: Colors.grey),
-            SizedBox(height: 16),
-            Text(
-              'Pet Listings Management',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
-            SizedBox(height: 8),
-            Text(
-              'Coming soon!',
-              style: TextStyle(color: Colors.grey),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildAdoptionRequestsTab() {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Adoption Requests'),
-        automaticallyImplyLeading: false,
-      ),
-      body: const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.request_page, size: 64, color: Colors.grey),
-            SizedBox(height: 16),
-            Text(
-              'Adoption Requests',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
-            SizedBox(height: 8),
-            Text(
-              'Coming soon!',
-              style: TextStyle(color: Colors.grey),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSuccessStoriesTab() {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Success Stories'),
-        automaticallyImplyLeading: false,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.add),
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Add success story feature coming soon!')),
-              );
-            },
-          ),
-        ],
-      ),
-      body: const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.favorite, size: 64, color: Colors.grey),
-            SizedBox(height: 16),
-            Text(
-              'Success Stories',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
-            SizedBox(height: 8),
-            Text(
-              'Coming soon!',
-              style: TextStyle(color: Colors.grey),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 
   Widget _buildStatCard(String title, String value, IconData icon, Color color) {
     return Card(

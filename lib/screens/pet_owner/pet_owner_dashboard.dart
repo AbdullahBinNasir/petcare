@@ -7,12 +7,12 @@ import '../../services/appointment_service.dart';
 import '../../models/pet_model.dart';
 import '../../models/appointment_model.dart';
 import '../shared/profile_screen.dart';
+import '../shared/appointments_screen.dart';
+import '../shared/pet_store_screen.dart';
+import '../shared/blog_screen.dart';
 import 'add_pet_screen.dart';
 import 'pet_profile_screen.dart';
-import 'appointments_screen.dart';
 import 'book_appointment_screen.dart';
-import 'pet_store_screen.dart';
-import 'blog_screen.dart';
 
 class PetOwnerDashboard extends StatefulWidget {
   const PetOwnerDashboard({super.key});

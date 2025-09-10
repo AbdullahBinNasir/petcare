@@ -75,8 +75,8 @@ class AppointmentModel {
       'veterinarianId': veterinarianId,
       'appointmentDate': Timestamp.fromDate(appointmentDate),
       'timeSlot': timeSlot,
-      'type': type.toString().split('.').last,
-      'status': status.toString().split('.').last,
+      'type': _enumToString(type),
+      'status': _enumToString(status),
       'reason': reason,
       'notes': notes,
       'diagnosis': diagnosis,
@@ -86,6 +86,12 @@ class AppointmentModel {
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedAt': Timestamp.fromDate(updatedAt),
     };
+  }
+
+  String _enumToString(dynamic enumValue) {
+    final enumString = enumValue.toString();
+    final parts = enumString.split('.');
+    return parts.isNotEmpty ? parts.last : enumString;
   }
 
   bool get isUpcoming => appointmentDate.isAfter(DateTime.now()) && 

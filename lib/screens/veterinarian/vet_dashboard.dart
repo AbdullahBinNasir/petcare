@@ -4,6 +4,9 @@ import '../../services/auth_service.dart';
 import '../../services/appointment_service.dart';
 import '../../models/appointment_model.dart';
 import '../shared/profile_screen.dart';
+import '../shared/appointments_screen.dart';
+import '../shared/blog_screen.dart';
+import '../shared/admin_blog_management_screen.dart';
 
 class VetDashboard extends StatefulWidget {
   const VetDashboard({super.key});
@@ -44,8 +47,9 @@ class _VetDashboardState extends State<VetDashboard> {
   Widget build(BuildContext context) {
     final List<Widget> pages = [
       _buildHomeTab(),
-      _buildAppointmentsTab(),
-      _buildMedicalRecordsTab(),
+      const AppointmentsScreen(),
+      const BlogScreen(),
+      const AdminBlogManagementScreen(),
       const ProfileScreen(),
     ];
 
@@ -68,8 +72,12 @@ class _VetDashboardState extends State<VetDashboard> {
             label: 'Appointments',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.medical_services),
-            label: 'Records',
+            icon: Icon(Icons.article),
+            label: 'Blog',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.admin_panel_settings),
+            label: 'Admin',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.person),
@@ -282,10 +290,10 @@ class _VetDashboardState extends State<VetDashboard> {
                         const SizedBox(width: 12),
                         Expanded(
                           child: _buildActionCard(
-                            'Medical Records',
-                            Icons.medical_services,
+                            'Manage Blog',
+                            Icons.admin_panel_settings,
                             Colors.green,
-                            () => setState(() => _currentIndex = 2),
+                            () => setState(() => _currentIndex = 3),
                           ),
                         ),
                       ],
@@ -297,59 +305,6 @@ class _VetDashboardState extends State<VetDashboard> {
     );
   }
 
-  Widget _buildAppointmentsTab() {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Appointments'),
-        automaticallyImplyLeading: false,
-      ),
-      body: const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.calendar_today, size: 64, color: Colors.grey),
-            SizedBox(height: 16),
-            Text(
-              'Appointments Calendar',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
-            SizedBox(height: 8),
-            Text(
-              'Coming soon!',
-              style: TextStyle(color: Colors.grey),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildMedicalRecordsTab() {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Medical Records'),
-        automaticallyImplyLeading: false,
-      ),
-      body: const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.medical_services, size: 64, color: Colors.grey),
-            SizedBox(height: 16),
-            Text(
-              'Medical Records',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
-            SizedBox(height: 8),
-            Text(
-              'Coming soon!',
-              style: TextStyle(color: Colors.grey),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 
   Widget _buildStatCard(String title, String value, IconData icon, Color color) {
     return Card(

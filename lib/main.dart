@@ -14,6 +14,9 @@ import 'services/user_service.dart';
 import 'services/pet_service.dart';
 import 'services/appointment_service.dart';
 import 'services/health_record_service.dart';
+import 'services/store_service.dart';
+import 'services/blog_service.dart';
+import 'services/notification_service.dart';
 import 'models/user_model.dart';
 
 Future<void> main() async {
@@ -23,6 +26,9 @@ Future<void> main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+
+  // Initialize notification service
+  await NotificationService().initialize();
 
   runApp(const PetCareApp());
 }
@@ -39,6 +45,8 @@ class PetCareApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => PetService()),
         ChangeNotifierProvider(create: (_) => AppointmentService()),
         ChangeNotifierProvider(create: (_) => HealthRecordService()),
+        ChangeNotifierProvider(create: (_) => StoreService()),
+        ChangeNotifierProvider(create: (_) => BlogService()),
       ],
       child: MaterialApp(
         title: 'Pet Care',
