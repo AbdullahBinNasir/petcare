@@ -9,7 +9,6 @@ import '../../services/appointment_service.dart';
 import '../../services/auth_service.dart';
 import '../../services/pet_service.dart';
 import '../../services/user_service.dart';
-import '../../services/notification_service.dart';
 
 class BookAppointmentScreen extends StatefulWidget {
   const BookAppointmentScreen({super.key});
@@ -462,7 +461,6 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
     try {
       final authService = Provider.of<AuthService>(context, listen: false);
       final appointmentService = Provider.of<AppointmentService>(context, listen: false);
-      final notificationService = NotificationService();
 
       final appointment = AppointmentModel(
         id: '', // Will be set by Firestore
@@ -480,9 +478,7 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
 
       await appointmentService.bookAppointment(appointment);
       
-      // Request notification permissions and schedule reminder
-      await notificationService.requestPermissions();
-      await notificationService.scheduleAppointmentReminder(appointment);
+      // Notifications are scheduled by the service after Firestore ID is assigned
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

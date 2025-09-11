@@ -61,6 +61,33 @@ class StoreService extends ChangeNotifier {
     _applyFiltersAndSort();
   }
 
+  // Advanced filtering options
+  void filterByPriceRange(double minPrice, double maxPrice) {
+    _filteredItems = _storeItems.where((item) {
+      return item.price >= minPrice && item.price <= maxPrice;
+    }).toList();
+    _applySort();
+  }
+
+  void filterByBrand(String brand) {
+    _filteredItems = _storeItems.where((item) {
+      return item.brand.toLowerCase().contains(brand.toLowerCase());
+    }).toList();
+    _applySort();
+  }
+
+  void filterByRating(double minRating) {
+    _filteredItems = _storeItems.where((item) {
+      return (item.rating ?? 0) >= minRating;
+    }).toList();
+    _applySort();
+  }
+
+  void filterInStock() {
+    _filteredItems = _storeItems.where((item) => item.isInStock).toList();
+    _applySort();
+  }
+
   void _applyFiltersAndSort() {
     _filteredItems = List.from(_storeItems);
 
@@ -81,6 +108,10 @@ class StoreService extends ChangeNotifier {
           .toList();
     }
 
+    _applySort();
+  }
+
+  void _applySort() {
     // Apply sorting
     switch (_sortBy) {
       case 'name':
@@ -96,7 +127,10 @@ class StoreService extends ChangeNotifier {
         _filteredItems.sort((a, b) => (b.rating ?? 0).compareTo(a.rating ?? 0));
         break;
       case 'popularity':
-        _filteredItems.sort((a, b) => b.reviewCount.compareTo(a.reviewCount));
+        _filteredItems.sort((a, b) => (b.reviewCount + (_userClicks[b.id] ?? 0)).compareTo(a.reviewCount + (_userClicks[a.id] ?? 0)));
+        break;
+      case 'newest':
+        _filteredItems.sort((a, b) => b.createdAt.compareTo(a.createdAt));
         break;
     }
 
@@ -128,6 +162,90 @@ class StoreService extends ChangeNotifier {
       });
     } catch (e) {
       debugPrint('Error tracking item click: $e');
+    }
+  }
+
+  // Track external purchase link clicks
+  Future<void> trackExternalPurchaseClick(String itemId, String userId) async {
+    try {
+      // Track external purchase clicks separately
+      await _firestore
+          .collection('user_interactions')
+          .doc(userId)
+          .collection('purchase_clicks')
+          .doc(itemId)
+          .set({
+        'clicks': FieldValue.increment(1),
+        'lastClicked': FieldValue.serverTimestamp(),
+        'clickType': 'external_purchase',
+      }, SetOptions(merge: true));
+
+      // Update item purchase interest
+      await _firestore
+          .collection('store_items')
+          .doc(itemId)
+          .update({
+        'purchaseClickCount': FieldValue.increment(1),
+      });
+
+      // Track for analytics
+      await _firestore.collection('analytics').add({
+        'eventType': 'external_purchase_click',
+        'itemId': itemId,
+        'userId': userId,
+        'timestamp': FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      debugPrint('Error tracking external purchase click: $e');
+    }
+  }
+
+  // Get user interest analytics for specific user
+  Future<Map<String, dynamic>> getUserInterestAnalytics(String userId) async {
+    try {
+      final clicksSnapshot = await _firestore
+          .collection('user_interactions')
+          .doc(userId)
+          .collection('item_clicks')
+          .orderBy('clicks', descending: true)
+          .limit(10)
+          .get();
+
+      final purchaseClicksSnapshot = await _firestore
+          .collection('user_interactions')
+          .doc(userId)
+          .collection('purchase_clicks')
+          .orderBy('clicks', descending: true)
+          .limit(10)
+          .get();
+
+      // Get category preferences
+      final categoryPreferences = <String, int>{};
+      for (final doc in clicksSnapshot.docs) {
+        final item = _storeItems.firstWhere(
+          (item) => item.id == doc.id,
+          orElse: () => _storeItems.first,
+        );
+        final category = item.category.toString().split('.').last;
+        categoryPreferences[category] = (categoryPreferences[category] ?? 0) + (doc.data()['clicks'] as int);
+      }
+
+      return {
+        'topClickedItems': clicksSnapshot.docs.map((doc) => {
+          'itemId': doc.id,
+          'clicks': doc.data()['clicks'],
+          'lastClicked': doc.data()['lastClicked'],
+        }).toList(),
+        'topPurchaseIntents': purchaseClicksSnapshot.docs.map((doc) => {
+          'itemId': doc.id,
+          'clicks': doc.data()['clicks'],
+          'lastClicked': doc.data()['lastClicked'],
+        }).toList(),
+        'categoryPreferences': categoryPreferences,
+      };
+    } catch (e) {
+      debugPrint('Error getting user interest analytics: $e');
+      return {};
     }
   }
 
@@ -235,5 +353,51 @@ class StoreService extends ChangeNotifier {
     _selectedCategory = null;
     _sortBy = 'name';
     _applyFiltersAndSort();
+  }
+
+  // Get popular items based on clicks and purchases
+  List<StoreItemModel> getPopularItems({int limit = 10}) {
+    final itemsWithPopularity = _storeItems.map((item) {
+      final clicks = _userClicks[item.id] ?? 0;
+      final reviewWeight = item.reviewCount * 2; // Reviews are worth more than clicks
+      final ratingWeight = ((item.rating ?? 0) * 10).round();
+      return {
+        'item': item,
+        'popularity': clicks + reviewWeight + ratingWeight,
+      };
+    }).toList();
+
+    itemsWithPopularity.sort((a, b) => (b['popularity'] as int).compareTo(a['popularity'] as int));
+    
+    return itemsWithPopularity
+        .take(limit)
+        .map((data) => data['item'] as StoreItemModel)
+        .toList();
+  }
+
+  // Get recommendations based on user behavior
+  List<StoreItemModel> getRecommendedItems(String userId, {int limit = 5}) {
+    final userFavorites = _userFavorites[userId] ?? [];
+    if (userFavorites.isEmpty) {
+      return getPopularItems(limit: limit);
+    }
+
+    // Find categories user likes
+    final favoriteCategories = <StoreCategory>{};
+    for (final itemId in userFavorites) {
+      final item = _storeItems.firstWhere(
+        (item) => item.id == itemId,
+        orElse: () => _storeItems.first,
+      );
+      favoriteCategories.add(item.category);
+    }
+
+    // Recommend items from favorite categories
+    final recommendations = _storeItems
+        .where((item) => favoriteCategories.contains(item.category) && !userFavorites.contains(item.id))
+        .take(limit)
+        .toList();
+
+    return recommendations;
   }
 }

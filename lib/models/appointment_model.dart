@@ -89,9 +89,73 @@ class AppointmentModel {
   }
 
   String _enumToString(dynamic enumValue) {
+    if (enumValue == null) return '';
+    
     final enumString = enumValue.toString();
     final parts = enumString.split('.');
-    return parts.isNotEmpty ? parts.last : enumString;
+    
+    // Ensure we have at least one part and return the last part
+    if (parts.isNotEmpty && parts.length > 1) {
+      return parts.last;
+    }
+    
+    // Fallback: return the original string or handle specific enum types
+    if (enumValue is AppointmentType) {
+      switch (enumValue) {
+        case AppointmentType.checkup:
+          return 'checkup';
+        case AppointmentType.vaccination:
+          return 'vaccination';
+        case AppointmentType.surgery:
+          return 'surgery';
+        case AppointmentType.emergency:
+          return 'emergency';
+        case AppointmentType.grooming:
+          return 'grooming';
+        case AppointmentType.consultation:
+          return 'consultation';
+      }
+    }
+    
+    if (enumValue is AppointmentStatus) {
+      switch (enumValue) {
+        case AppointmentStatus.scheduled:
+          return 'scheduled';
+        case AppointmentStatus.confirmed:
+          return 'confirmed';
+        case AppointmentStatus.inProgress:
+          return 'inProgress';
+        case AppointmentStatus.completed:
+          return 'completed';
+        case AppointmentStatus.cancelled:
+          return 'cancelled';
+        case AppointmentStatus.noShow:
+          return 'noShow';
+      }
+    }
+    
+    // Final fallback
+    return enumString.contains('.') ? enumString.split('.').last : enumString;
+  }
+  
+  // Test method to validate enum conversion
+  static void testEnumConversion() {
+    final model = AppointmentModel(
+      id: 'test',
+      petOwnerId: 'test',
+      petId: 'test',
+      veterinarianId: 'test',
+      appointmentDate: DateTime.now(),
+      timeSlot: '10:00',
+      type: AppointmentType.checkup,
+      reason: 'test',
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+    );
+    
+    print('Type conversion test: ${model._enumToString(AppointmentType.checkup)}');
+    print('Status conversion test: ${model._enumToString(AppointmentStatus.scheduled)}');
+    print('Firestore data: ${model.toFirestore()}');
   }
 
   bool get isUpcoming => appointmentDate.isAfter(DateTime.now()) && 

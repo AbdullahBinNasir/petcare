@@ -99,6 +99,13 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
       final authService = Provider.of<AuthService>(context, listen: false);
       final appointmentService = Provider.of<AppointmentService>(context, listen: false);
 
+      print('Creating appointment with:');
+      print('Pet: ${_selectedPet!.name} (${_selectedPet!.id})');
+      print('Vet: ${_selectedVeterinarian!.fullName} (${_selectedVeterinarian!.id})');
+      print('Date: $_selectedDate');
+      print('Time: $_selectedTimeSlot');
+      print('Type: $_selectedType');
+      
       final appointment = AppointmentModel(
         id: '', // Firestore will auto-generate
         petOwnerId: authService.currentUser!.uid,
@@ -113,20 +120,36 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
         updatedAt: DateTime.now(),
       );
 
+      print('Appointment model created successfully');
+      
       final docId = await appointmentService.bookAppointment(appointment);
 
       if (docId != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Appointment booked successfully!')),
-        );
-        Navigator.pop(context);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Appointment booked successfully!')),
+          );
+          Navigator.pop(context);
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Failed to book appointment. Please try again.')),
+          );
+        }
       }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error booking appointment: $e')),
-      );
+    } catch (e, stackTrace) {
+      print('Error in _bookAppointment: $e');
+      print('Stack trace: $stackTrace');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error booking appointment: $e')),
+        );
+      }
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 

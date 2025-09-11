@@ -1,6 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:share_plus/share_plus.dart';
 import '../models/blog_post_model.dart';
+import '../models/user_model.dart';
 
 class BlogService extends ChangeNotifier {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -340,5 +342,260 @@ class BlogService extends ChangeNotifier {
     _selectedCategory = null;
     _sortBy = 'recent';
     _applyFiltersAndSort();
+  }
+
+  // Enhanced search by title and tags
+  void searchByTitleAndTags(String query) {
+    _searchQuery = query.toLowerCase();
+    _filteredPosts = _blogPosts.where((post) {
+      return post.title.toLowerCase().contains(_searchQuery) ||
+             post.tags.any((tag) => tag.toLowerCase().contains(_searchQuery));
+    }).toList();
+    notifyListeners();
+  }
+
+  // Get posts by specific author (for admin/vet management)
+  Future<List<BlogPostModel>> getPostsByAuthor(String authorId, {bool includeUnpublished = false}) async {
+    try {
+      Query query = _firestore
+          .collection('blog_posts')
+          .where('authorId', isEqualTo: authorId);
+      
+      if (!includeUnpublished) {
+        query = query.where('isPublished', isEqualTo: true);
+      }
+      
+      final querySnapshot = await query
+          .orderBy('createdAt', descending: true)
+          .get();
+
+      return querySnapshot.docs
+          .map((doc) => BlogPostModel.fromFirestore(doc))
+          .toList();
+    } catch (e) {
+      debugPrint('Error getting posts by author: $e');
+      return [];
+    }
+  }
+
+  // Archive/Unarchive posts
+  Future<void> archivePost(String postId) async {
+    try {
+      await _firestore
+          .collection('blog_posts')
+          .doc(postId)
+          .update({
+        'isArchived': true,
+        'archivedAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+      await loadBlogPosts(publishedOnly: false);
+    } catch (e) {
+      debugPrint('Error archiving post: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> unarchivePost(String postId) async {
+    try {
+      await _firestore
+          .collection('blog_posts')
+          .doc(postId)
+          .update({
+        'isArchived': false,
+        'archivedAt': FieldValue.delete(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+      await loadBlogPosts(publishedOnly: false);
+    } catch (e) {
+      debugPrint('Error unarchiving post: $e');
+      rethrow;
+    }
+  }
+
+  // Get draft posts for authors
+  Future<List<BlogPostModel>> getDraftPosts(String authorId) async {
+    try {
+      final querySnapshot = await _firestore
+          .collection('blog_posts')
+          .where('authorId', isEqualTo: authorId)
+          .where('isPublished', isEqualTo: false)
+          .where('isArchived', isEqualTo: false)
+          .orderBy('updatedAt', descending: true)
+          .get();
+
+      return querySnapshot.docs
+          .map((doc) => BlogPostModel.fromFirestore(doc))
+          .toList();
+    } catch (e) {
+      debugPrint('Error getting draft posts: $e');
+      return [];
+    }
+  }
+
+  // Get scheduled posts
+  Future<List<BlogPostModel>> getScheduledPosts(String authorId) async {
+    try {
+      final now = Timestamp.now();
+      final querySnapshot = await _firestore
+          .collection('blog_posts')
+          .where('authorId', isEqualTo: authorId)
+          .where('isScheduled', isEqualTo: true)
+          .where('scheduledPublishAt', isGreaterThan: now)
+          .orderBy('scheduledPublishAt', descending: false)
+          .get();
+
+      return querySnapshot.docs
+          .map((doc) => BlogPostModel.fromFirestore(doc))
+          .toList();
+    } catch (e) {
+      debugPrint('Error getting scheduled posts: $e');
+      return [];
+    }
+  }
+
+  // External sharing functionality
+  Future<void> sharePost(BlogPostModel post) async {
+    try {
+      final shareText = '${post.title}\n\n${post.excerpt}\n\nRead more: https://petcare.app/blog/${post.id}';
+      await Share.share(
+        shareText,
+        subject: post.title,
+      );
+      
+      // Track sharing analytics
+      await _firestore.collection('analytics').add({
+        'eventType': 'blog_post_shared',
+        'postId': post.id,
+        'postTitle': post.title,
+        'timestamp': FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      debugPrint('Error sharing post: $e');
+    }
+  }
+
+  // Share post with custom text
+  Future<void> sharePostWithText(BlogPostModel post, String customText) async {
+    try {
+      final shareText = '$customText\n\nRead more: https://petcare.app/blog/${post.id}';
+      await Share.share(
+        shareText,
+        subject: post.title,
+      );
+      
+      // Track sharing analytics
+      await _firestore.collection('analytics').add({
+        'eventType': 'blog_post_shared_custom',
+        'postId': post.id,
+        'postTitle': post.title,
+        'customText': customText,
+        'timestamp': FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      debugPrint('Error sharing post with custom text: $e');
+    }
+  }
+
+  // Get blog analytics for admin
+  Future<Map<String, dynamic>> getBlogAnalytics({DateTime? startDate, DateTime? endDate}) async {
+    try {
+      Query query = _firestore.collection('blog_posts');
+      
+      if (startDate != null && endDate != null) {
+        query = query
+            .where('publishedAt', isGreaterThanOrEqualTo: Timestamp.fromDate(startDate))
+            .where('publishedAt', isLessThanOrEqualTo: Timestamp.fromDate(endDate));
+      }
+
+      final querySnapshot = await query.get();
+      final posts = querySnapshot.docs
+          .map((doc) => BlogPostModel.fromFirestore(doc))
+          .toList();
+
+      // Calculate analytics
+      final totalPosts = posts.length;
+      final publishedPosts = posts.where((p) => p.isPublished).length;
+      final totalViews = posts.fold<int>(0, (sum, p) => sum + p.viewCount);
+      final totalLikes = posts.fold<int>(0, (sum, p) => sum + p.likeCount);
+      final averageViews = totalPosts > 0 ? (totalViews / totalPosts).round() : 0;
+      final averageLikes = totalPosts > 0 ? (totalLikes / totalPosts).round() : 0;
+      
+      // Category distribution
+      final Map<String, int> postsByCategory = {};
+      for (final post in posts) {
+        final category = post.category.toString().split('.').last;
+        postsByCategory[category] = (postsByCategory[category] ?? 0) + 1;
+      }
+      
+      // Author statistics
+      final Map<String, int> postsByAuthor = {};
+      for (final post in posts) {
+        postsByAuthor[post.authorName] = (postsByAuthor[post.authorName] ?? 0) + 1;
+      }
+      
+      // Top performing posts
+      final topPostsByViews = posts.toList()
+        ..sort((a, b) => b.viewCount.compareTo(a.viewCount))
+        ..take(10);
+      
+      final topPostsByLikes = posts.toList()
+        ..sort((a, b) => b.likeCount.compareTo(a.likeCount))
+        ..take(10);
+
+      return {
+        'totalPosts': totalPosts,
+        'publishedPosts': publishedPosts,
+        'draftPosts': totalPosts - publishedPosts,
+        'totalViews': totalViews,
+        'totalLikes': totalLikes,
+        'averageViews': averageViews,
+        'averageLikes': averageLikes,
+        'engagementRate': totalViews > 0 ? ((totalLikes / totalViews) * 100).round() : 0,
+        'postsByCategory': postsByCategory,
+        'postsByAuthor': postsByAuthor,
+        'topPostsByViews': topPostsByViews.map((p) => {
+          'id': p.id,
+          'title': p.title,
+          'views': p.viewCount,
+          'author': p.authorName,
+        }).toList(),
+        'topPostsByLikes': topPostsByLikes.map((p) => {
+          'id': p.id,
+          'title': p.title,
+          'likes': p.likeCount,
+          'author': p.authorName,
+        }).toList(),
+      };
+    } catch (e) {
+      debugPrint('Error getting blog analytics: $e');
+      return {};
+    }
+  }
+
+  // Content moderation - Flag inappropriate content
+  Future<void> flagPost(String postId, String reason, String reporterId) async {
+    try {
+      await _firestore.collection('content_reports').add({
+        'type': 'blog_post',
+        'contentId': postId,
+        'reason': reason,
+        'reporterId': reporterId,
+        'status': 'pending',
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+      
+      // Update post with flag
+      await _firestore
+          .collection('blog_posts')
+          .doc(postId)
+          .update({
+        'flaggedCount': FieldValue.increment(1),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      debugPrint('Error flagging post: $e');
+      rethrow;
+    }
   }
 }

@@ -54,8 +54,12 @@ class NotificationService extends ChangeNotifier {
     // Schedule reminder 24 hours before
     final reminderTime24h = appointment.appointmentDate.subtract(const Duration(hours: 24));
     if (reminderTime24h.isAfter(DateTime.now())) {
+      final baseId = _generateBaseNotificationId(
+        appointmentId: appointment.id,
+        fallbackKey: '${appointment.petId}-${appointment.veterinarianId}-${appointment.appointmentDate.toIso8601String()}',
+      );
       await _scheduleNotification(
-        id: int.parse(appointment.id.hashCode.toString().substring(0, 8)),
+        id: baseId + 0,
         title: 'Appointment Reminder',
         body: 'You have an appointment tomorrow at ${appointment.timeSlot}',
         scheduledDate: reminderTime24h,
@@ -66,8 +70,12 @@ class NotificationService extends ChangeNotifier {
     // Schedule reminder 1 hour before
     final reminderTime1h = appointment.appointmentDate.subtract(const Duration(hours: 1));
     if (reminderTime1h.isAfter(DateTime.now())) {
+      final baseId = _generateBaseNotificationId(
+        appointmentId: appointment.id,
+        fallbackKey: '${appointment.petId}-${appointment.veterinarianId}-${appointment.appointmentDate.toIso8601String()}',
+      );
       await _scheduleNotification(
-        id: int.parse(appointment.id.hashCode.toString().substring(0, 8)) + 1,
+        id: baseId + 1,
         title: 'Appointment Starting Soon',
         body: 'Your appointment starts in 1 hour at ${appointment.timeSlot}',
         scheduledDate: reminderTime1h,
@@ -114,9 +122,9 @@ class NotificationService extends ChangeNotifier {
   }
 
   Future<void> cancelAppointmentReminders(String appointmentId) async {
-    final id = int.parse(appointmentId.hashCode.toString().substring(0, 8));
-    await _flutterLocalNotificationsPlugin.cancel(id);
-    await _flutterLocalNotificationsPlugin.cancel(id + 1);
+    final baseId = _generateBaseNotificationId(appointmentId: appointmentId);
+    await _flutterLocalNotificationsPlugin.cancel(baseId + 0);
+    await _flutterLocalNotificationsPlugin.cancel(baseId + 1);
   }
 
   Future<void> showInstantNotification({
@@ -152,6 +160,30 @@ class NotificationService extends ChangeNotifier {
     );
   }
 
+  // Generic schedule notification method
+  Future<void> scheduleNotification({
+    required int id,
+    required String title,
+    required String body,
+    required DateTime scheduledDate,
+    String? payload,
+  }) async {
+    if (!_isInitialized) await initialize();
+
+    await _scheduleNotification(
+      id: id,
+      title: title,
+      body: body,
+      scheduledDate: scheduledDate,
+      payload: payload,
+    );
+  }
+
+  // Cancel notification by ID
+  Future<void> cancelNotification(int id) async {
+    await _flutterLocalNotificationsPlugin.cancel(id);
+  }
+
   Future<void> requestPermissions() async {
     if (!_isInitialized) await initialize();
 
@@ -169,4 +201,18 @@ class NotificationService extends ChangeNotifier {
           sound: true,
         );
   }
+}
+
+int _safeHash(String input) {
+  return input.hashCode.abs();
+}
+
+int _generateBaseNotificationId({required String appointmentId, String? fallbackKey}) {
+  // Prefer real appointmentId when available (after Firestore creation)
+  if (appointmentId.isNotEmpty) {
+    return (_safeHash(appointmentId) % 100000) + 1000;
+  }
+  // Fallback to a composite key (petId-vetId-date) during pre-ID flows
+  final key = (fallbackKey ?? DateTime.now().toIso8601String());
+  return (_safeHash(key) % 100000) + 1000;
 }

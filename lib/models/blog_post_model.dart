@@ -17,7 +17,12 @@ class BlogPostModel {
   final int viewCount;
   final int likeCount;
   final bool isPublished;
+  final bool isArchived;
+  final bool isScheduled;
   final DateTime publishedAt;
+  final DateTime? scheduledPublishAt;
+  final DateTime? archivedAt;
+  final int flaggedCount;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -36,7 +41,12 @@ class BlogPostModel {
     this.viewCount = 0,
     this.likeCount = 0,
     this.isPublished = false,
+    this.isArchived = false,
+    this.isScheduled = false,
     required this.publishedAt,
+    this.scheduledPublishAt,
+    this.archivedAt,
+    this.flaggedCount = 0,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -61,7 +71,16 @@ class BlogPostModel {
       viewCount: data['viewCount'] ?? 0,
       likeCount: data['likeCount'] ?? 0,
       isPublished: data['isPublished'] ?? false,
+      isArchived: data['isArchived'] ?? false,
+      isScheduled: data['isScheduled'] ?? false,
       publishedAt: (data['publishedAt'] as Timestamp).toDate(),
+      scheduledPublishAt: data['scheduledPublishAt'] != null 
+          ? (data['scheduledPublishAt'] as Timestamp).toDate() 
+          : null,
+      archivedAt: data['archivedAt'] != null 
+          ? (data['archivedAt'] as Timestamp).toDate() 
+          : null,
+      flaggedCount: data['flaggedCount'] ?? 0,
       createdAt: (data['createdAt'] as Timestamp).toDate(),
       updatedAt: (data['updatedAt'] as Timestamp).toDate(),
     );
@@ -82,7 +101,12 @@ class BlogPostModel {
       'viewCount': viewCount,
       'likeCount': likeCount,
       'isPublished': isPublished,
+      'isArchived': isArchived,
+      'isScheduled': isScheduled,
       'publishedAt': Timestamp.fromDate(publishedAt),
+      'scheduledPublishAt': scheduledPublishAt != null ? Timestamp.fromDate(scheduledPublishAt!) : null,
+      'archivedAt': archivedAt != null ? Timestamp.fromDate(archivedAt!) : null,
+      'flaggedCount': flaggedCount,
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedAt': Timestamp.fromDate(updatedAt),
     };
@@ -134,7 +158,12 @@ class BlogPostModel {
     int? viewCount,
     int? likeCount,
     bool? isPublished,
+    bool? isArchived,
+    bool? isScheduled,
     DateTime? publishedAt,
+    DateTime? scheduledPublishAt,
+    DateTime? archivedAt,
+    int? flaggedCount,
     DateTime? updatedAt,
   }) {
     return BlogPostModel(
@@ -152,7 +181,12 @@ class BlogPostModel {
       viewCount: viewCount ?? this.viewCount,
       likeCount: likeCount ?? this.likeCount,
       isPublished: isPublished ?? this.isPublished,
+      isArchived: isArchived ?? this.isArchived,
+      isScheduled: isScheduled ?? this.isScheduled,
       publishedAt: publishedAt ?? this.publishedAt,
+      scheduledPublishAt: scheduledPublishAt ?? this.scheduledPublishAt,
+      archivedAt: archivedAt ?? this.archivedAt,
+      flaggedCount: flaggedCount ?? this.flaggedCount,
       createdAt: createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
