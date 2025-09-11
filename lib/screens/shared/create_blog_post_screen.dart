@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
+import 'dart:io';
+import 'dart:convert';
+import 'dart:typed_data';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'dart:async';
 import '../../models/blog_post_model.dart';
 import '../../services/blog_service.dart';
 import '../../services/auth_service.dart';
@@ -30,6 +35,10 @@ class _CreateBlogPostScreenState extends State<CreateBlogPostScreen> {
   bool _isLoading = false;
   String? _featuredImageUrl;
   List<String> _imageUrls = [];
+  File? _featuredImageFile; // for upload
+  List<File> _galleryImageFiles = []; // for upload
+  Uint8List? _featuredImageBytes; // web preview/upload
+  List<Uint8List> _galleryImageBytes = []; // web preview/upload
 
   @override
   void initState() {
@@ -37,6 +46,20 @@ class _CreateBlogPostScreenState extends State<CreateBlogPostScreen> {
     if (widget.existingPost != null) {
       _populateFields();
     }
+    // Provide sensible defaults
+    if (_readTimeController.text.trim().isEmpty) {
+      _readTimeController.text = '3';
+    }
+  }
+
+  String _sanitizeStorageId(String input) {
+    final trimmed = input.trim();
+    if (trimmed.isEmpty) return DateTime.now().millisecondsSinceEpoch.toString();
+    final sanitized = trimmed
+        .toLowerCase()
+        .replaceAll(RegExp(r"[^a-z0-9_\-]"), '_')
+        .replaceAll(RegExp(r"_+"), '_');
+    return sanitized;
   }
 
   @override
@@ -200,22 +223,10 @@ class _CreateBlogPostScreenState extends State<CreateBlogPostScreen> {
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
-            if (_featuredImageUrl != null) ...[
+            if (_featuredImageBytes != null || _featuredImageFile != null || _featuredImageUrl != null) ...[
               ClipRRect(
                 borderRadius: BorderRadius.circular(8),
-                child: Image.network(
-                  _featuredImageUrl!,
-                  height: 200,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
-                    return Container(
-                      height: 200,
-                      color: Colors.grey[200],
-                      child: const Icon(Icons.image_not_supported),
-                    );
-                  },
-                ),
+                child: _buildFeaturedPreview(),
               ),
               const SizedBox(height: 8),
               Row(
@@ -229,6 +240,8 @@ class _CreateBlogPostScreenState extends State<CreateBlogPostScreen> {
                     onPressed: () {
                       setState(() {
                         _featuredImageUrl = null;
+                        _featuredImageFile = null;
+                        _featuredImageBytes = null;
                       });
                     },
                     icon: const Icon(Icons.delete),
@@ -302,6 +315,116 @@ class _CreateBlogPostScreenState extends State<CreateBlogPostScreen> {
               ],
             ),
             const SizedBox(height: 8),
+            if (_galleryImageBytes.isNotEmpty) ...[
+              SizedBox(
+                height: 100,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: _galleryImageBytes.length,
+                  itemBuilder: (context, index) {
+                    return Container(
+                      margin: const EdgeInsets.only(right: 8),
+                      child: Stack(
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: Image.memory(
+                              _galleryImageBytes[index],
+                              width: 100,
+                              height: 100,
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                          Positioned(
+                            top: 4,
+                            right: 4,
+                            child: GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  _galleryImageBytes.removeAt(index);
+                                });
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.all(4),
+                                decoration: const BoxDecoration(
+                                  color: Colors.red,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Icons.close,
+                                  color: Colors.white,
+                                  size: 16,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: 8),
+            ],
+            if (_galleryImageFiles.isNotEmpty) ...[
+              SizedBox(
+                height: 100,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: _galleryImageFiles.length,
+                  itemBuilder: (context, index) {
+                    return Container(
+                      margin: const EdgeInsets.only(right: 8),
+                      child: Stack(
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: Image.file(
+                              _galleryImageFiles[index],
+                              width: 100,
+                              height: 100,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) {
+                                return Container(
+                                  width: 100,
+                                  height: 100,
+                                  color: Colors.grey[200],
+                                  child: const Icon(Icons.image_not_supported),
+                                );
+                              },
+                            ),
+                          ),
+                          Positioned(
+                            top: 4,
+                            right: 4,
+                            child: GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  _galleryImageFiles.removeAt(index);
+                                });
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.all(4),
+                                decoration: const BoxDecoration(
+                                  color: Colors.red,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Icons.close,
+                                  color: Colors.white,
+                                  size: 16,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: 8),
+            ],
             if (_imageUrls.isNotEmpty) ...[
               SizedBox(
                 height: 100,
@@ -315,20 +438,7 @@ class _CreateBlogPostScreenState extends State<CreateBlogPostScreen> {
                         children: [
                           ClipRRect(
                             borderRadius: BorderRadius.circular(8),
-                            child: Image.network(
-                              _imageUrls[index],
-                              width: 100,
-                              height: 100,
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) {
-                                return Container(
-                                  width: 100,
-                                  height: 100,
-                                  color: Colors.grey[200],
-                                  child: const Icon(Icons.image_not_supported),
-                                );
-                              },
-                            ),
+                            child: _buildPreviewImage(_imageUrls[index]),
                           ),
                           Positioned(
                             top: 4,
@@ -371,22 +481,133 @@ class _CreateBlogPostScreenState extends State<CreateBlogPostScreen> {
     );
   }
 
+  Widget _buildPreviewImage(String image) {
+    try {
+      if (image.startsWith('data:image')) {
+        final base64Part = image.split(',').last;
+        final bytes = base64Part.isNotEmpty ? base64Decode(base64Part) : null;
+        if (bytes != null) {
+          return Image.memory(
+            bytes,
+            width: 100,
+            height: 100,
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) {
+              return Container(
+                width: 100,
+                height: 100,
+                color: Colors.grey[200],
+                child: const Icon(Icons.image_not_supported),
+              );
+            },
+          );
+        }
+      }
+    } catch (_) {}
+
+    return Image.network(
+      image,
+      width: 100,
+      height: 100,
+      fit: BoxFit.cover,
+      errorBuilder: (context, error, stackTrace) {
+        return Container(
+          width: 100,
+          height: 100,
+          color: Colors.grey[200],
+          child: const Icon(Icons.image_not_supported),
+        );
+      },
+    );
+  }
+
+  Widget _buildFeaturedPreview() {
+    if (_featuredImageBytes != null) {
+      return Image.memory(
+        _featuredImageBytes!,
+        height: 200,
+        width: double.infinity,
+        fit: BoxFit.cover,
+      );
+    }
+
+    if (_featuredImageFile != null && !kIsWeb) {
+      return Image.file(
+        _featuredImageFile!,
+        height: 200,
+        width: double.infinity,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) {
+          return Container(
+            height: 200,
+            color: Colors.grey[200],
+            child: const Icon(Icons.image_not_supported),
+          );
+        },
+      );
+    }
+
+    if (_featuredImageUrl != null) {
+      final image = _featuredImageUrl!;
+      try {
+        if (image.startsWith('data:image')) {
+          final base64Part = image.split(',').last;
+          final bytes = base64Part.isNotEmpty ? base64Decode(base64Part) : null;
+          if (bytes != null) {
+            return Image.memory(
+              bytes,
+              height: 200,
+              width: double.infinity,
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) {
+                return Container(
+                  height: 200,
+                  color: Colors.grey[200],
+                  child: const Icon(Icons.image_not_supported),
+                );
+              },
+            );
+          }
+        }
+      } catch (_) {}
+
+      return Image.network(
+        image,
+        height: 200,
+        width: double.infinity,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) {
+          return Container(
+            height: 200,
+            color: Colors.grey[200],
+            child: const Icon(Icons.image_not_supported),
+          );
+        },
+      );
+    }
+
+    return const SizedBox.shrink();
+  }
+
   void _pickFeaturedImage() async {
     final ImagePicker picker = ImagePicker();
     final XFile? image = await picker.pickImage(source: ImageSource.gallery);
     
     if (image != null) {
-      // In a real app, you would upload this to Firebase Storage
-      // For now, we'll use a placeholder URL
+      final bytes = kIsWeb ? await image.readAsBytes() : await File(image.path).readAsBytes();
+      final lower = image.name.toLowerCase();
+      final mime = lower.endsWith('.png')
+          ? 'image/png'
+          : lower.endsWith('.webp')
+              ? 'image/webp'
+              : 'image/jpeg';
+      final base64Str = base64Encode(bytes);
+      final dataUrl = 'data:$mime;base64,$base64Str';
       setState(() {
-        _featuredImageUrl = 'https://via.placeholder.com/400x200';
+        _featuredImageUrl = dataUrl;
+        _featuredImageFile = null;
+        _featuredImageBytes = null;
       });
-      
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Image selected. In production, this would be uploaded to storage.'),
-        ),
-      );
     }
   }
 
@@ -395,19 +616,22 @@ class _CreateBlogPostScreenState extends State<CreateBlogPostScreen> {
     final List<XFile> images = await picker.pickMultiImage();
     
     if (images.isNotEmpty) {
-      // In a real app, you would upload these to Firebase Storage
-      // For now, we'll use placeholder URLs
+      final List<String> newDataUrls = [];
+      for (final img in images) {
+        final bytes = kIsWeb ? await img.readAsBytes() : await File(img.path).readAsBytes();
+        final lower = img.name.toLowerCase();
+        final mime = lower.endsWith('.png')
+            ? 'image/png'
+            : lower.endsWith('.webp')
+                ? 'image/webp'
+                : 'image/jpeg';
+        newDataUrls.add('data:$mime;base64,${base64Encode(bytes)}');
+      }
       setState(() {
-        for (int i = 0; i < images.length; i++) {
-          _imageUrls.add('https://via.placeholder.com/200x200?text=Image${_imageUrls.length + i + 1}');
-        }
+        _imageUrls.addAll(newDataUrls);
+        _galleryImageFiles.clear();
+        _galleryImageBytes.clear();
       });
-      
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('${images.length} images selected. In production, these would be uploaded to storage.'),
-        ),
-      );
     }
   }
 
@@ -433,6 +657,19 @@ class _CreateBlogPostScreenState extends State<CreateBlogPostScreen> {
 
       final now = DateTime.now();
       
+      // Create a temp ID for pathing uploads when creating
+      final generatedId = DateTime.now().millisecondsSinceEpoch.toString();
+      final titleId = _titleController.text.trim().isNotEmpty
+          ? _titleController.text.trim().replaceAll(' ', '_').toLowerCase()
+          : generatedId;
+      final provisionalPostId = _sanitizeStorageId(widget.existingPost?.id ?? titleId);
+
+      // No uploads: images are already embedded as base64 data URLs
+
+      // No uploads: gallery images already encoded as data URLs
+
+      final readTimeValue = int.tryParse(_readTimeController.text.trim()) ?? 3;
+      
       final post = BlogPostModel(
         id: widget.existingPost?.id ?? '',
         title: _titleController.text.trim(),
@@ -444,7 +681,7 @@ class _CreateBlogPostScreenState extends State<CreateBlogPostScreen> {
         tags: tags,
         featuredImageUrl: _featuredImageUrl,
         imageUrls: _imageUrls,
-        readTime: int.parse(_readTimeController.text),
+        readTime: readTimeValue,
         viewCount: widget.existingPost?.viewCount ?? 0,
         likeCount: widget.existingPost?.likeCount ?? 0,
         isPublished: publish,
@@ -454,8 +691,10 @@ class _CreateBlogPostScreenState extends State<CreateBlogPostScreen> {
       );
 
       if (widget.existingPost != null) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Updating post...')));
         await blogService.updateBlogPost(post);
       } else {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Creating post...')));
         await blogService.createBlogPost(post);
       }
 

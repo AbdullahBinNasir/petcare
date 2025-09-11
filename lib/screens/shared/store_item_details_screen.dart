@@ -3,9 +3,12 @@ import 'package:provider/provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
+import 'dart:convert';
 import '../../models/store_item_model.dart';
 import '../../services/store_service.dart';
 import '../../services/auth_service.dart';
+import '../../services/cart_service.dart';
+import 'shopping_cart_screen.dart';
 
 class StoreItemDetailsScreen extends StatefulWidget {
   final StoreItemModel item;
@@ -24,9 +27,59 @@ class _StoreItemDetailsScreenState extends State<StoreItemDetailsScreen> {
   final PageController _pageController = PageController();
 
   @override
+  void initState() {
+    super.initState();
+    _trackItemView();
+  }
+
+  @override
   void dispose() {
     _pageController.dispose();
     super.dispose();
+  }
+
+  void _trackItemView() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final authService = Provider.of<AuthService>(context, listen: false);
+      final storeService = Provider.of<StoreService>(context, listen: false);
+      final userId = authService.currentUserModel?.id ?? '';
+      
+      if (userId.isNotEmpty) {
+        storeService.trackItemView(widget.item.id, userId);
+      }
+    });
+  }
+
+  Widget _buildImageWidget(String imageUrl) {
+    try {
+      if (imageUrl.startsWith('data:image')) {
+        final base64Part = imageUrl.split(',').last;
+        final bytes = base64Part.isNotEmpty ? base64Decode(base64Part) : null;
+        if (bytes != null) {
+          return Image.memory(
+            bytes,
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) => Container(
+              color: Colors.grey[200],
+              child: const Icon(Icons.image_not_supported, size: 64),
+            ),
+          );
+        }
+      }
+    } catch (_) {}
+
+    return CachedNetworkImage(
+      imageUrl: imageUrl,
+      fit: BoxFit.cover,
+      placeholder: (context, url) => Container(
+        color: Colors.grey[200],
+        child: const Center(child: CircularProgressIndicator()),
+      ),
+      errorWidget: (context, url, error) => Container(
+        color: Colors.grey[200],
+        child: const Icon(Icons.image_not_supported, size: 64),
+      ),
+    );
   }
 
   @override
@@ -95,18 +148,7 @@ class _StoreItemDetailsScreenState extends State<StoreItemDetailsScreen> {
             },
             itemCount: widget.item.imageUrls.length,
             itemBuilder: (context, index) {
-              return CachedNetworkImage(
-                imageUrl: widget.item.imageUrls[index],
-                fit: BoxFit.cover,
-                placeholder: (context, url) => Container(
-                  color: Colors.grey[200],
-                  child: const Center(child: CircularProgressIndicator()),
-                ),
-                errorWidget: (context, url, error) => Container(
-                  color: Colors.grey[200],
-                  child: const Icon(Icons.image_not_supported, size: 64),
-                ),
-              );
+              return _buildImageWidget(widget.item.imageUrls[index]);
             },
           ),
           if (widget.item.imageUrls.length > 1) ...[
@@ -362,6 +404,45 @@ class _StoreItemDetailsScreenState extends State<StoreItemDetailsScreen> {
       child: SafeArea(
         child: Row(
           children: [
+            if (widget.item.isInStock) ...[
+              Expanded(
+                child: Consumer<CartService>(
+                  builder: (context, cartService, child) {
+                    final isInCart = cartService.isInCart(widget.item.id);
+                    return ElevatedButton.icon(
+                      onPressed: () {
+                        cartService.addToCart(widget.item);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('${widget.item.name} added to cart'),
+                            duration: const Duration(seconds: 2),
+                            action: SnackBarAction(
+                              label: 'View Cart',
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => const ShoppingCartScreen(),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                        );
+                      },
+                      icon: Icon(isInCart ? Icons.check : Icons.add_shopping_cart),
+                      label: Text(isInCart ? 'Added to Cart' : 'Add to Cart'),
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        backgroundColor: isInCart ? Colors.green : Colors.blue,
+                        foregroundColor: Colors.white,
+                      ),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(width: 8),
+            ],
             Expanded(
               child: ElevatedButton.icon(
                 onPressed: widget.item.isInStock ? _launchExternalUrl : null,
@@ -377,13 +458,13 @@ class _StoreItemDetailsScreenState extends State<StoreItemDetailsScreen> {
                 ),
               ),
             ),
-            const SizedBox(width: 16),
+            const SizedBox(width: 8),
             OutlinedButton.icon(
               onPressed: _shareProduct,
               icon: const Icon(Icons.share),
               label: const Text('Share'),
               style: OutlinedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+                padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
               ),
             ),
           ],

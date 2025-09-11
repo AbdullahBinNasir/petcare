@@ -7,6 +7,10 @@ import '../shared/profile_screen.dart';
 import '../shared/appointments_screen.dart';
 import '../shared/blog_screen.dart';
 import '../shared/admin_blog_management_screen.dart';
+import '../shared/pet_store_screen.dart';
+import '../shared/admin_store_management_screen.dart';
+import '../shared/analytics_dashboard_screen.dart';
+import '../shared/order_management_screen.dart';
 
 class VetDashboard extends StatefulWidget {
   const VetDashboard({super.key});
@@ -48,8 +52,12 @@ class _VetDashboardState extends State<VetDashboard> {
     final List<Widget> pages = [
       _buildHomeTab(),
       const AppointmentsScreen(),
+      // const PetStoreScreen(),
       const BlogScreen(),
+      const AdminStoreManagementScreen(),
+      const OrderManagementScreen(),
       const AdminBlogManagementScreen(),
+      const AnalyticsDashboardScreen(),
       const ProfileScreen(),
     ];
 
@@ -71,13 +79,29 @@ class _VetDashboardState extends State<VetDashboard> {
             icon: Icon(Icons.calendar_today),
             label: 'Appointments',
           ),
+          // BottomNavigationBarItem(
+          //   icon: Icon(Icons.store),
+          //   label: 'Store',
+          // ),
           BottomNavigationBarItem(
             icon: Icon(Icons.article),
             label: 'Blog',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.admin_panel_settings),
-            label: 'Admin',
+            label: 'Store Admin',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.shopping_bag),
+            label: 'Orders',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.edit),
+            label: 'Blog Admin',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.analytics),
+            label: 'Analytics',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.person),
@@ -290,10 +314,32 @@ class _VetDashboardState extends State<VetDashboard> {
                         const SizedBox(width: 12),
                         Expanded(
                           child: _buildActionCard(
+                            'Manage Store',
+                            Icons.store,
+                            Colors.orange,
+                            () => setState(() => _currentIndex = 4),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildActionCard(
                             'Manage Blog',
                             Icons.admin_panel_settings,
                             Colors.green,
-                            () => setState(() => _currentIndex = 3),
+                            () => setState(() => _currentIndex = 5),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _buildActionCard(
+                            'View Analytics',
+                            Icons.analytics,
+                            Colors.purple,
+                            () => setState(() => _currentIndex = 6),
                           ),
                         ),
                       ],

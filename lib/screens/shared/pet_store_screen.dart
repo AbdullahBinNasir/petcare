@@ -3,10 +3,13 @@ import 'package:provider/provider.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'dart:convert';
 import '../../models/store_item_model.dart';
 import '../../services/store_service.dart';
 import '../../services/auth_service.dart';
+import '../../services/cart_service.dart';
 import 'store_item_details_screen.dart';
+import 'shopping_cart_screen.dart';
 
 class PetStoreScreen extends StatefulWidget {
   const PetStoreScreen({super.key});
@@ -43,12 +46,90 @@ class _PetStoreScreenState extends State<PetStoreScreen> {
     }
   }
 
+  Widget _buildImageWidget(String imageUrl) {
+    try {
+      if (imageUrl.startsWith('data:image')) {
+        final base64Part = imageUrl.split(',').last;
+        final bytes = base64Part.isNotEmpty ? base64Decode(base64Part) : null;
+        if (bytes != null) {
+          return Image.memory(
+            bytes,
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) => Container(
+              color: Colors.grey[200],
+              child: const Icon(Icons.shopping_bag, size: 48),
+            ),
+          );
+        }
+      }
+    } catch (_) {}
+
+    return CachedNetworkImage(
+      imageUrl: imageUrl,
+      fit: BoxFit.cover,
+      placeholder: (context, url) => Container(
+        color: Colors.grey[200],
+        child: const Center(
+          child: CircularProgressIndicator(),
+        ),
+      ),
+      errorWidget: (context, url, error) => Container(
+        color: Colors.grey[200],
+        child: const Icon(Icons.image_not_supported),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Pet Store'),
         actions: [
+          Consumer<CartService>(
+            builder: (context, cartService, child) {
+              return Stack(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.shopping_cart),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const ShoppingCartScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                  if (cartService.itemCount > 0)
+                    Positioned(
+                      right: 8,
+                      top: 8,
+                      child: Container(
+                        padding: const EdgeInsets.all(2),
+                        decoration: BoxDecoration(
+                          color: Colors.red,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        constraints: const BoxConstraints(
+                          minWidth: 16,
+                          minHeight: 16,
+                        ),
+                        child: Text(
+                          '${cartService.itemCount}',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ),
+                ],
+              );
+            },
+          ),
           IconButton(
             icon: Icon(_showFilters ? Icons.filter_list_off : Icons.filter_list),
             onPressed: () {
@@ -209,10 +290,10 @@ class _PetStoreScreenState extends State<PetStoreScreen> {
         }
 
         return MasonryGridView.count(
-          crossAxisCount: 2,
-          padding: const EdgeInsets.all(16),
-          mainAxisSpacing: 16,
-          crossAxisSpacing: 16,
+          crossAxisCount: 3,
+          padding: const EdgeInsets.all(12),
+          mainAxisSpacing: 12,
+          crossAxisSpacing: 12,
           itemCount: storeService.storeItems.length,
           itemBuilder: (context, index) {
             final item = storeService.storeItems[index];
@@ -231,7 +312,7 @@ class _PetStoreScreenState extends State<PetStoreScreen> {
 
     return Card(
       elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       child: InkWell(
         onTap: () {
           if (userId.isNotEmpty) {
@@ -244,40 +325,27 @@ class _PetStoreScreenState extends State<PetStoreScreen> {
             ),
           );
         },
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(8),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Stack(
               children: [
                 ClipRRect(
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
                   child: AspectRatio(
-                    aspectRatio: 1,
+                    aspectRatio: 1.2,
                     child: item.imageUrls.isNotEmpty
-                        ? CachedNetworkImage(
-                            imageUrl: item.imageUrls.first,
-                            fit: BoxFit.cover,
-                            placeholder: (context, url) => Container(
-                              color: Colors.grey[200],
-                              child: const Center(
-                                child: CircularProgressIndicator(),
-                              ),
-                            ),
-                            errorWidget: (context, url, error) => Container(
-                              color: Colors.grey[200],
-                              child: const Icon(Icons.image_not_supported),
-                            ),
-                          )
+                        ? _buildImageWidget(item.imageUrls.first)
                         : Container(
                             color: Colors.grey[200],
-                            child: const Icon(Icons.shopping_bag, size: 48),
+                            child: const Icon(Icons.shopping_bag, size: 32),
                           ),
                   ),
                 ),
                 Positioned(
-                  top: 8,
-                  right: 8,
+                  top: 6,
+                  right: 6,
                   child: Container(
                     decoration: BoxDecoration(
                       color: Colors.white,
@@ -285,7 +353,7 @@ class _PetStoreScreenState extends State<PetStoreScreen> {
                       boxShadow: [
                         BoxShadow(
                           color: Colors.black.withOpacity(0.1),
-                          blurRadius: 4,
+                          blurRadius: 2,
                         ),
                       ],
                     ),
@@ -293,7 +361,7 @@ class _PetStoreScreenState extends State<PetStoreScreen> {
                       icon: Icon(
                         isFavorite ? Icons.favorite : Icons.favorite_border,
                         color: isFavorite ? Colors.red : Colors.grey,
-                        size: 20,
+                        size: 16,
                       ),
                       onPressed: () {
                         if (userId.isNotEmpty) {
@@ -305,19 +373,19 @@ class _PetStoreScreenState extends State<PetStoreScreen> {
                 ),
                 if (!item.isInStock)
                   Positioned(
-                    top: 8,
-                    left: 8,
+                    top: 6,
+                    left: 6,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
                         color: Colors.red,
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(8),
                       ),
                       child: const Text(
                         'Out of Stock',
                         style: TextStyle(
                           color: Colors.white,
-                          fontSize: 10,
+                          fontSize: 8,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -326,7 +394,7 @@ class _PetStoreScreenState extends State<PetStoreScreen> {
               ],
             ),
             Padding(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.all(8),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -334,57 +402,108 @@ class _PetStoreScreenState extends State<PetStoreScreen> {
                     item.name,
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
-                      fontSize: 14,
+                      fontSize: 12,
                     ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 2),
                   Text(
                     item.brand,
                     style: TextStyle(
                       color: Colors.grey[600],
-                      fontSize: 12,
+                      fontSize: 10,
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 4),
                   Row(
                     children: [
                       Text(
                         item.formattedPrice,
                         style: const TextStyle(
                           fontWeight: FontWeight.bold,
-                          fontSize: 16,
+                          fontSize: 14,
                           color: Colors.green,
                         ),
                       ),
                       const Spacer(),
                       if (item.rating != null) ...[
-                        Icon(Icons.star, size: 14, color: Colors.amber[600]),
+                        Icon(Icons.star, size: 12, color: Colors.amber[600]),
                         const SizedBox(width: 2),
                         Text(
                           item.rating!.toStringAsFixed(1),
-                          style: const TextStyle(fontSize: 12),
+                          style: const TextStyle(fontSize: 10),
                         ),
                       ],
                     ],
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 4),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                     decoration: BoxDecoration(
                       color: Theme.of(context).primaryColor.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text(
                       _getCategoryName(item.category),
                       style: TextStyle(
                         color: Theme.of(context).primaryColor,
-                        fontSize: 10,
+                        fontSize: 8,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                   ),
+                  const SizedBox(height: 6),
+                  if (item.isInStock)
+                    Consumer<CartService>(
+                      builder: (context, cartService, child) {
+                        final isInCart = cartService.isInCart(item.id);
+                        return SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            onPressed: () {
+                              cartService.addToCart(item);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('${item.name} added to cart'),
+                                  duration: const Duration(seconds: 2),
+                                  action: SnackBarAction(
+                                    label: 'Go to Cart',
+                                    onPressed: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => const ShoppingCartScreen(),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                ),
+                              );
+                            },
+                            icon: Icon(
+                              isInCart ? Icons.check : Icons.add_shopping_cart,
+                              size: 14,
+                            ),
+                            label: Text(
+                              isInCart ? 'Added' : 'Add to Cart',
+                              style: const TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: isInCart ? Colors.green : Colors.blue,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 6),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
                 ],
               ),
             ),
@@ -414,6 +533,40 @@ class _PetStoreScreenState extends State<PetStoreScreen> {
 
 class FavoritesScreen extends StatelessWidget {
   const FavoritesScreen({super.key});
+
+  Widget _buildImageWidget(String imageUrl) {
+    try {
+      if (imageUrl.startsWith('data:image')) {
+        final base64Part = imageUrl.split(',').last;
+        final bytes = base64Part.isNotEmpty ? base64Decode(base64Part) : null;
+        if (bytes != null) {
+          return Image.memory(
+            bytes,
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) => Container(
+              color: Colors.grey[200],
+              child: const Icon(Icons.shopping_bag, size: 48),
+            ),
+          );
+        }
+      }
+    } catch (_) {}
+
+    return CachedNetworkImage(
+      imageUrl: imageUrl,
+      fit: BoxFit.cover,
+      placeholder: (context, url) => Container(
+        color: Colors.grey[200],
+        child: const Center(
+          child: CircularProgressIndicator(),
+        ),
+      ),
+      errorWidget: (context, url, error) => Container(
+        color: Colors.grey[200],
+        child: const Icon(Icons.image_not_supported),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -449,10 +602,10 @@ class FavoritesScreen extends StatelessWidget {
           }
 
           return MasonryGridView.count(
-            crossAxisCount: 2,
-            padding: const EdgeInsets.all(16),
-            mainAxisSpacing: 16,
-            crossAxisSpacing: 16,
+            crossAxisCount: 3,
+            padding: const EdgeInsets.all(12),
+            mainAxisSpacing: 12,
+            crossAxisSpacing: 12,
             itemCount: favoriteItems.length,
             itemBuilder: (context, index) {
               final item = favoriteItems[index];
@@ -490,18 +643,7 @@ class FavoritesScreen extends StatelessWidget {
                   child: AspectRatio(
                     aspectRatio: 1,
                     child: item.imageUrls.isNotEmpty
-                        ? CachedNetworkImage(
-                            imageUrl: item.imageUrls.first,
-                            fit: BoxFit.cover,
-                            placeholder: (context, url) => Container(
-                              color: Colors.grey[200],
-                              child: const Center(child: CircularProgressIndicator()),
-                            ),
-                            errorWidget: (context, url, error) => Container(
-                              color: Colors.grey[200],
-                              child: const Icon(Icons.image_not_supported),
-                            ),
-                          )
+                        ? _buildImageWidget(item.imageUrls.first)
                         : Container(
                             color: Colors.grey[200],
                             child: const Icon(Icons.shopping_bag, size: 48),

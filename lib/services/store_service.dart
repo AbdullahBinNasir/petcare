@@ -1,9 +1,11 @@
 import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/store_item_model.dart';
+import 'analytics_service.dart';
 
 class StoreService extends ChangeNotifier {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  AnalyticsService? _analyticsService;
   
   List<StoreItemModel> _storeItems = [];
   List<StoreItemModel> _filteredItems = [];
@@ -16,6 +18,35 @@ class StoreService extends ChangeNotifier {
   Map<String, int> _userClicks = {};
   Map<String, List<String>> _userFavorites = {};
 
+  void setAnalyticsService(AnalyticsService analyticsService) {
+    _analyticsService = analyticsService;
+  }
+
+  Future<void> trackItemView(String itemId, String userId) async {
+    try {
+      // Find the item to get its category
+      final item = _storeItems.firstWhere(
+        (item) => item.id == itemId,
+        orElse: () => StoreItemModel(
+          id: itemId,
+          name: '',
+          description: '',
+          price: 0,
+          category: StoreCategory.other,
+          brand: '',
+          externalUrl: '',
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+        ),
+      );
+
+      // Track with analytics service
+      _analyticsService?.trackItemView(itemId, userId, item.category);
+    } catch (e) {
+      debugPrint('Error tracking item view: $e');
+    }
+  }
+
   List<StoreItemModel> get storeItems => _filteredItems;
   bool get isLoading => _isLoading;
   String get searchQuery => _searchQuery;
@@ -27,15 +58,50 @@ class StoreService extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final querySnapshot = await _firestore
-          .collection('store_items')
-          .where('isActive', isEqualTo: true)
-          .orderBy('createdAt', descending: true)
-          .get();
+      // First try with orderBy, if it fails, try without
+      QuerySnapshot querySnapshot;
+      try {
+        querySnapshot = await _firestore
+            .collection('store_items')
+            .where('isActive', isEqualTo: true)
+            .orderBy('createdAt', descending: true)
+            .get();
+      } catch (e) {
+        debugPrint('OrderBy query failed, trying without orderBy: $e');
+        // If orderBy fails (likely due to missing composite index), try without it
+        querySnapshot = await _firestore
+            .collection('store_items')
+            .where('isActive', isEqualTo: true)
+            .get();
+      }
 
       _storeItems = querySnapshot.docs
-          .map((doc) => StoreItemModel.fromFirestore(doc))
+          .map((doc) {
+            try {
+              return StoreItemModel.fromFirestore(doc);
+            } catch (e) {
+              debugPrint('Error parsing document ${doc.id}: $e');
+              return null;
+            }
+          })
+          .where((item) => item != null)
+          .cast<StoreItemModel>()
           .toList();
+
+      debugPrint('Loaded ${_storeItems.length} store items from Firestore');
+      for (var item in _storeItems) {
+        debugPrint('Item: ${item.name}, isActive: ${item.isActive}, createdAt: ${item.createdAt}');
+      }
+
+      // Sort manually if orderBy didn't work
+      _storeItems.sort((a, b) {
+        try {
+          return b.createdAt.compareTo(a.createdAt);
+        } catch (e) {
+          debugPrint('Error sorting by createdAt: $e');
+          return 0; // Keep original order if sorting fails
+        }
+      });
 
       _applyFiltersAndSort();
     } catch (e) {
@@ -61,33 +127,6 @@ class StoreService extends ChangeNotifier {
     _applyFiltersAndSort();
   }
 
-  // Advanced filtering options
-  void filterByPriceRange(double minPrice, double maxPrice) {
-    _filteredItems = _storeItems.where((item) {
-      return item.price >= minPrice && item.price <= maxPrice;
-    }).toList();
-    _applySort();
-  }
-
-  void filterByBrand(String brand) {
-    _filteredItems = _storeItems.where((item) {
-      return item.brand.toLowerCase().contains(brand.toLowerCase());
-    }).toList();
-    _applySort();
-  }
-
-  void filterByRating(double minRating) {
-    _filteredItems = _storeItems.where((item) {
-      return (item.rating ?? 0) >= minRating;
-    }).toList();
-    _applySort();
-  }
-
-  void filterInStock() {
-    _filteredItems = _storeItems.where((item) => item.isInStock).toList();
-    _applySort();
-  }
-
   void _applyFiltersAndSort() {
     _filteredItems = List.from(_storeItems);
 
@@ -108,10 +147,6 @@ class StoreService extends ChangeNotifier {
           .toList();
     }
 
-    _applySort();
-  }
-
-  void _applySort() {
     // Apply sorting
     switch (_sortBy) {
       case 'name':
@@ -127,10 +162,7 @@ class StoreService extends ChangeNotifier {
         _filteredItems.sort((a, b) => (b.rating ?? 0).compareTo(a.rating ?? 0));
         break;
       case 'popularity':
-        _filteredItems.sort((a, b) => (b.reviewCount + (_userClicks[b.id] ?? 0)).compareTo(a.reviewCount + (_userClicks[a.id] ?? 0)));
-        break;
-      case 'newest':
-        _filteredItems.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+        _filteredItems.sort((a, b) => b.reviewCount.compareTo(a.reviewCount));
         break;
     }
 
@@ -141,6 +173,25 @@ class StoreService extends ChangeNotifier {
     try {
       // Update local tracking
       _userClicks[itemId] = (_userClicks[itemId] ?? 0) + 1;
+
+      // Find the item to get its category
+      final item = _storeItems.firstWhere(
+        (item) => item.id == itemId,
+        orElse: () => StoreItemModel(
+          id: itemId,
+          name: '',
+          description: '',
+          price: 0,
+          category: StoreCategory.other,
+          brand: '',
+          externalUrl: '',
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+        ),
+      );
+
+      // Track with analytics service
+      _analyticsService?.trackItemClick(itemId, userId, item.category);
 
       // Update in Firestore
       await _firestore
@@ -165,94 +216,29 @@ class StoreService extends ChangeNotifier {
     }
   }
 
-  // Track external purchase link clicks
-  Future<void> trackExternalPurchaseClick(String itemId, String userId) async {
-    try {
-      // Track external purchase clicks separately
-      await _firestore
-          .collection('user_interactions')
-          .doc(userId)
-          .collection('purchase_clicks')
-          .doc(itemId)
-          .set({
-        'clicks': FieldValue.increment(1),
-        'lastClicked': FieldValue.serverTimestamp(),
-        'clickType': 'external_purchase',
-      }, SetOptions(merge: true));
-
-      // Update item purchase interest
-      await _firestore
-          .collection('store_items')
-          .doc(itemId)
-          .update({
-        'purchaseClickCount': FieldValue.increment(1),
-      });
-
-      // Track for analytics
-      await _firestore.collection('analytics').add({
-        'eventType': 'external_purchase_click',
-        'itemId': itemId,
-        'userId': userId,
-        'timestamp': FieldValue.serverTimestamp(),
-      });
-    } catch (e) {
-      debugPrint('Error tracking external purchase click: $e');
-    }
-  }
-
-  // Get user interest analytics for specific user
-  Future<Map<String, dynamic>> getUserInterestAnalytics(String userId) async {
-    try {
-      final clicksSnapshot = await _firestore
-          .collection('user_interactions')
-          .doc(userId)
-          .collection('item_clicks')
-          .orderBy('clicks', descending: true)
-          .limit(10)
-          .get();
-
-      final purchaseClicksSnapshot = await _firestore
-          .collection('user_interactions')
-          .doc(userId)
-          .collection('purchase_clicks')
-          .orderBy('clicks', descending: true)
-          .limit(10)
-          .get();
-
-      // Get category preferences
-      final categoryPreferences = <String, int>{};
-      for (final doc in clicksSnapshot.docs) {
-        final item = _storeItems.firstWhere(
-          (item) => item.id == doc.id,
-          orElse: () => _storeItems.first,
-        );
-        final category = item.category.toString().split('.').last;
-        categoryPreferences[category] = (categoryPreferences[category] ?? 0) + (doc.data()['clicks'] as int);
-      }
-
-      return {
-        'topClickedItems': clicksSnapshot.docs.map((doc) => {
-          'itemId': doc.id,
-          'clicks': doc.data()['clicks'],
-          'lastClicked': doc.data()['lastClicked'],
-        }).toList(),
-        'topPurchaseIntents': purchaseClicksSnapshot.docs.map((doc) => {
-          'itemId': doc.id,
-          'clicks': doc.data()['clicks'],
-          'lastClicked': doc.data()['lastClicked'],
-        }).toList(),
-        'categoryPreferences': categoryPreferences,
-      };
-    } catch (e) {
-      debugPrint('Error getting user interest analytics: $e');
-      return {};
-    }
-  }
-
   Future<void> toggleFavorite(String itemId, String userId) async {
     try {
       final userFavorites = _userFavorites[userId] ?? [];
       final isFavorite = userFavorites.contains(itemId);
+
+      // Find the item to get its category
+      final item = _storeItems.firstWhere(
+        (item) => item.id == itemId,
+        orElse: () => StoreItemModel(
+          id: itemId,
+          name: '',
+          description: '',
+          price: 0,
+          category: StoreCategory.other,
+          brand: '',
+          externalUrl: '',
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+        ),
+      );
+
+      // Track with analytics service
+      _analyticsService?.trackFavoriteAction(itemId, userId, !isFavorite, item.category);
 
       if (isFavorite) {
         userFavorites.remove(itemId);
@@ -314,7 +300,9 @@ class StoreService extends ChangeNotifier {
   // Admin functions
   Future<void> addStoreItem(StoreItemModel item) async {
     try {
-      await _firestore.collection('store_items').add(item.toFirestore());
+      debugPrint('Adding store item: ${item.name}, isActive: ${item.isActive}');
+      final docRef = await _firestore.collection('store_items').add(item.toFirestore());
+      debugPrint('Store item added with ID: ${docRef.id}');
       await loadStoreItems(); // Refresh the list
     } catch (e) {
       debugPrint('Error adding store item: $e');
@@ -355,49 +343,40 @@ class StoreService extends ChangeNotifier {
     _applyFiltersAndSort();
   }
 
-  // Get popular items based on clicks and purchases
-  List<StoreItemModel> getPopularItems({int limit = 10}) {
-    final itemsWithPopularity = _storeItems.map((item) {
-      final clicks = _userClicks[item.id] ?? 0;
-      final reviewWeight = item.reviewCount * 2; // Reviews are worth more than clicks
-      final ratingWeight = ((item.rating ?? 0) * 10).round();
-      return {
-        'item': item,
-        'popularity': clicks + reviewWeight + ratingWeight,
-      };
-    }).toList();
+  // Debug method to load all items without filters
+  Future<void> loadAllStoreItems() async {
+    _isLoading = true;
+    notifyListeners();
 
-    itemsWithPopularity.sort((a, b) => (b['popularity'] as int).compareTo(a['popularity'] as int));
-    
-    return itemsWithPopularity
-        .take(limit)
-        .map((data) => data['item'] as StoreItemModel)
-        .toList();
-  }
+    try {
+      final querySnapshot = await _firestore
+          .collection('store_items')
+          .get();
 
-  // Get recommendations based on user behavior
-  List<StoreItemModel> getRecommendedItems(String userId, {int limit = 5}) {
-    final userFavorites = _userFavorites[userId] ?? [];
-    if (userFavorites.isEmpty) {
-      return getPopularItems(limit: limit);
+      _storeItems = querySnapshot.docs
+          .map((doc) {
+            try {
+              return StoreItemModel.fromFirestore(doc);
+            } catch (e) {
+              debugPrint('Error parsing document ${doc.id}: $e');
+              return null;
+            }
+          })
+          .where((item) => item != null)
+          .cast<StoreItemModel>()
+          .toList();
+
+      debugPrint('Loaded ALL ${_storeItems.length} store items from Firestore (no filters)');
+      for (var item in _storeItems) {
+        debugPrint('Item: ${item.name}, isActive: ${item.isActive}, createdAt: ${item.createdAt}');
+      }
+
+      _applyFiltersAndSort();
+    } catch (e) {
+      debugPrint('Error loading all store items: $e');
+    } finally {
+      _isLoading = false;
+      notifyListeners();
     }
-
-    // Find categories user likes
-    final favoriteCategories = <StoreCategory>{};
-    for (final itemId in userFavorites) {
-      final item = _storeItems.firstWhere(
-        (item) => item.id == itemId,
-        orElse: () => _storeItems.first,
-      );
-      favoriteCategories.add(item.category);
-    }
-
-    // Recommend items from favorite categories
-    final recommendations = _storeItems
-        .where((item) => favoriteCategories.contains(item.category) && !userFavorites.contains(item.id))
-        .take(limit)
-        .toList();
-
-    return recommendations;
   }
 }

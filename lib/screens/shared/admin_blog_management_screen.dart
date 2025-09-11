@@ -361,13 +361,13 @@ class _AdminBlogManagementScreenState extends State<AdminBlogManagementScreen> {
                     ],
                   ),
                 ),
-                const PopupMenuItem(
-                  value: 'delete',
+                PopupMenuItem(
+                  value: post.isArchived ? 'unarchive' : 'archive',
                   child: Row(
                     children: [
-                      Icon(Icons.delete, color: Colors.red),
-                      SizedBox(width: 8),
-                      Text('Delete'),
+                      Icon(post.isArchived ? Icons.unarchive : Icons.archive, color: Colors.brown),
+                      const SizedBox(width: 8),
+                      Text(post.isArchived ? 'Unarchive' : 'Archive'),
                     ],
                   ),
                 ),
@@ -400,12 +400,13 @@ class _AdminBlogManagementScreenState extends State<AdminBlogManagementScreen> {
           await blogService.unpublishPost(post.id);
           _showSnackBar('Post unpublished successfully');
           break;
-        case 'delete':
-          final confirmed = await _showDeleteConfirmation(post.title);
-          if (confirmed) {
-            await blogService.deleteBlogPost(post.id);
-            _showSnackBar('Post deleted successfully');
-          }
+        case 'archive':
+          await blogService.archivePost(post.id);
+          _showSnackBar('Post archived');
+          break;
+        case 'unarchive':
+          await blogService.unarchivePost(post.id);
+          _showSnackBar('Post unarchived');
           break;
       }
     } catch (e) {

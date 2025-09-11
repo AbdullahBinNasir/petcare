@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:intl/intl.dart';
+import 'dart:convert';
 import '../../models/blog_post_model.dart';
 import '../../models/user_model.dart';
 import '../../services/blog_service.dart';
@@ -303,18 +304,7 @@ class _BlogScreenState extends State<BlogScreen> with TickerProviderStateMixin {
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
                 child: AspectRatio(
                   aspectRatio: 16 / 9,
-                  child: CachedNetworkImage(
-                    imageUrl: post.featuredImageUrl!,
-                    fit: BoxFit.cover,
-                    placeholder: (context, url) => Container(
-                      color: Colors.grey[200],
-                      child: const Center(child: CircularProgressIndicator()),
-                    ),
-                    errorWidget: (context, url, error) => Container(
-                      color: Colors.grey[200],
-                      child: const Icon(Icons.image_not_supported),
-                    ),
-                  ),
+                  child: _buildFeaturedImage(post.featuredImageUrl!),
                 ),
               ),
             Padding(
@@ -417,18 +407,45 @@ class _BlogScreenState extends State<BlogScreen> with TickerProviderStateMixin {
                         ],
                       ),
                       const SizedBox(width: 16),
-                      Row(
-                        children: [
-                          Icon(Icons.favorite, size: 14, color: Colors.grey[600]),
-                          const SizedBox(width: 4),
-                          Text(
-                            post.likeCount.toString(),
-                            style: TextStyle(
-                              color: Colors.grey[600],
-                              fontSize: 12,
-                            ),
-                          ),
-                        ],
+                      GestureDetector(
+                        onTap: () async {
+                          final auth = Provider.of<AuthService>(context, listen: false);
+                          final blogService = Provider.of<BlogService>(context, listen: false);
+                          final userId = auth.currentUserModel?.id;
+                          if (userId == null) {
+                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please log in to like posts')));
+                            return;
+                          }
+                          try {
+                            await blogService.toggleLike(post.id, userId);
+                          } catch (_) {}
+                        },
+                        child: FutureBuilder<bool>(
+                          future: Provider.of<AuthService>(context, listen: false).currentUserModel == null
+                              ? Future.value(false)
+                              : Provider.of<BlogService>(context, listen: false)
+                                  .isPostLiked(post.id, Provider.of<AuthService>(context, listen: false).currentUserModel!.id),
+                          builder: (context, snapshot) {
+                            final isLiked = snapshot.data == true;
+                            return Row(
+                              children: [
+                                Icon(
+                                  isLiked ? Icons.favorite : Icons.favorite_border,
+                                  size: 14,
+                                  color: isLiked ? Colors.red : Colors.grey[600],
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  post.likeCount.toString(),
+                                  style: TextStyle(
+                                    color: Colors.grey[600],
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
+                            );
+                          },
+                        ),
                       ),
                     ],
                   ),
@@ -437,6 +454,36 @@ class _BlogScreenState extends State<BlogScreen> with TickerProviderStateMixin {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildFeaturedImage(String image) {
+    try {
+      if (image.startsWith('data:image')) {
+        final base64Part = image.split(',').last;
+        final bytes = base64Decode(base64Part);
+        return Image.memory(
+          bytes,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) => Container(
+            color: Colors.grey[200],
+            child: const Icon(Icons.image_not_supported),
+          ),
+        );
+      }
+    } catch (_) {}
+
+    return CachedNetworkImage(
+      imageUrl: image,
+      fit: BoxFit.cover,
+      placeholder: (context, url) => Container(
+        color: Colors.grey[200],
+        child: const Center(child: CircularProgressIndicator()),
+      ),
+      errorWidget: (context, url, error) => Container(
+        color: Colors.grey[200],
+        child: const Icon(Icons.image_not_supported),
       ),
     );
   }

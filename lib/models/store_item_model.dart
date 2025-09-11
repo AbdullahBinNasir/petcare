@@ -18,8 +18,6 @@ class StoreItemModel {
   final String externalUrl;
   final Map<String, dynamic> specifications;
   final List<String> tags;
-  final int clickCount;
-  final int purchaseClickCount;
   final DateTime createdAt;
   final DateTime updatedAt;
   final bool isActive;
@@ -40,40 +38,60 @@ class StoreItemModel {
     required this.externalUrl,
     this.specifications = const {},
     this.tags = const [],
-    this.clickCount = 0,
-    this.purchaseClickCount = 0,
     required this.createdAt,
     required this.updatedAt,
     this.isActive = true,
   });
 
   factory StoreItemModel.fromFirestore(DocumentSnapshot doc) {
-    Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
-    return StoreItemModel(
-      id: doc.id,
-      name: data['name'] ?? '',
-      description: data['description'] ?? '',
-      price: (data['price'] ?? 0.0).toDouble(),
-      currency: data['currency'] ?? 'USD',
-      category: StoreCategory.values.firstWhere(
-        (e) => e.toString() == 'StoreCategory.${data['category']}',
-        orElse: () => StoreCategory.other,
-      ),
-      imageUrls: List<String>.from(data['imageUrls'] ?? []),
-      brand: data['brand'] ?? '',
-      isInStock: data['isInStock'] ?? true,
-      stockQuantity: data['stockQuantity'] ?? 0,
-      rating: data['rating']?.toDouble(),
-      reviewCount: data['reviewCount'] ?? 0,
-      externalUrl: data['externalUrl'] ?? '',
-      specifications: Map<String, dynamic>.from(data['specifications'] ?? {}),
-      tags: List<String>.from(data['tags'] ?? []),
-      clickCount: data['clickCount'] ?? 0,
-      purchaseClickCount: data['purchaseClickCount'] ?? 0,
-      createdAt: (data['createdAt'] as Timestamp).toDate(),
-      updatedAt: (data['updatedAt'] as Timestamp).toDate(),
-      isActive: data['isActive'] ?? true,
-    );
+    try {
+      Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+      return StoreItemModel(
+        id: doc.id,
+        name: data['name'] ?? '',
+        description: data['description'] ?? '',
+        price: (data['price'] ?? 0.0).toDouble(),
+        currency: data['currency'] ?? 'USD',
+        category: StoreCategory.values.firstWhere(
+          (e) => e.toString() == 'StoreCategory.${data['category']}',
+          orElse: () => StoreCategory.other,
+        ),
+        imageUrls: List<String>.from(data['imageUrls'] ?? []),
+        brand: data['brand'] ?? '',
+        isInStock: data['isInStock'] ?? true,
+        stockQuantity: data['stockQuantity'] ?? 0,
+        rating: data['rating']?.toDouble(),
+        reviewCount: data['reviewCount'] ?? 0,
+        externalUrl: data['externalUrl'] ?? '',
+        specifications: Map<String, dynamic>.from(data['specifications'] ?? {}),
+        tags: List<String>.from(data['tags'] ?? []),
+        createdAt: data['createdAt'] != null 
+            ? (data['createdAt'] as Timestamp).toDate()
+            : DateTime.now(),
+        updatedAt: data['updatedAt'] != null 
+            ? (data['updatedAt'] as Timestamp).toDate()
+            : DateTime.now(),
+        isActive: data['isActive'] ?? true,
+      );
+    } catch (e) {
+      print('Error parsing store item from Firestore: $e');
+      print('Document ID: ${doc.id}');
+      print('Document data: ${doc.data()}');
+      
+      // Return a default item to prevent app crash
+      return StoreItemModel(
+        id: doc.id,
+        name: 'Error Loading Item',
+        description: 'Failed to load item data',
+        price: 0.0,
+        category: StoreCategory.other,
+        brand: 'Unknown',
+        externalUrl: '',
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+        isActive: false,
+      );
+    }
   }
 
   Map<String, dynamic> toFirestore() {
@@ -92,8 +110,6 @@ class StoreItemModel {
       'externalUrl': externalUrl,
       'specifications': specifications,
       'tags': tags,
-      'clickCount': clickCount,
-      'purchaseClickCount': purchaseClickCount,
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedAt': Timestamp.fromDate(updatedAt),
       'isActive': isActive,
@@ -134,8 +150,6 @@ class StoreItemModel {
     String? externalUrl,
     Map<String, dynamic>? specifications,
     List<String>? tags,
-    int? clickCount,
-    int? purchaseClickCount,
     DateTime? updatedAt,
     bool? isActive,
   }) {
@@ -155,8 +169,6 @@ class StoreItemModel {
       externalUrl: externalUrl ?? this.externalUrl,
       specifications: specifications ?? this.specifications,
       tags: tags ?? this.tags,
-      clickCount: clickCount ?? this.clickCount,
-      purchaseClickCount: purchaseClickCount ?? this.purchaseClickCount,
       createdAt: createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       isActive: isActive ?? this.isActive,

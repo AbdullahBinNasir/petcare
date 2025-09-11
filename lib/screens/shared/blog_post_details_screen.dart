@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'dart:convert';
 import 'package:flutter_html/flutter_html.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:intl/intl.dart';
@@ -94,18 +95,7 @@ class _BlogPostDetailsScreenState extends State<BlogPostDetailsScreen> {
         if (widget.post.featuredImageUrl != null)
           AspectRatio(
             aspectRatio: 16 / 9,
-            child: CachedNetworkImage(
-              imageUrl: widget.post.featuredImageUrl!,
-              fit: BoxFit.cover,
-              placeholder: (context, url) => Container(
-                color: Colors.grey[200],
-                child: const Center(child: CircularProgressIndicator()),
-              ),
-              errorWidget: (context, url, error) => Container(
-                color: Colors.grey[200],
-                child: const Icon(Icons.image_not_supported, size: 64),
-              ),
-            ),
+            child: _buildFeaturedImage(widget.post.featuredImageUrl!),
           ),
         Padding(
           padding: const EdgeInsets.all(16),
@@ -198,6 +188,36 @@ class _BlogPostDetailsScreenState extends State<BlogPostDetailsScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildFeaturedImage(String image) {
+    try {
+      if (image.startsWith('data:image')) {
+        final base64Part = image.split(',').last;
+        final bytes = base64Decode(base64Part);
+        return Image.memory(
+          bytes,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) => Container(
+            color: Colors.grey[200],
+            child: const Icon(Icons.image_not_supported, size: 64),
+          ),
+        );
+      }
+    } catch (_) {}
+
+    return CachedNetworkImage(
+      imageUrl: image,
+      fit: BoxFit.cover,
+      placeholder: (context, url) => Container(
+        color: Colors.grey[200],
+        child: const Center(child: CircularProgressIndicator()),
+      ),
+      errorWidget: (context, url, error) => Container(
+        color: Colors.grey[200],
+        child: const Icon(Icons.image_not_supported, size: 64),
+      ),
     );
   }
 

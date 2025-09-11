@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
+import 'dart:io';
+import 'dart:convert';
+import 'dart:typed_data';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import '../../models/store_item_model.dart';
 import '../../services/store_service.dart';
 
@@ -354,20 +358,7 @@ class _CreateStoreItemScreenState extends State<CreateStoreItemScreen> {
                         children: [
                           ClipRRect(
                             borderRadius: BorderRadius.circular(8),
-                            child: Image.network(
-                              _imageUrls[index],
-                              width: 120,
-                              height: 120,
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) {
-                                return Container(
-                                  width: 120,
-                                  height: 120,
-                                  color: Colors.grey[200],
-                                  child: const Icon(Icons.image_not_supported),
-                                );
-                              },
-                            ),
+                            child: _buildPreviewImage(_imageUrls[index], 120, 120),
                           ),
                           Positioned(
                             top: 4,
@@ -521,22 +512,65 @@ class _CreateStoreItemScreenState extends State<CreateStoreItemScreen> {
     );
   }
 
+  Widget _buildPreviewImage(String image, double width, double height) {
+    try {
+      if (image.startsWith('data:image')) {
+        final base64Part = image.split(',').last;
+        final bytes = base64Part.isNotEmpty ? base64Decode(base64Part) : null;
+        if (bytes != null) {
+          return Image.memory(
+            bytes,
+            width: width,
+            height: height,
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) {
+              return Container(
+                width: width,
+                height: height,
+                color: Colors.grey[200],
+                child: const Icon(Icons.image_not_supported),
+              );
+            },
+          );
+        }
+      }
+    } catch (_) {}
+
+    return Image.network(
+      image,
+      width: width,
+      height: height,
+      fit: BoxFit.cover,
+      errorBuilder: (context, error, stackTrace) {
+        return Container(
+          width: width,
+          height: height,
+          color: Colors.grey[200],
+          child: const Icon(Icons.image_not_supported),
+        );
+      },
+    );
+  }
+
   void _pickImages() async {
     final ImagePicker picker = ImagePicker();
     final List<XFile> images = await picker.pickMultiImage();
     
     if (images.isNotEmpty) {
+      final List<String> newDataUrls = [];
+      for (final img in images) {
+        final bytes = kIsWeb ? await img.readAsBytes() : await File(img.path).readAsBytes();
+        final lower = img.name.toLowerCase();
+        final mime = lower.endsWith('.png')
+            ? 'image/png'
+            : lower.endsWith('.webp')
+                ? 'image/webp'
+                : 'image/jpeg';
+        newDataUrls.add('data:$mime;base64,${base64Encode(bytes)}');
+      }
       setState(() {
-        for (int i = 0; i < images.length; i++) {
-          _imageUrls.add('https://via.placeholder.com/300x300?text=Image${_imageUrls.length + i + 1}');
-        }
+        _imageUrls.addAll(newDataUrls);
       });
-      
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('${images.length} images selected. In production, these would be uploaded to storage.'),
-        ),
-      );
     }
   }
 

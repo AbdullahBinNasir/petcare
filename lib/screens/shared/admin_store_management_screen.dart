@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'dart:convert';
 import '../../models/store_item_model.dart';
 import '../../services/store_service.dart';
 import 'create_store_item_screen.dart';
@@ -29,12 +30,51 @@ class _AdminStoreManagementScreenState extends State<AdminStoreManagementScreen>
     super.dispose();
   }
 
+  Widget _buildImageWidget(String imageUrl) {
+    try {
+      if (imageUrl.startsWith('data:image')) {
+        final base64Part = imageUrl.split(',').last;
+        final bytes = base64Part.isNotEmpty ? base64Decode(base64Part) : null;
+        if (bytes != null) {
+          return Image.memory(
+            bytes,
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) => Container(
+              color: Colors.grey[200],
+              child: const Icon(Icons.shopping_bag),
+            ),
+          );
+        }
+      }
+    } catch (_) {}
+
+    return CachedNetworkImage(
+      imageUrl: imageUrl,
+      fit: BoxFit.cover,
+      placeholder: (context, url) => Container(
+        color: Colors.grey[200],
+        child: const Icon(Icons.image),
+      ),
+      errorWidget: (context, url, error) => Container(
+        color: Colors.grey[200],
+        child: const Icon(Icons.image_not_supported),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Store Management'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.bug_report),
+            onPressed: () {
+              Provider.of<StoreService>(context, listen: false).loadAllStoreItems();
+            },
+            tooltip: 'Debug: Load All Items',
+          ),
           IconButton(
             icon: const Icon(Icons.add),
             onPressed: () {
@@ -205,18 +245,7 @@ class _AdminStoreManagementScreenState extends State<AdminStoreManagementScreen>
                 width: 60,
                 height: 60,
                 child: item.imageUrls.isNotEmpty
-                    ? CachedNetworkImage(
-                        imageUrl: item.imageUrls.first,
-                        fit: BoxFit.cover,
-                        placeholder: (context, url) => Container(
-                          color: Colors.grey[200],
-                          child: const Icon(Icons.image),
-                        ),
-                        errorWidget: (context, url, error) => Container(
-                          color: Colors.grey[200],
-                          child: const Icon(Icons.image_not_supported),
-                        ),
-                      )
+                    ? _buildImageWidget(item.imageUrls.first)
                     : Container(
                         color: Colors.grey[200],
                         child: const Icon(Icons.shopping_bag),

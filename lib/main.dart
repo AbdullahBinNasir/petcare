@@ -15,6 +15,8 @@ import 'services/pet_service.dart';
 import 'services/appointment_service.dart';
 import 'services/health_record_service.dart';
 import 'services/store_service.dart';
+import 'services/cart_service.dart';
+import 'services/order_service.dart';
 import 'services/blog_service.dart';
 import 'services/notification_service.dart';
 import 'models/user_model.dart';
@@ -46,6 +48,8 @@ class PetCareApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => AppointmentService()),
         ChangeNotifierProvider(create: (_) => HealthRecordService()),
         ChangeNotifierProvider(create: (_) => StoreService()),
+        ChangeNotifierProvider(create: (_) => CartService()),
+        ChangeNotifierProvider(create: (_) => OrderService()),
         ChangeNotifierProvider(create: (_) => BlogService()),
       ],
       child: MaterialApp(
