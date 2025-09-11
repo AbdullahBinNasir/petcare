@@ -66,8 +66,27 @@ class _AppointmentsScreenState extends State<AppointmentsScreen>
     final authService = Provider.of<AuthService>(context, listen: false);
     final appointmentService = Provider.of<AppointmentService>(context, listen: false);
     
-    if (authService.currentUserModel != null) {
-      return await appointmentService.getAppointmentsByPetOwner(authService.currentUserModel!.id);
+    final currentUser = authService.currentUserModel;
+    final firebaseUser = authService.currentUser;
+    
+    if (currentUser != null && firebaseUser != null) {
+      print('Getting appointments for user: ${currentUser.id}, role: ${currentUser.role}');
+      print('Firebase UID: ${firebaseUser.uid}');
+      
+      // Check user role and fetch appropriate appointments
+      if (currentUser.role == UserRole.veterinarian) {
+        print('Fetching appointments for veterinarian using Firebase UID');
+        // Use Firebase Auth UID for veterinarian appointments
+        return await appointmentService.getAppointmentsByVeterinarian(firebaseUser.uid);
+      } else if (currentUser.role == UserRole.petOwner) {
+        print('Fetching appointments for pet owner using Firebase UID');
+        // Use Firebase Auth UID for pet owner appointments too
+        return await appointmentService.getAppointmentsByPetOwner(firebaseUser.uid);
+      } else {
+        print('Unknown user role: ${currentUser.role}');
+      }
+    } else {
+      print('No current user found');
     }
     return [];
   }
@@ -94,16 +113,25 @@ class _AppointmentsScreenState extends State<AppointmentsScreen>
           _buildHistoryView(),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const BookAppointmentScreen(),
-            ),
-          );
+      floatingActionButton: Consumer<AuthService>(
+        builder: (context, authService, child) {
+          final currentUser = authService.currentUserModel;
+          // Only show FAB for pet owners
+          if (currentUser?.role == UserRole.petOwner) {
+            return FloatingActionButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const BookAppointmentScreen(),
+                  ),
+                );
+              },
+              child: const Icon(Icons.add),
+            );
+          }
+          return const SizedBox.shrink();
         },
-        child: const Icon(Icons.add),
       ),
     );
   }
@@ -193,9 +221,18 @@ class _AppointmentsScreenState extends State<AppointmentsScreen>
             }
             
             final allAppointments = snapshot.data!;
-            final upcomingAppointments = allAppointments
-                .where((apt) => apt.appointmentDate.isAfter(DateTime.now()))
-                .toList();
+            print('Total appointments found: ${allAppointments.length}');
+            
+            final now = DateTime.now();
+            print('Current time: $now');
+            
+            final upcomingAppointments = allAppointments.where((apt) {
+              final isUpcoming = apt.isUpcoming; // uses status and date
+              print('Appointment: ${apt.reason} - Date: ${apt.appointmentDate} - Status: ${apt.status} - Is upcoming: $isUpcoming');
+              return isUpcoming;
+            }).toList();
+            
+            print('Upcoming appointments found: ${upcomingAppointments.length}');
             upcomingAppointments.sort((a, b) => a.appointmentDate.compareTo(b.appointmentDate));
 
             final filteredAppointments = _getFilteredAppointments(upcomingAppointments);
@@ -244,9 +281,18 @@ class _AppointmentsScreenState extends State<AppointmentsScreen>
             }
             
             final allAppointments = snapshot.data!;
-            final pastAppointments = allAppointments
-                .where((apt) => apt.appointmentDate.isBefore(DateTime.now()))
-                .toList();
+            print('Total appointments for history: ${allAppointments.length}');
+            
+            final now = DateTime.now();
+            print('Current time for history: $now');
+            
+            final pastAppointments = allAppointments.where((apt) {
+              final isPast = apt.isPast; // past if date passed or completed
+              print('History - Appointment: ${apt.reason} - Date: ${apt.appointmentDate} - Status: ${apt.status} - Is past: $isPast');
+              return isPast;
+            }).toList();
+            
+            print('Past appointments found: ${pastAppointments.length}');
             pastAppointments.sort((a, b) => b.appointmentDate.compareTo(a.appointmentDate));
 
             final filteredPastAppointments = _getFilteredAppointments(pastAppointments);

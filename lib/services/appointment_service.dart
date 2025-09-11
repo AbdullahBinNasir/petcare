@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:timezone/timezone.dart' as tz;
 import '../models/appointment_model.dart';
 import '../services/notification_service.dart';
 
@@ -47,17 +45,36 @@ class AppointmentService extends ChangeNotifier {
   // Get appointments by pet owner ID
   Future<List<AppointmentModel>> getAppointmentsByPetOwner(String petOwnerId) async {
     try {
+      print('AppointmentService: Fetching appointments for pet owner: $petOwnerId');
+      
+      // Simplified query - no ordering to avoid composite index
       final querySnapshot = await _firestore
           .collection('appointments')
           .where('petOwnerId', isEqualTo: petOwnerId)
-          .orderBy('appointmentDate', descending: true)
           .get();
 
-      return querySnapshot.docs
-          .map((doc) => AppointmentModel.fromFirestore(doc))
-          .toList();
+      print('AppointmentService: Found ${querySnapshot.docs.length} appointments for pet owner');
+      
+      final appointments = <AppointmentModel>[];
+      for (var doc in querySnapshot.docs) {
+        try {
+          final appointment = AppointmentModel.fromFirestore(doc);
+          appointments.add(appointment);
+          print('  ✓ Parsed appointment: ${doc.id} - ${appointment.reason} - ${appointment.appointmentDate}');
+        } catch (parseError) {
+          print('  ✗ Error parsing appointment ${doc.id}: $parseError');
+          print('  Document data: ${doc.data()}');
+        }
+      }
+      
+      // Sort in memory instead of in query (descending for pet owner)
+      appointments.sort((a, b) => b.appointmentDate.compareTo(a.appointmentDate));
+      
+      print('AppointmentService: Successfully parsed ${appointments.length} appointments for pet owner');
+      return appointments;
     } catch (e) {
-      print('Error getting appointments: $e');
+      print('AppointmentService: Error getting pet owner appointments: $e');
+      print('Stack trace: ${StackTrace.current}');
       return [];
     }
   }
@@ -65,17 +82,36 @@ class AppointmentService extends ChangeNotifier {
   // Get appointments by veterinarian ID
   Future<List<AppointmentModel>> getAppointmentsByVeterinarian(String veterinarianId) async {
     try {
+      print('AppointmentService: Fetching appointments for veterinarian: $veterinarianId');
+      
+      // Simplified query - no ordering to avoid composite index
       final querySnapshot = await _firestore
           .collection('appointments')
           .where('veterinarianId', isEqualTo: veterinarianId)
-          .orderBy('appointmentDate', descending: false)
           .get();
 
-      return querySnapshot.docs
-          .map((doc) => AppointmentModel.fromFirestore(doc))
-          .toList();
+      print('AppointmentService: Found ${querySnapshot.docs.length} appointments');
+      
+      final appointments = <AppointmentModel>[];
+      for (var doc in querySnapshot.docs) {
+        try {
+          final appointment = AppointmentModel.fromFirestore(doc);
+          appointments.add(appointment);
+          print('  ✓ Parsed appointment: ${doc.id} - ${appointment.reason} - ${appointment.appointmentDate}');
+        } catch (parseError) {
+          print('  ✗ Error parsing appointment ${doc.id}: $parseError');
+          print('  Document data: ${doc.data()}');
+        }
+      }
+      
+      // Sort in memory instead of in query
+      appointments.sort((a, b) => a.appointmentDate.compareTo(b.appointmentDate));
+      
+      print('AppointmentService: Successfully parsed ${appointments.length} appointments');
+      return appointments;
     } catch (e) {
-      print('Error getting vet appointments: $e');
+      print('AppointmentService: Error getting vet appointments: $e');
+      print('Stack trace: ${StackTrace.current}');
       return [];
     }
   }
@@ -156,26 +192,51 @@ class AppointmentService extends ChangeNotifier {
   // Get upcoming appointments
   Future<List<AppointmentModel>> getUpcomingAppointments(String userId, {bool isVet = false}) async {
     try {
-      final now = DateTime.now();
+      print('AppointmentService: Getting upcoming appointments for user: $userId, isVet: $isVet');
+      
+      // Simplified query - get all appointments for user and filter in memory
       Query query = _firestore.collection('appointments');
       
       if (isVet) {
+        print('AppointmentService: Querying by veterinarianId');
         query = query.where('veterinarianId', isEqualTo: userId);
       } else {
+        print('AppointmentService: Querying by petOwnerId');
         query = query.where('petOwnerId', isEqualTo: userId);
       }
 
-      final querySnapshot = await query
-          .where('appointmentDate', isGreaterThan: Timestamp.fromDate(now))
-          .orderBy('appointmentDate', descending: false)
-          .get();
+      final querySnapshot = await query.get();
 
-      return querySnapshot.docs
-          .map((doc) => AppointmentModel.fromFirestore(doc))
-          .where((appointment) => appointment.status != AppointmentStatus.cancelled)
-          .toList();
+      print('AppointmentService: Found ${querySnapshot.docs.length} total appointments');
+      
+      final now = DateTime.now();
+      final appointments = <AppointmentModel>[];
+      
+      for (var doc in querySnapshot.docs) {
+        try {
+          final appointment = AppointmentModel.fromFirestore(doc);
+          
+          // Filter for upcoming appointments in memory
+          if (appointment.appointmentDate.isAfter(now) && 
+              appointment.status != AppointmentStatus.cancelled) {
+            appointments.add(appointment);
+            print('  ✓ Upcoming appointment: ${doc.id} - ${appointment.reason} - ${appointment.appointmentDate}');
+          } else if (appointment.status == AppointmentStatus.cancelled) {
+            print('  - Skipping cancelled appointment: ${doc.id}');
+          }
+        } catch (parseError) {
+          print('  ✗ Error parsing upcoming appointment ${doc.id}: $parseError');
+        }
+      }
+      
+      // Sort by appointment date in memory
+      appointments.sort((a, b) => a.appointmentDate.compareTo(b.appointmentDate));
+      
+      print('AppointmentService: Returning ${appointments.length} valid upcoming appointments');
+      return appointments;
     } catch (e) {
-      print('Error getting upcoming appointments: $e');
+      print('AppointmentService: Error getting upcoming appointments: $e');
+      print('Stack trace: ${StackTrace.current}');
       return [];
     }
   }
@@ -183,23 +244,44 @@ class AppointmentService extends ChangeNotifier {
   // Get today's appointments for veterinarian
   Future<List<AppointmentModel>> getTodaysAppointments(String veterinarianId) async {
     try {
-      final today = DateTime.now();
-      final startOfDay = DateTime(today.year, today.month, today.day);
-      final endOfDay = DateTime(today.year, today.month, today.day, 23, 59, 59);
-
+      print('AppointmentService: Getting today\'s appointments for vet: $veterinarianId');
+      
+      // Simplified query - get all appointments for veterinarian and filter in memory
       final querySnapshot = await _firestore
           .collection('appointments')
           .where('veterinarianId', isEqualTo: veterinarianId)
-          .where('appointmentDate', isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
-          .where('appointmentDate', isLessThanOrEqualTo: Timestamp.fromDate(endOfDay))
-          .orderBy('appointmentDate', descending: false)
           .get();
 
-      return querySnapshot.docs
-          .map((doc) => AppointmentModel.fromFirestore(doc))
-          .toList();
+      print('AppointmentService: Found ${querySnapshot.docs.length} total appointments');
+      
+      final today = DateTime.now();
+      final startOfDay = DateTime(today.year, today.month, today.day);
+      final endOfDay = DateTime(today.year, today.month, today.day, 23, 59, 59);
+      
+      final appointments = <AppointmentModel>[];
+      for (var doc in querySnapshot.docs) {
+        try {
+          final appointment = AppointmentModel.fromFirestore(doc);
+          
+          // Filter for today's appointments in memory
+          if (appointment.appointmentDate.isAfter(startOfDay) && 
+              appointment.appointmentDate.isBefore(endOfDay)) {
+            appointments.add(appointment);
+            print('  ✓ Today\'s appointment: ${doc.id} - ${appointment.reason} - ${appointment.timeSlot}');
+          }
+        } catch (parseError) {
+          print('  ✗ Error parsing appointment ${doc.id}: $parseError');
+        }
+      }
+      
+      // Sort by appointment date
+      appointments.sort((a, b) => a.appointmentDate.compareTo(b.appointmentDate));
+      
+      print('AppointmentService: Filtered to ${appointments.length} today\'s appointments');
+      return appointments;
     } catch (e) {
-      print('Error getting today\'s appointments: $e');
+      print('AppointmentService: Error getting today\'s appointments: $e');
+      print('Stack trace: ${StackTrace.current}');
       return [];
     }
   }

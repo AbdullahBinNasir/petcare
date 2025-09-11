@@ -24,7 +24,7 @@ class RoleSelectionScreen extends StatelessWidget {
           child: Padding(
             padding: const EdgeInsets.all(24.0),
             child: Column(
-              children: [
+                children: [
                 const SizedBox(height: 40),
                 // App Logo and Title
                 Icon(
@@ -60,34 +60,32 @@ class RoleSelectionScreen extends StatelessWidget {
                 const SizedBox(height: 32),
                 
                 // Role Cards
-                Expanded(
-                  child: Column(
-                    children: [
-                      _RoleCard(
-                        icon: Icons.person,
-                        title: 'Pet Owner',
-                        description: 'Manage your pets, book appointments, and track health records',
-                        color: Colors.blue,
-                        onTap: () => _navigateToAuth(context, UserRole.petOwner),
-                      ),
-                      const SizedBox(height: 16),
-                      _RoleCard(
-                        icon: Icons.medical_services,
-                        title: 'Veterinarian',
-                        description: 'Manage appointments, medical records, and patient care',
-                        color: Colors.green,
-                        onTap: () => _navigateToAuth(context, UserRole.veterinarian),
-                      ),
-                      const SizedBox(height: 16),
-                      _RoleCard(
-                        icon: Icons.home,
-                        title: 'Shelter Admin',
-                        description: 'Manage pet listings, adoption requests, and shelter operations',
-                        color: Colors.orange,
-                        onTap: () => _navigateToAuth(context, UserRole.shelterAdmin),
-                      ),
-                    ],
-                  ),
+                Column(
+                  children: [
+                    _RoleCard(
+                      icon: Icons.person,
+                      title: 'Pet Owner',
+                      description: 'Manage your pets, book appointments, and track health records',
+                      color: Colors.blue,
+                      onTap: () => _navigateToAuth(context, UserRole.petOwner),
+                    ),
+                    const SizedBox(height: 16),
+                    _RoleCard(
+                      icon: Icons.medical_services,
+                      title: 'Veterinarian',
+                      description: 'Manage appointments, medical records, and patient care',
+                      color: Colors.green,
+                      onTap: () => _navigateToAuth(context, UserRole.veterinarian),
+                    ),
+                    const SizedBox(height: 16),
+                    _RoleCard(
+                      icon: Icons.home,
+                      title: 'Shelter Admin',
+                      description: 'Manage pet listings, adoption requests, and shelter operations',
+                      color: Colors.orange,
+                      onTap: () => _navigateToAuth(context, UserRole.shelterAdmin),
+                    ),
+                  ],
                 ),
                 
                 // Already have account
