@@ -51,6 +51,10 @@ class BookmarkService extends ChangeNotifier {
   Future<bool> addBookmark(String userId, BlogPostModel post) async {
     try {
       debugPrint('Adding bookmark for user: $userId, post: ${post.id}');
+      debugPrint('Post title: ${post.title}');
+      debugPrint('Post excerpt: ${post.excerpt}');
+      debugPrint('Post category: ${post.category}');
+      debugPrint('Post tags: ${post.tags}');
       
       // Check if already bookmarked
       final existingBookmark = _bookmarks.firstWhere(
@@ -85,7 +89,12 @@ class BookmarkService extends ChangeNotifier {
         bookmarkedAt: DateTime.now(),
       );
 
-      final docRef = await _firestore.collection('bookmarks').add(bookmark.toFirestore());
+      debugPrint('Created bookmark model, converting to Firestore...');
+      final bookmarkData = bookmark.toFirestore();
+      debugPrint('Bookmark data: $bookmarkData');
+
+      debugPrint('Adding to Firestore...');
+      final docRef = await _firestore.collection('bookmarks').add(bookmarkData);
       debugPrint('Bookmark added to Firebase with ID: ${docRef.id}');
       
       // Update local list
@@ -98,6 +107,11 @@ class BookmarkService extends ChangeNotifier {
       return true;
     } catch (e) {
       debugPrint('Error adding bookmark: $e');
+      debugPrint('Error type: ${e.runtimeType}');
+      if (e is FirebaseException) {
+        debugPrint('Firebase error code: ${e.code}');
+        debugPrint('Firebase error message: ${e.message}');
+      }
       return false;
     }
   }

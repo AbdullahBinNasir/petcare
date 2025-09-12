@@ -445,7 +445,7 @@ class _BlogPostDetailsScreenState extends State<BlogPostDetailsScreen> {
     debugPrint('Toggle bookmark for post ${widget.post.id}, userId: $userId, current state: $_isBookmarked');
 
     if (userId == null) {
-      _showSnackBar('Please log in to bookmark articles');
+      _showSnackBar('Please log in to bookmark posts');
       return;
     }
 

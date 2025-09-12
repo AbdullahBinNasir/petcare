@@ -180,7 +180,7 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
                       backgroundColor: Colors.blue,
                       child: Text('${index + 1}'),
                     ),
-                    title: Text('Item ID: ${item['itemId']}'),
+                    title: Text(item['itemName'] ?? 'Unknown Item'),
                     subtitle: Text('Category: ${item['category']}'),
                     trailing: Text(
                       '${item['viewCount']} views',
@@ -223,7 +223,7 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
                       backgroundColor: Colors.green,
                       child: Text('${index + 1}'),
                     ),
-                    title: Text('Item ID: ${item['itemId']}'),
+                    title: Text(item['itemName'] ?? 'Unknown Item'),
                     subtitle: Text('Category: ${item['category']}'),
                     trailing: Text(
                       '${item['clickCount']} clicks',

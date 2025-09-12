@@ -178,14 +178,33 @@ class AnalyticsService extends ChangeNotifier {
           .limit(10)
           .get();
       
-      analytics['mostViewed'] = mostViewed.docs.map((doc) {
+      // Fetch item names for most viewed items
+      final mostViewedWithNames = <Map<String, dynamic>>[];
+      for (final doc in mostViewed.docs) {
         final data = doc.data();
-        return {
-          'itemId': doc.id,
+        final itemId = doc.id;
+        
+        // Get item name from store items collection
+        String itemName = 'Unknown Item';
+        try {
+          final itemDoc = await _firestore.collection('store_items').doc(itemId).get();
+          if (itemDoc.exists) {
+            final itemData = itemDoc.data() as Map<String, dynamic>;
+            itemName = itemData['name'] ?? 'Unknown Item';
+          }
+        } catch (e) {
+          debugPrint('Error fetching item name for $itemId: $e');
+        }
+        
+        mostViewedWithNames.add({
+          'itemId': itemId,
+          'itemName': itemName,
           'viewCount': data['viewCount'] ?? 0,
           'category': data['category'],
-        };
-      }).toList();
+        });
+      }
+      
+      analytics['mostViewed'] = mostViewedWithNames;
 
       // Get most clicked items
       final mostClicked = await _firestore
@@ -196,14 +215,33 @@ class AnalyticsService extends ChangeNotifier {
           .limit(10)
           .get();
       
-      analytics['mostClicked'] = mostClicked.docs.map((doc) {
+      // Fetch item names for most clicked items
+      final mostClickedWithNames = <Map<String, dynamic>>[];
+      for (final doc in mostClicked.docs) {
         final data = doc.data();
-        return {
-          'itemId': doc.id,
+        final itemId = doc.id;
+        
+        // Get item name from store items collection
+        String itemName = 'Unknown Item';
+        try {
+          final itemDoc = await _firestore.collection('store_items').doc(itemId).get();
+          if (itemDoc.exists) {
+            final itemData = itemDoc.data() as Map<String, dynamic>;
+            itemName = itemData['name'] ?? 'Unknown Item';
+          }
+        } catch (e) {
+          debugPrint('Error fetching item name for $itemId: $e');
+        }
+        
+        mostClickedWithNames.add({
+          'itemId': itemId,
+          'itemName': itemName,
           'clickCount': data['clickCount'] ?? 0,
           'category': data['category'],
-        };
-      }).toList();
+        });
+      }
+      
+      analytics['mostClicked'] = mostClickedWithNames;
 
       // Get category popularity
       final categoryStats = await _firestore

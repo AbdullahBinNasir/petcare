@@ -14,6 +14,8 @@ import '../shared/global_search_screen.dart';
 import 'add_pet_screen.dart';
 import 'pet_profile_screen.dart';
 import 'book_appointment_screen.dart';
+import 'health_records_screen.dart';
+import 'health_tracking_screen.dart';
 
 class PetOwnerDashboard extends StatefulWidget {
   const PetOwnerDashboard({super.key});
@@ -199,6 +201,7 @@ class _PetOwnerDashboardState extends State<PetOwnerDashboard> {
     final List<Widget> pages = [
       _buildHomeTab(),
       const AppointmentsScreen(),
+      const HealthTrackingScreen(),
       const PetStoreScreen(),
       const BlogScreen(),
       const ProfileScreen(),
@@ -223,6 +226,10 @@ class _PetOwnerDashboardState extends State<PetOwnerDashboard> {
           BottomNavigationBarItem(
             icon: Icon(Icons.calendar_today),
             label: 'Appointments',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.health_and_safety),
+            label: 'Health Tracking',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.store),
@@ -940,10 +947,32 @@ class _PetOwnerDashboardState extends State<PetOwnerDashboard> {
             const SizedBox(width: 12),
             Expanded(
               child: _buildActionCard(
+                'Health Tracking',
+                Icons.health_and_safety,
+                Colors.orange,
+                () => setState(() => _currentIndex = 2),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: _buildActionCard(
                 'Pet Store',
                 Icons.store,
                 Colors.green,
-                () => setState(() => _currentIndex = 2),
+                () => setState(() => _currentIndex = 3),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildActionCard(
+                'Blog & Tips',
+                Icons.article,
+                Colors.purple,
+                () => setState(() => _currentIndex = 4),
               ),
             ),
           ],

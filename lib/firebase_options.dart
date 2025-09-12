@@ -23,10 +23,7 @@ class DefaultFirebaseOptions {
       case TargetPlatform.android:
         return android;
       case TargetPlatform.iOS:
-        throw UnsupportedError(
-          'DefaultFirebaseOptions have not been configured for ios - '
-          'you can reconfigure this by running the FlutterFire CLI again.',
-        );
+        return ios;
       case TargetPlatform.macOS:
         throw UnsupportedError(
           'DefaultFirebaseOptions have not been configured for macos - '
@@ -50,19 +47,29 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyB7_Z11dNWM18MeJDYz0XMG3iI9fXNl1E8',
-    appId: '1:3475006382:web:18bf3052904beda19c5e3f',
-    messagingSenderId: '3475006382',
-    projectId: 'petcare-b44ad',
-    authDomain: 'petcare-b44ad.firebaseapp.com',
-    storageBucket: 'petcare-b44ad.firebasestorage.app',
+    apiKey: 'AIzaSyDUAaQoaqnGrwL6m5bLeT3M9LflVbbimpk',
+    appId: '1:934202777354:web:257c6434e02236583f24f3',
+    messagingSenderId: '934202777354',
+    projectId: 'petscare-4f647',
+    authDomain: 'petscare-4f647.firebaseapp.com',
+    storageBucket: 'petscare-4f647.firebasestorage.app',
+    measurementId: 'G-QW64MT8JG3',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyAIcmvboeqzUQBrbuEIwRPU5sywb1tMzjY',
-    appId: '1:3475006382:android:066e80b42d3676c69c5e3f',
-    messagingSenderId: '3475006382',
-    projectId: 'petcare-b44ad',
-    storageBucket: 'petcare-b44ad.firebasestorage.app',
+    apiKey: 'AIzaSyDGT6_SYrO5aJzfIRSK5EKaDHzKV0Vzmak',
+    appId: '1:934202777354:android:ed8e19d91f9f34ac3f24f3',
+    messagingSenderId: '934202777354',
+    projectId: 'petscare-4f647',
+    storageBucket: 'petscare-4f647.firebasestorage.app',
+  );
+
+  static const FirebaseOptions ios = FirebaseOptions(
+    apiKey: 'AIzaSyCqgTzXBPalM2SLaPAnAMhiJtOjDD9XNCk',
+    appId: '1:934202777354:ios:20af3aad633a6f223f24f3',
+    messagingSenderId: '934202777354',
+    projectId: 'petscare-4f647',
+    storageBucket: 'petscare-4f647.firebasestorage.app',
+    iosBundleId: 'com.example.petcare',
   );
 }

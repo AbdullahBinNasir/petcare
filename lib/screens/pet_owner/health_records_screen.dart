@@ -46,24 +46,38 @@ class _HealthRecordsScreenState extends State<HealthRecordsScreen> with SingleTi
     final petService = Provider.of<PetService>(context, listen: false);
     final healthService = Provider.of<HealthRecordService>(context, listen: false);
 
-    if (authService.currentUser != null) {
-      final pets = await petService.getPetsByOwnerId(authService.currentUser!.uid);
+    debugPrint('HealthRecordsScreen: Starting data load...');
+    debugPrint('HealthRecordsScreen: Current user model: ${authService.currentUserModel?.id}');
+    debugPrint('HealthRecordsScreen: Current user: ${authService.currentUser?.uid}');
+
+    if (authService.currentUserModel != null) {
+      debugPrint('HealthRecordsScreen: Fetching pets for user: ${authService.currentUserModel!.id}');
+      final pets = await petService.getPetsByOwnerId(authService.currentUserModel!.id);
+      debugPrint('HealthRecordsScreen: Found ${pets.length} pets');
+      
       final petsMap = <String, PetModel>{};
       for (final pet in pets) {
         petsMap[pet.id] = pet;
+        debugPrint('HealthRecordsScreen: Pet - ID: ${pet.id}, Name: ${pet.name}');
       }
 
       // Set selected pet
       if (widget.petId != null && petsMap.containsKey(widget.petId)) {
         _selectedPet = petsMap[widget.petId];
+        debugPrint('HealthRecordsScreen: Using widget pet ID: ${widget.petId}');
       } else if (pets.isNotEmpty) {
         _selectedPet = pets.first;
+        debugPrint('HealthRecordsScreen: Using first pet: ${_selectedPet!.id}');
       }
 
       if (_selectedPet != null) {
+        debugPrint('HealthRecordsScreen: Loading records for pet: ${_selectedPet!.id} (${_selectedPet!.name})');
+        
         final allRecords = await healthService.getHealthRecordsByPetId(_selectedPet!.id);
         final dueRecords = await healthService.getDueHealthRecords(_selectedPet!.id);
         final overdueRecords = await healthService.getOverdueHealthRecords(_selectedPet!.id);
+
+        debugPrint('HealthRecordsScreen: Loaded ${allRecords.length} all records, ${dueRecords.length} due records, ${overdueRecords.length} overdue records');
 
         setState(() {
           _pets = petsMap;
@@ -73,11 +87,15 @@ class _HealthRecordsScreenState extends State<HealthRecordsScreen> with SingleTi
           _isLoading = false;
         });
       } else {
+        debugPrint('HealthRecordsScreen: No selected pet, cannot load health records');
         setState(() {
           _pets = petsMap;
           _isLoading = false;
         });
       }
+    } else {
+      debugPrint('HealthRecordsScreen: No current user model found');
+      setState(() => _isLoading = false);
     }
   }
 
@@ -95,11 +113,78 @@ class _HealthRecordsScreenState extends State<HealthRecordsScreen> with SingleTi
     });
   }
 
+  Future<void> _testFetchAllRecords() async {
+    debugPrint('Testing fetch of ALL health records...');
+    final healthService = Provider.of<HealthRecordService>(context, listen: false);
+    
+    try {
+      final allRecords = await healthService.getAllHealthRecords();
+      debugPrint('Test fetch completed. Found ${allRecords.length} records');
+      
+      // Update the UI state with the fetched records
+      setState(() {
+        _allRecords = allRecords;
+        _dueRecords = allRecords.where((record) => record.isDue).toList();
+        _overdueRecords = allRecords.where((record) => record.isOverdue).toList();
+      });
+      
+      // Always create a test record for debugging
+      debugPrint('Creating test record for debugging...');
+      final testRecord = HealthRecordModel(
+        id: 'test_record_1',
+        petId: _selectedPet?.id ?? 'test_pet',
+        veterinarianId: 'test_vet',
+        type: HealthRecordType.checkup,
+        title: 'Test Health Record - Should Be Visible',
+        description: 'This is a test health record for debugging. If you can see this, the UI is working!',
+        recordDate: DateTime.now(),
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      );
+      
+      setState(() {
+        _allRecords = [testRecord, ...allRecords];
+        _dueRecords = [];
+        _overdueRecords = [];
+      });
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Debug: Found ${allRecords.length} total health records and updated UI'),
+          backgroundColor: Colors.blue,
+        ),
+      );
+    } catch (e) {
+      debugPrint('Test fetch failed: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Debug: Error - $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Health Records'),
+        actions: [
+          Container(
+            margin: const EdgeInsets.only(right: 8),
+            child: ElevatedButton.icon(
+              onPressed: _testFetchAllRecords,
+              icon: const Icon(Icons.bug_report, size: 16),
+              label: const Text('Debug', style: TextStyle(fontSize: 12)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.orange,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              ),
+            ),
+          ),
+        ],
         bottom: _selectedPet != null ? TabBar(
           controller: _tabController,
           tabs: [
@@ -250,8 +335,10 @@ class _HealthRecordsScreenState extends State<HealthRecordsScreen> with SingleTi
           );
         }).toList(),
         onChanged: (pet) {
+          debugPrint('Pet selector changed: ${pet?.id} (${pet?.name})');
           setState(() => _selectedPet = pet);
           if (pet != null) {
+            debugPrint('Loading records for selected pet: ${pet.id}');
             _loadRecordsForPet(pet.id);
           }
         },
@@ -276,25 +363,83 @@ class _HealthRecordsScreenState extends State<HealthRecordsScreen> with SingleTi
   }
 
   Widget _buildAllRecordsTab() {
-    final filteredRecords = _filterRecords(_allRecords);
+    debugPrint('_buildAllRecordsTab: _allRecords.length = ${_allRecords.length}');
+    debugPrint('_buildAllRecordsTab: _selectedPet = ${_selectedPet?.id}');
     
+    // Force create a test record for debugging
+    List<HealthRecordModel> recordsToShow = _allRecords;
+    if (recordsToShow.isEmpty) {
+      debugPrint('_buildAllRecordsTab: Creating test record for debugging');
+      recordsToShow = [
+        HealthRecordModel(
+          id: 'debug_test_record',
+          petId: _selectedPet?.id ?? 'debug_pet',
+          veterinarianId: 'debug_vet',
+          type: HealthRecordType.checkup,
+          title: 'Debug Test Record - FORCE VISIBLE',
+          description: 'This is a test health record for debugging purposes. This should definitely be visible on screen!',
+          recordDate: DateTime.now(),
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+        ),
+      ];
+    }
+    
+    final filteredRecords = _filterRecords(recordsToShow);
+    debugPrint('_buildAllRecordsTab: filteredRecords.length = ${filteredRecords.length}');
+    
+    // Debug: Show test record if no records found
     if (filteredRecords.isEmpty) {
-      return _buildEmptyState(
-        'No Health Records',
-        'Start tracking your pet\'s health by adding their first record',
-        Icons.medical_services,
+      debugPrint('_buildAllRecordsTab: Showing empty state');
+      return Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            child: Text(
+              'Debug Info: _allRecords.length = ${_allRecords.length}, _selectedPet = ${_selectedPet?.id}',
+              style: const TextStyle(fontSize: 12, color: Colors.red),
+            ),
+          ),
+          Expanded(
+            child: _buildEmptyState(
+              'No Health Records',
+              'Start tracking your pet\'s health by adding their first record',
+              Icons.medical_services,
+            ),
+          ),
+        ],
       );
     }
 
     return RefreshIndicator(
       onRefresh: () => _loadRecordsForPet(_selectedPet!.id),
-      child: ListView.builder(
+      child: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
-        itemCount: filteredRecords.length,
-        itemBuilder: (context, index) {
-          final record = filteredRecords[index];
-          return _buildHealthRecordCard(record);
-        },
+        child: Column(
+          children: [
+            // Debug info
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              margin: const EdgeInsets.only(bottom: 16),
+              decoration: BoxDecoration(
+                color: Colors.blue.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.blue.withOpacity(0.3)),
+              ),
+              child: Text(
+                'Debug: Showing ${filteredRecords.length} records',
+                style: const TextStyle(fontSize: 14, color: Colors.blue, fontWeight: FontWeight.bold),
+                textAlign: TextAlign.center,
+              ),
+            ),
+            // Health records
+            ...filteredRecords.map((record) {
+              debugPrint('Building health record card for: ${record.title}');
+              return _buildHealthRecordCard(record);
+            }).toList(),
+          ],
+        ),
       ),
     );
   }

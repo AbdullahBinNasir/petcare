@@ -716,6 +716,13 @@ https://petcare.app/blog/${post.id}
                                     );
                                   }
                                 } else {
+                                  if (userId == null) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(content: Text('Please log in to bookmark posts')),
+                                    );
+                                    return;
+                                  }
+                                  
                                   debugPrint('Adding bookmark for post ${post.id}');
                                   final success = await bookmarkService.addBookmark(userId, post);
                                   if (success) {
