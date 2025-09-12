@@ -20,6 +20,7 @@ class StoreService extends ChangeNotifier {
 
   void setAnalyticsService(AnalyticsService analyticsService) {
     _analyticsService = analyticsService;
+    debugPrint('Analytics service connected to StoreService');
   }
 
   Future<void> trackItemView(String itemId, String userId) async {
@@ -241,6 +242,7 @@ class StoreService extends ChangeNotifier {
       _analyticsService?.trackFavoriteAction(itemId, userId, !isFavorite, item.category);
 
       if (isFavorite) {
+        // Remove from favorites
         userFavorites.remove(itemId);
         await _firestore
             .collection('users')
@@ -250,7 +252,9 @@ class StoreService extends ChangeNotifier {
             .update({
           'items': FieldValue.arrayRemove([itemId]),
         });
+        debugPrint('Removed item $itemId from favorites for user $userId');
       } else {
+        // Add to favorites
         userFavorites.add(itemId);
         await _firestore
             .collection('users')
@@ -259,13 +263,16 @@ class StoreService extends ChangeNotifier {
             .doc('store_items')
             .set({
           'items': FieldValue.arrayUnion([itemId]),
+          'lastUpdated': FieldValue.serverTimestamp(),
         }, SetOptions(merge: true));
+        debugPrint('Added item $itemId to favorites for user $userId');
       }
 
       _userFavorites[userId] = userFavorites;
       notifyListeners();
     } catch (e) {
       debugPrint('Error toggling favorite: $e');
+      rethrow; // Re-throw to allow UI to handle the error
     }
   }
 
@@ -295,6 +302,54 @@ class StoreService extends ChangeNotifier {
   List<StoreItemModel> getFavoriteItems(String userId) {
     final favoriteIds = _userFavorites[userId] ?? [];
     return _storeItems.where((item) => favoriteIds.contains(item.id)).toList();
+  }
+
+  // Get favorite items count
+  int getFavoriteItemsCount(String userId) {
+    return _userFavorites[userId]?.length ?? 0;
+  }
+
+  // Check if user has any favorites
+  bool hasFavorites(String userId) {
+    return getFavoriteItemsCount(userId) > 0;
+  }
+
+  // Get favorite items by category
+  List<StoreItemModel> getFavoriteItemsByCategory(String userId, StoreCategory category) {
+    final favoriteItems = getFavoriteItems(userId);
+    return favoriteItems.where((item) => item.category == category).toList();
+  }
+
+  // Clear all favorites for a user
+  Future<void> clearAllFavorites(String userId) async {
+    try {
+      await _firestore
+          .collection('users')
+          .doc(userId)
+          .collection('favorites')
+          .doc('store_items')
+          .delete();
+      
+      _userFavorites[userId] = [];
+      notifyListeners();
+      debugPrint('Cleared all favorites for user $userId');
+    } catch (e) {
+      debugPrint('Error clearing favorites: $e');
+      rethrow;
+    }
+  }
+
+  // Remove specific item from favorites
+  Future<void> removeFromFavorites(String itemId, String userId) async {
+    try {
+      final userFavorites = _userFavorites[userId] ?? [];
+      if (userFavorites.contains(itemId)) {
+        await toggleFavorite(itemId, userId);
+      }
+    } catch (e) {
+      debugPrint('Error removing item from favorites: $e');
+      rethrow;
+    }
   }
 
   // Admin functions

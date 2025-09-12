@@ -10,6 +10,7 @@ import '../shared/profile_screen.dart';
 import '../shared/appointments_screen.dart';
 import '../shared/pet_store_screen.dart';
 import '../shared/blog_screen.dart';
+import '../shared/global_search_screen.dart';
 import 'add_pet_screen.dart';
 import 'pet_profile_screen.dart';
 import 'book_appointment_screen.dart';
@@ -249,6 +250,18 @@ class _PetOwnerDashboardState extends State<PetOwnerDashboard> {
         foregroundColor: Colors.white,
         elevation: 0,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.search),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const GlobalSearchScreen(),
+                ),
+              );
+            },
+            tooltip: 'Search',
+          ),
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _loadDashboardData,

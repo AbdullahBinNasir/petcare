@@ -23,11 +23,20 @@ class DefaultFirebaseOptions {
       case TargetPlatform.android:
         return android;
       case TargetPlatform.iOS:
-        return ios;
+        throw UnsupportedError(
+          'DefaultFirebaseOptions have not been configured for ios - '
+          'you can reconfigure this by running the FlutterFire CLI again.',
+        );
       case TargetPlatform.macOS:
-        return macos;
+        throw UnsupportedError(
+          'DefaultFirebaseOptions have not been configured for macos - '
+          'you can reconfigure this by running the FlutterFire CLI again.',
+        );
       case TargetPlatform.windows:
-        return windows;
+        throw UnsupportedError(
+          'DefaultFirebaseOptions have not been configured for windows - '
+          'you can reconfigure this by running the FlutterFire CLI again.',
+        );
       case TargetPlatform.linux:
         throw UnsupportedError(
           'DefaultFirebaseOptions have not been configured for linux - '
@@ -41,47 +50,19 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyAGSgI0PA8IyfcOecVymqj8DM2qQIVjl8E',
-    appId: '1:15635707090:web:fba03a67ceb2f43241290b',
-    messagingSenderId: '15635707090',
-    projectId: 'petcare-3f9cb',
-    authDomain: 'petcare-3f9cb.firebaseapp.com',
-    storageBucket: 'petcare-3f9cb.firebasestorage.app',
+    apiKey: 'AIzaSyB7_Z11dNWM18MeJDYz0XMG3iI9fXNl1E8',
+    appId: '1:3475006382:web:18bf3052904beda19c5e3f',
+    messagingSenderId: '3475006382',
+    projectId: 'petcare-b44ad',
+    authDomain: 'petcare-b44ad.firebaseapp.com',
+    storageBucket: 'petcare-b44ad.firebasestorage.app',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyBQuy_Zwbfp4tqgwRSfQLlEKFn2yH_AZ9c',
-    appId: '1:15635707090:android:8b2118cab0b6362241290b',
-    messagingSenderId: '15635707090',
-    projectId: 'petcare-3f9cb',
-    storageBucket: 'petcare-3f9cb.firebasestorage.app',
+    apiKey: 'AIzaSyAIcmvboeqzUQBrbuEIwRPU5sywb1tMzjY',
+    appId: '1:3475006382:android:066e80b42d3676c69c5e3f',
+    messagingSenderId: '3475006382',
+    projectId: 'petcare-b44ad',
+    storageBucket: 'petcare-b44ad.firebasestorage.app',
   );
-
-  static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyBJot4paYY9rmKMOi4pLqzpssvvDDXMJ0M',
-    appId: '1:15635707090:ios:6d7f7d421d0e78e141290b',
-    messagingSenderId: '15635707090',
-    projectId: 'petcare-3f9cb',
-    storageBucket: 'petcare-3f9cb.firebasestorage.app',
-    iosBundleId: 'com.example.petcare',
-  );
-
-  static const FirebaseOptions macos = FirebaseOptions(
-    apiKey: 'AIzaSyBJot4paYY9rmKMOi4pLqzpssvvDDXMJ0M',
-    appId: '1:15635707090:ios:6d7f7d421d0e78e141290b',
-    messagingSenderId: '15635707090',
-    projectId: 'petcare-3f9cb',
-    storageBucket: 'petcare-3f9cb.firebasestorage.app',
-    iosBundleId: 'com.example.petcare',
-  );
-
-  static const FirebaseOptions windows = FirebaseOptions(
-    apiKey: 'AIzaSyAGSgI0PA8IyfcOecVymqj8DM2qQIVjl8E',
-    appId: '1:15635707090:web:3bb38cd55bbde6eb41290b',
-    messagingSenderId: '15635707090',
-    projectId: 'petcare-3f9cb',
-    authDomain: 'petcare-3f9cb.firebaseapp.com',
-    storageBucket: 'petcare-3f9cb.firebasestorage.app',
-  );
-
 }

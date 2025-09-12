@@ -19,22 +19,36 @@ class AuthService extends ChangeNotifier {
   }
 
   void _onAuthStateChanged(User? user) async {
-    if (user != null) {
-      await _loadUserModel(user.uid);
-    } else {
+    try {
+      debugPrint('Auth state changed. User: ${user?.uid}');
+      if (user != null) {
+        await _loadUserModel(user.uid);
+      } else {
+        _currentUserModel = null;
+      }
+    } catch (e) {
+      debugPrint('Error in auth state change: $e');
       _currentUserModel = null;
+    } finally {
+      notifyListeners();
     }
-    notifyListeners();
   }
 
   Future<void> _loadUserModel(String uid) async {
     try {
+      debugPrint('Loading user model for UID: $uid');
       final doc = await _firestore.collection('users').doc(uid).get();
       if (doc.exists) {
+        debugPrint('User document found, parsing...');
         _currentUserModel = UserModel.fromFirestore(doc);
+        debugPrint('User model loaded successfully: ${_currentUserModel?.firstName} ${_currentUserModel?.lastName}');
+      } else {
+        debugPrint('User document not found for UID: $uid');
+        _currentUserModel = null;
       }
     } catch (e) {
-      print('Error loading user model: $e');
+      debugPrint('Error loading user model: $e');
+      _currentUserModel = null;
     }
   }
 
@@ -111,9 +125,11 @@ class AuthService extends ChangeNotifier {
       );
       return null; // Success
     } on FirebaseAuthException catch (e) {
+      debugPrint('Firebase Auth Error: ${e.code} - ${e.message}');
       return e.message;
     } catch (e) {
-      return 'An unexpected error occurred';
+      debugPrint('Unexpected error during login: $e');
+      return 'An unexpected error occurred: ${e.toString()}';
     } finally {
       _isLoading = false;
       notifyListeners();

@@ -2,10 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../services/auth_service.dart';
 import '../auth/role_selection_screen.dart';
+import 'edit_profile_screen.dart';
+import 'bookmarks_screen.dart';
+import 'contact_us_screen.dart';
+import 'feedback_screen.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
 
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -79,10 +88,17 @@ class ProfileScreen extends StatelessWidget {
                   icon: Icons.person_outline,
                   title: 'Edit Profile',
                   subtitle: 'Update your personal information',
-                  onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Edit profile feature coming soon!')),
+                  onTap: () async {
+                    final result = await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const EditProfileScreen(),
+                      ),
                     );
+                    if (result == true) {
+                      // Profile was updated, refresh the screen
+                      setState(() {});
+                    }
                   },
                 ),
                 _buildProfileOption(
@@ -90,8 +106,24 @@ class ProfileScreen extends StatelessWidget {
                   title: 'Change Password',
                   subtitle: 'Update your account password',
                   onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Change password feature coming soon!')),
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const ChangePasswordScreen(),
+                      ),
+                    );
+                  },
+                ),
+                _buildProfileOption(
+                  icon: Icons.bookmark,
+                  title: 'My Bookmarks',
+                  subtitle: 'View your saved articles',
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const BookmarksScreen(),
+                      ),
                     );
                   },
                 ),
@@ -106,12 +138,28 @@ class ProfileScreen extends StatelessWidget {
                   },
                 ),
                 _buildProfileOption(
-                  icon: Icons.help_outline,
-                  title: 'Help & Support',
+                  icon: Icons.contact_support,
+                  title: 'Contact Us',
                   subtitle: 'Get help and contact support',
                   onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Help & support coming soon!')),
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const ContactUsScreen(),
+                      ),
+                    );
+                  },
+                ),
+                _buildProfileOption(
+                  icon: Icons.feedback,
+                  title: 'Feedback',
+                  subtitle: 'Share suggestions or report bugs',
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const FeedbackScreen(),
+                      ),
                     );
                   },
                 ),
@@ -208,6 +256,8 @@ class ProfileScreen extends StatelessWidget {
         return 'Veterinarian';
       case 'UserRole.shelterAdmin':
         return 'Shelter Admin';
+      case 'UserRole.admin':
+        return 'Admin';
       default:
         return 'User';
     }
@@ -222,6 +272,8 @@ class ProfileScreen extends StatelessWidget {
         return Colors.green;
       case 'UserRole.shelterAdmin':
         return Colors.orange;
+      case 'UserRole.admin':
+        return Colors.purple;
       default:
         return Colors.grey;
     }

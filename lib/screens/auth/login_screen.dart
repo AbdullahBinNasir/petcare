@@ -7,6 +7,7 @@ import 'forgot_password_screen.dart';
 import '../pet_owner/pet_owner_dashboard.dart';
 import '../veterinarian/vet_dashboard.dart';
 import '../shelter/shelter_dashboard.dart';
+import '../admin/admin_dashboard.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -221,27 +222,50 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   void _navigateToDashboard() {
-    final authService = Provider.of<AuthService>(context, listen: false);
-    final user = authService.currentUserModel;
+    try {
+      final authService = Provider.of<AuthService>(context, listen: false);
+      final user = authService.currentUserModel;
 
-    if (user != null) {
-      Widget dashboard;
-      switch (user.role) {
-        case UserRole.petOwner:
-          dashboard = const PetOwnerDashboard();
-          break;
-        case UserRole.veterinarian:
-          dashboard = const VetDashboard();
-          break;
-        case UserRole.shelterAdmin:
-          dashboard = const ShelterDashboard();
-          break;
+      debugPrint('Navigating to dashboard for user: ${user?.firstName} ${user?.lastName}, role: ${user?.role}');
+
+      if (user != null) {
+        Widget dashboard;
+        switch (user.role) {
+          case UserRole.petOwner:
+            dashboard = const PetOwnerDashboard();
+            break;
+          case UserRole.veterinarian:
+            dashboard = const VetDashboard();
+            break;
+          case UserRole.shelterAdmin:
+            dashboard = const ShelterDashboard();
+            break;
+          case UserRole.admin:
+            dashboard = const AdminDashboard();
+            break;
+        }
+
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (context) => dashboard),
+          (route) => false,
+        );
+      } else {
+        debugPrint('User model is null, cannot navigate');
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('User data not found. Please try again.'),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
-
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(builder: (context) => dashboard),
-        (route) => false,
+    } catch (e) {
+      debugPrint('Error navigating to dashboard: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Navigation error: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
       );
     }
   }

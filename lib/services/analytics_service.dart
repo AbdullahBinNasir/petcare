@@ -20,6 +20,8 @@ class AnalyticsService extends ChangeNotifier {
   /// Track when a user views a store item
   Future<void> trackItemView(String itemId, String userId, StoreCategory category) async {
     try {
+      debugPrint('Analytics: Tracking item view - itemId: $itemId, userId: $userId, category: $category');
+      
       // Update local tracking
       _itemViewCounts[itemId] = (_itemViewCounts[itemId] ?? 0) + 1;
       
@@ -78,6 +80,8 @@ class AnalyticsService extends ChangeNotifier {
   /// Track when a user clicks on a store item (for purchase)
   Future<void> trackItemClick(String itemId, String userId, StoreCategory category) async {
     try {
+      debugPrint('Analytics: Tracking item click - itemId: $itemId, userId: $userId, category: $category');
+      
       // Update local tracking
       _itemClickCounts[itemId] = (_itemClickCounts[itemId] ?? 0) + 1;
       
@@ -162,6 +166,7 @@ class AnalyticsService extends ChangeNotifier {
   /// Get analytics data for admin dashboard
   Future<Map<String, dynamic>> getAnalyticsData() async {
     try {
+      debugPrint('Analytics: Getting analytics data from Firebase...');
       final analytics = <String, dynamic>{};
       
       // Get most viewed items
@@ -224,10 +229,132 @@ class AnalyticsService extends ChangeNotifier {
       
       analytics['totalActiveUsers'] = userInterests.docs.length;
 
+      debugPrint('Analytics: Data loaded - mostViewed: ${analytics['mostViewed']?.length ?? 0}, mostClicked: ${analytics['mostClicked']?.length ?? 0}, categories: ${analytics['categoryPopularity']?.length ?? 0}, users: ${analytics['totalActiveUsers']}');
+
       return analytics;
     } catch (e) {
       debugPrint('Error getting analytics data: $e');
       return {};
+    }
+  }
+
+  /// Generate sample analytics data for testing
+  Future<void> generateSampleData() async {
+    try {
+      debugPrint('Analytics: Generating sample data...');
+      
+      // Sample item views
+      await _firestore
+          .collection('analytics')
+          .doc('item_views')
+          .collection('items')
+          .doc('sample_item_1')
+          .set({
+        'viewCount': 15,
+        'lastViewed': FieldValue.serverTimestamp(),
+        'category': 'food',
+      });
+
+      await _firestore
+          .collection('analytics')
+          .doc('item_views')
+          .collection('items')
+          .doc('sample_item_2')
+          .set({
+        'viewCount': 12,
+        'lastViewed': FieldValue.serverTimestamp(),
+        'category': 'toys',
+      });
+
+      await _firestore
+          .collection('analytics')
+          .doc('item_views')
+          .collection('items')
+          .doc('sample_item_3')
+          .set({
+        'viewCount': 8,
+        'lastViewed': FieldValue.serverTimestamp(),
+        'category': 'grooming',
+      });
+
+      // Sample item clicks
+      await _firestore
+          .collection('analytics')
+          .doc('item_clicks')
+          .collection('items')
+          .doc('sample_item_1')
+          .set({
+        'clickCount': 5,
+        'lastClicked': FieldValue.serverTimestamp(),
+        'category': 'food',
+      });
+
+      await _firestore
+          .collection('analytics')
+          .doc('item_clicks')
+          .collection('items')
+          .doc('sample_item_2')
+          .set({
+        'clickCount': 3,
+        'lastClicked': FieldValue.serverTimestamp(),
+        'category': 'toys',
+      });
+
+      // Sample category popularity
+      await _firestore
+          .collection('analytics')
+          .doc('category_popularity')
+          .collection('categories')
+          .doc('food')
+          .set({
+        'viewCount': 25,
+        'lastUpdated': FieldValue.serverTimestamp(),
+      });
+
+      await _firestore
+          .collection('analytics')
+          .doc('category_popularity')
+          .collection('categories')
+          .doc('toys')
+          .set({
+        'viewCount': 18,
+        'lastUpdated': FieldValue.serverTimestamp(),
+      });
+
+      await _firestore
+          .collection('analytics')
+          .doc('category_popularity')
+          .collection('categories')
+          .doc('grooming')
+          .set({
+        'viewCount': 12,
+        'lastUpdated': FieldValue.serverTimestamp(),
+      });
+
+      // Sample user interests
+      await _firestore
+          .collection('analytics')
+          .doc('user_interests')
+          .collection('users')
+          .doc('sample_user_1')
+          .set({
+        'interests': ['food', 'toys'],
+        'lastActivity': FieldValue.serverTimestamp(),
+      });
+
+      await _firestore
+          .collection('analytics')
+          .doc('user_interests')
+          .collection('users')
+          .doc('sample_user_2')
+          .set({
+        'interests': ['grooming', 'health'],
+        'lastActivity': FieldValue.serverTimestamp(),
+      });
+
+      debugPrint('Analytics: Sample data generated successfully!');
+    } catch (e) {
+      debugPrint('Error generating sample data: $e');
     }
   }
 

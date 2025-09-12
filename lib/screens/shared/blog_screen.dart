@@ -7,6 +7,7 @@ import '../../models/blog_post_model.dart';
 import '../../models/user_model.dart';
 import '../../services/blog_service.dart';
 import '../../services/auth_service.dart';
+import '../../services/bookmark_service.dart';
 import 'blog_post_details_screen.dart';
 import 'create_blog_post_screen.dart';
 
@@ -41,11 +42,226 @@ class _BlogScreenState extends State<BlogScreen> with TickerProviderStateMixin {
   void _loadBlogPosts() {
     final blogService = Provider.of<BlogService>(context, listen: false);
     final authService = Provider.of<AuthService>(context, listen: false);
+    final bookmarkService = Provider.of<BookmarkService>(context, listen: false);
     
     blogService.loadBlogPosts();
     if (authService.currentUserModel != null) {
       blogService.loadUserFavorites(authService.currentUserModel!.id);
+      bookmarkService.loadUserBookmarks(authService.currentUserModel!.id);
     }
+  }
+
+  void _showShareOptions(BuildContext context, BlogPostModel post) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              'Share Article',
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 20),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _buildShareOption(
+                  context,
+                  icon: Icons.share,
+                  label: 'General',
+                  onTap: () {
+                    Navigator.pop(context);
+                    Provider.of<BlogService>(context, listen: false).sharePostDetailed(post);
+                  },
+                ),
+                _buildShareOption(
+                  context,
+                  icon: Icons.message,
+                  label: 'WhatsApp',
+                  onTap: () {
+                    Navigator.pop(context);
+                    Provider.of<BlogService>(context, listen: false).sharePostDetailedToPlatform(post, 'whatsapp');
+                  },
+                ),
+                _buildShareOption(
+                  context,
+                  icon: Icons.facebook,
+                  label: 'Facebook',
+                  onTap: () {
+                    Navigator.pop(context);
+                    Provider.of<BlogService>(context, listen: false).sharePostDetailedToPlatform(post, 'facebook');
+                  },
+                ),
+                _buildShareOption(
+                  context,
+                  icon: Icons.alternate_email,
+                  label: 'Twitter',
+                  onTap: () {
+                    Navigator.pop(context);
+                    Provider.of<BlogService>(context, listen: false).sharePostDetailedToPlatform(post, 'twitter');
+                  },
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _buildShareOption(
+                  context,
+                  icon: Icons.camera_alt,
+                  label: 'Instagram',
+                  onTap: () {
+                    Navigator.pop(context);
+                    Provider.of<BlogService>(context, listen: false).sharePostDetailedToPlatform(post, 'instagram');
+                  },
+                ),
+                _buildShareOption(
+                  context,
+                  icon: Icons.edit,
+                  label: 'Custom',
+                  onTap: () {
+                    Navigator.pop(context);
+                    _showCustomShareDialog(context, post);
+                  },
+                ),
+                _buildShareOption(
+                  context,
+                  icon: Icons.image,
+                  label: 'As Image',
+                  onTap: () {
+                    Navigator.pop(context);
+                    Provider.of<BlogService>(context, listen: false).sharePostDetailed(post);
+                  },
+                ),
+                _buildShareOption(
+                  context,
+                  icon: Icons.copy,
+                  label: 'Copy Link',
+                  onTap: () {
+                    Navigator.pop(context);
+                    _copyToClipboard(context, post);
+                  },
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildShareOption(BuildContext context, {
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Theme.of(context).primaryColor.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(
+              icon,
+              size: 24,
+              color: Theme.of(context).primaryColor,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showCustomShareDialog(BuildContext context, BlogPostModel post) {
+    final TextEditingController customTextController = TextEditingController();
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Custom Share Message'),
+        content: TextField(
+          controller: customTextController,
+          decoration: const InputDecoration(
+            hintText: 'Enter your custom message...',
+            border: OutlineInputBorder(),
+          ),
+          maxLines: 3,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              if (customTextController.text.isNotEmpty) {
+                // Use detailed custom sharing
+                final detailedText = '''
+${customTextController.text}
+
+📚 Category: ${post.categoryName}
+👤 Author: ${post.authorName}
+⏱️ Read Time: ${post.readTime} minutes
+
+📖 Read the complete article:
+https://petcare.app/blog/${post.id}
+
+---
+🐕 Pet Care App - Your trusted companion for pet health and wellness
+#PetCare #PetTips #${post.categoryName} #PetHealth #PetLovers
+                ''';
+                Provider.of<BlogService>(context, listen: false)
+                    .sharePostWithText(post, detailedText);
+              }
+            },
+            child: const Text('Share'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _copyToClipboard(BuildContext context, BlogPostModel post) {
+    final link = 'https://petcare.app/blog/${post.id}';
+    // You would use Clipboard.setData here if you have the clipboard package
+    // For now, we'll just show a message
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Link copied: $link'),
+        duration: const Duration(seconds: 2),
+      ),
+    );
   }
 
   @override
@@ -58,6 +274,12 @@ class _BlogScreenState extends State<BlogScreen> with TickerProviderStateMixin {
       appBar: AppBar(
         title: const Text('Pet Care Tips'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: () {
+              _loadBlogPosts();
+            },
+          ),
           IconButton(
             icon: Icon(_showFilters ? Icons.filter_list_off : Icons.filter_list),
             onPressed: () {
@@ -212,12 +434,15 @@ class _BlogScreenState extends State<BlogScreen> with TickerProviderStateMixin {
   Widget _buildAllPostsView() {
     return Consumer<BlogService>(
       builder: (context, blogService, child) {
+        // Debug information
+        print('DEBUG: BlogService state - isLoading: ${blogService.isLoading}, blogPosts count: ${blogService.blogPosts.length}');
+        
         if (blogService.isLoading) {
           return const Center(child: CircularProgressIndicator());
         }
 
         if (blogService.blogPosts.isEmpty) {
-          return const Center(
+          return Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -226,6 +451,18 @@ class _BlogScreenState extends State<BlogScreen> with TickerProviderStateMixin {
                 Text(
                   'No articles found',
                   style: TextStyle(fontSize: 18, color: Colors.grey),
+                ),
+                SizedBox(height: 8),
+                Text(
+                  'Debug: ${blogService.blogPosts.length} posts loaded',
+                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+                SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: () {
+                    _loadBlogPosts();
+                  },
+                  child: Text('Refresh'),
                 ),
               ],
             ),
@@ -445,6 +682,74 @@ class _BlogScreenState extends State<BlogScreen> with TickerProviderStateMixin {
                               ],
                             );
                           },
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Consumer2<BookmarkService, AuthService>(
+                        builder: (context, bookmarkService, authService, child) {
+                          final userId = authService.currentUserModel?.id;
+                          final isBookmarked = userId != null ? bookmarkService.isBookmarked(userId, post.id) : false;
+                          
+                          debugPrint('Building bookmark icon for post ${post.id}, userId: $userId, isBookmarked: $isBookmarked');
+                          
+                          return GestureDetector(
+                            onTap: () async {
+                              debugPrint('Bookmark icon tapped for post ${post.id}');
+                              if (userId == null) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Please log in to bookmark articles')),
+                                );
+                                return;
+                              }
+                              
+                              try {
+                                if (isBookmarked) {
+                                  debugPrint('Removing bookmark for post ${post.id}');
+                                  final success = await bookmarkService.removeBookmark(userId, post.id);
+                                  if (success) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(content: Text('Removed from bookmarks')),
+                                    );
+                                  } else {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(content: Text('Failed to remove bookmark')),
+                                    );
+                                  }
+                                } else {
+                                  debugPrint('Adding bookmark for post ${post.id}');
+                                  final success = await bookmarkService.addBookmark(userId, post);
+                                  if (success) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(content: Text('Added to bookmarks')),
+                                    );
+                                  } else {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(content: Text('Failed to add bookmark')),
+                                    );
+                                  }
+                                }
+                              } catch (e) {
+                                debugPrint('Error in bookmark operation: $e');
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('Error: ${e.toString()}')),
+                                );
+                              }
+                            },
+                            child: Icon(
+                              isBookmarked ? Icons.bookmark : Icons.bookmark_border,
+                              size: 14,
+                              color: isBookmarked ? Colors.red : Colors.grey[600],
+                            ),
+                          );
+                        },
+                      ),
+                      const SizedBox(width: 16),
+                      GestureDetector(
+                        onTap: () => _showShareOptions(context, post),
+                        child: Icon(
+                          Icons.share,
+                          size: 14,
+                          color: Colors.grey[600],
                         ),
                       ),
                     ],

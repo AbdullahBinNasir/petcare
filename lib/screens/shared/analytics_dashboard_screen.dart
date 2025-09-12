@@ -29,6 +29,8 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
       final analyticsService = Provider.of<AnalyticsService>(context, listen: false);
       final data = await analyticsService.getAnalyticsData();
       
+      debugPrint('Analytics Dashboard: Received data: $data');
+      
       setState(() {
         _analyticsData = data;
         _isLoading = false;
@@ -41,6 +43,17 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
     }
   }
 
+  Future<void> _generateSampleData() async {
+    try {
+      final analyticsService = Provider.of<AnalyticsService>(context, listen: false);
+      await analyticsService.generateSampleData();
+      _showSnackBar('Sample data generated successfully!', isError: false);
+      await _loadAnalyticsData(); // Refresh the data
+    } catch (e) {
+      _showSnackBar('Error generating sample data: ${e.toString()}', isError: true);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -50,6 +63,11 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _loadAnalyticsData,
+          ),
+          IconButton(
+            icon: const Icon(Icons.data_usage),
+            onPressed: _generateSampleData,
+            tooltip: 'Generate Sample Data',
           ),
         ],
       ),

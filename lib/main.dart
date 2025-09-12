@@ -9,6 +9,7 @@ import 'screens/auth/role_selection_screen.dart';
 import 'screens/pet_owner/pet_owner_dashboard.dart';
 import 'screens/veterinarian/vet_dashboard.dart';
 import 'screens/shelter/shelter_dashboard.dart';
+import 'screens/admin/admin_dashboard.dart';
 import 'services/auth_service.dart';
 import 'services/user_service.dart';
 import 'services/pet_service.dart';
@@ -19,6 +20,10 @@ import 'services/cart_service.dart';
 import 'services/order_service.dart';
 import 'services/blog_service.dart';
 import 'services/notification_service.dart';
+import 'services/contact_submission_service.dart';
+import 'services/feedback_submission_service.dart';
+import 'services/bookmark_service.dart';
+import 'services/analytics_service.dart';
 import 'models/user_model.dart';
 
 Future<void> main() async {
@@ -51,6 +56,10 @@ class PetCareApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => CartService()),
         ChangeNotifierProvider(create: (_) => OrderService()),
         ChangeNotifierProvider(create: (_) => BlogService()),
+        ChangeNotifierProvider(create: (_) => BookmarkService()),
+        ChangeNotifierProvider(create: (_) => AnalyticsService()),
+        ChangeNotifierProvider(create: (_) => ContactSubmissionService()),
+        ChangeNotifierProvider(create: (_) => FeedbackSubmissionService()),
       ],
       child: MaterialApp(
         title: 'Pet Care',
@@ -92,11 +101,25 @@ class PetCareApp extends StatelessWidget {
   }
 }
 
+// Initialize service connections
+void _initializeServices(BuildContext context) {
+  final analyticsService = Provider.of<AnalyticsService>(context, listen: false);
+  final storeService = Provider.of<StoreService>(context, listen: false);
+  
+  // Connect analytics service to store service
+  storeService.setAnalyticsService(analyticsService);
+}
+
 class AuthWrapper extends StatelessWidget {
   const AuthWrapper({super.key});
 
   @override
   Widget build(BuildContext context) {
+    // Initialize service connections
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _initializeServices(context);
+    });
+    
     return Consumer<AuthService>(
       builder: (context, authService, child) {
         if (authService.isLoading) {
@@ -121,6 +144,8 @@ class AuthWrapper extends StatelessWidget {
               return const VetDashboard();
             case UserRole.shelterAdmin:
               return const ShelterDashboard();
+            case UserRole.admin:
+              return const AdminDashboard();
           }
         }
 

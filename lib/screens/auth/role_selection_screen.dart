@@ -85,6 +85,14 @@ class RoleSelectionScreen extends StatelessWidget {
                       color: Colors.orange,
                       onTap: () => _navigateToAuth(context, UserRole.shelterAdmin),
                     ),
+                    const SizedBox(height: 16),
+                    _RoleCard(
+                      icon: Icons.admin_panel_settings,
+                      title: 'Admin',
+                      description: 'Manage contacts, feedback, and system administration',
+                      color: Colors.purple,
+                      onTap: () => _navigateToAuth(context, UserRole.admin),
+                    ),
                   ],
                 ),
                 

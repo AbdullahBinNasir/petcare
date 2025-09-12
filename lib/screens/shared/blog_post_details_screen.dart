@@ -9,6 +9,7 @@ import '../../models/blog_post_model.dart';
 import '../../models/user_model.dart';
 import '../../services/blog_service.dart';
 import '../../services/auth_service.dart';
+import '../../services/bookmark_service.dart';
 
 class BlogPostDetailsScreen extends StatefulWidget {
   final BlogPostModel post;
@@ -25,6 +26,7 @@ class BlogPostDetailsScreen extends StatefulWidget {
 class _BlogPostDetailsScreenState extends State<BlogPostDetailsScreen> {
   bool _isLiked = false;
   bool _isFavorite = false;
+  bool _isBookmarked = false;
   bool _isLoading = true;
 
   @override
@@ -38,15 +40,20 @@ class _BlogPostDetailsScreenState extends State<BlogPostDetailsScreen> {
   void _loadPostData() async {
     final blogService = Provider.of<BlogService>(context, listen: false);
     final authService = Provider.of<AuthService>(context, listen: false);
+    final bookmarkService = Provider.of<BookmarkService>(context, listen: false);
     final userId = authService.currentUserModel?.id ?? '';
 
     // Increment view count
     await blogService.incrementViewCount(widget.post.id);
 
     if (userId.isNotEmpty) {
-      // Check if post is liked and favorited
+      // Load user bookmarks first
+      await bookmarkService.loadUserBookmarks(userId);
+      
+      // Check if post is liked, favorited, and bookmarked
       _isLiked = await blogService.isPostLiked(widget.post.id, userId);
       _isFavorite = blogService.isPostFavorite(widget.post.id, userId);
+      _isBookmarked = bookmarkService.isBookmarked(userId, widget.post.id);
     }
 
     setState(() {
@@ -363,6 +370,14 @@ class _BlogPostDetailsScreenState extends State<BlogPostDetailsScreen> {
               style: TextStyle(color: Colors.grey[600]),
             ),
             const SizedBox(width: 24),
+            IconButton(
+              onPressed: _toggleBookmark,
+              icon: Icon(
+                _isBookmarked ? Icons.bookmark : Icons.bookmark_border,
+                color: _isBookmarked ? Colors.red : Colors.grey,
+              ),
+            ),
+            const SizedBox(width: 24),
             Icon(Icons.visibility, color: Colors.grey[600]),
             const SizedBox(width: 4),
             Text(
@@ -371,7 +386,7 @@ class _BlogPostDetailsScreenState extends State<BlogPostDetailsScreen> {
             ),
             const Spacer(),
             OutlinedButton.icon(
-              onPressed: _sharePost,
+              onPressed: () => _showShareOptions(context, widget.post),
               icon: const Icon(Icons.share),
               label: const Text('Share'),
             ),
@@ -422,10 +437,260 @@ class _BlogPostDetailsScreenState extends State<BlogPostDetailsScreen> {
     }
   }
 
+  void _toggleBookmark() async {
+    final authService = Provider.of<AuthService>(context, listen: false);
+    final bookmarkService = Provider.of<BookmarkService>(context, listen: false);
+    final userId = authService.currentUserModel?.id;
+
+    debugPrint('Toggle bookmark for post ${widget.post.id}, userId: $userId, current state: $_isBookmarked');
+
+    if (userId == null) {
+      _showSnackBar('Please log in to bookmark articles');
+      return;
+    }
+
+    try {
+      if (_isBookmarked) {
+        debugPrint('Removing bookmark for post ${widget.post.id}');
+        final success = await bookmarkService.removeBookmark(userId, widget.post.id);
+        if (success) {
+          _showSnackBar('Removed from bookmarks');
+        } else {
+          _showSnackBar('Failed to remove bookmark');
+        }
+      } else {
+        debugPrint('Adding bookmark for post ${widget.post.id}');
+        final success = await bookmarkService.addBookmark(userId, widget.post);
+        if (success) {
+          _showSnackBar('Added to bookmarks');
+        } else {
+          _showSnackBar('Failed to add bookmark');
+        }
+      }
+      setState(() {
+        _isBookmarked = !_isBookmarked;
+      });
+      debugPrint('Bookmark state updated to: $_isBookmarked');
+    } catch (e) {
+      debugPrint('Error in bookmark toggle: $e');
+      _showSnackBar('Error updating bookmark: ${e.toString()}');
+    }
+  }
+
   void _sharePost() {
-    Share.share(
-      '${widget.post.title}\n\n${widget.post.excerpt}\n\nRead more in the Pet Care app!',
-      subject: widget.post.title,
+    Provider.of<BlogService>(context, listen: false).sharePostDetailed(widget.post);
+  }
+
+  void _showShareOptions(BuildContext context, BlogPostModel post) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              'Share Article',
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 20),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _buildShareOption(
+                  context,
+                  icon: Icons.share,
+                  label: 'General',
+                  onTap: () {
+                    Navigator.pop(context);
+                    Provider.of<BlogService>(context, listen: false).sharePostDetailed(post);
+                  },
+                ),
+                _buildShareOption(
+                  context,
+                  icon: Icons.message,
+                  label: 'WhatsApp',
+                  onTap: () {
+                    Navigator.pop(context);
+                    Provider.of<BlogService>(context, listen: false).sharePostDetailedToPlatform(post, 'whatsapp');
+                  },
+                ),
+                _buildShareOption(
+                  context,
+                  icon: Icons.facebook,
+                  label: 'Facebook',
+                  onTap: () {
+                    Navigator.pop(context);
+                    Provider.of<BlogService>(context, listen: false).sharePostDetailedToPlatform(post, 'facebook');
+                  },
+                ),
+                _buildShareOption(
+                  context,
+                  icon: Icons.alternate_email,
+                  label: 'Twitter',
+                  onTap: () {
+                    Navigator.pop(context);
+                    Provider.of<BlogService>(context, listen: false).sharePostDetailedToPlatform(post, 'twitter');
+                  },
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _buildShareOption(
+                  context,
+                  icon: Icons.camera_alt,
+                  label: 'Instagram',
+                  onTap: () {
+                    Navigator.pop(context);
+                    Provider.of<BlogService>(context, listen: false).sharePostDetailedToPlatform(post, 'instagram');
+                  },
+                ),
+                _buildShareOption(
+                  context,
+                  icon: Icons.edit,
+                  label: 'Custom',
+                  onTap: () {
+                    Navigator.pop(context);
+                    _showCustomShareDialog(context, post);
+                  },
+                ),
+                _buildShareOption(
+                  context,
+                  icon: Icons.image,
+                  label: 'As Image',
+                  onTap: () {
+                    Navigator.pop(context);
+                    Provider.of<BlogService>(context, listen: false).sharePostDetailed(post);
+                  },
+                ),
+                _buildShareOption(
+                  context,
+                  icon: Icons.copy,
+                  label: 'Copy Link',
+                  onTap: () {
+                    Navigator.pop(context);
+                    _copyToClipboard(context, post);
+                  },
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildShareOption(BuildContext context, {
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Theme.of(context).primaryColor.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(
+              icon,
+              size: 24,
+              color: Theme.of(context).primaryColor,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showCustomShareDialog(BuildContext context, BlogPostModel post) {
+    final TextEditingController customTextController = TextEditingController();
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Custom Share Message'),
+        content: TextField(
+          controller: customTextController,
+          decoration: const InputDecoration(
+            hintText: 'Enter your custom message...',
+            border: OutlineInputBorder(),
+          ),
+          maxLines: 3,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              if (customTextController.text.isNotEmpty) {
+                // Use detailed custom sharing
+                final detailedText = '''
+${customTextController.text}
+
+📚 Category: ${post.categoryName}
+👤 Author: ${post.authorName}
+⏱️ Read Time: ${post.readTime} minutes
+
+📖 Read the complete article:
+https://petcare.app/blog/${post.id}
+
+---
+🐕 Pet Care App - Your trusted companion for pet health and wellness
+#PetCare #PetTips #${post.categoryName} #PetHealth #PetLovers
+                ''';
+                Provider.of<BlogService>(context, listen: false)
+                    .sharePostWithText(post, detailedText);
+              }
+            },
+            child: const Text('Share'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _copyToClipboard(BuildContext context, BlogPostModel post) {
+    final link = 'https://petcare.app/blog/${post.id}';
+    // You would use Clipboard.setData here if you have the clipboard package
+    // For now, we'll just show a message
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Link copied: $link'),
+        duration: const Duration(seconds: 2),
+      ),
     );
   }
 

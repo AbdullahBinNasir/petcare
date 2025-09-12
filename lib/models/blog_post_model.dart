@@ -73,7 +73,9 @@ class BlogPostModel {
       isPublished: data['isPublished'] ?? false,
       isArchived: data['isArchived'] ?? false,
       isScheduled: data['isScheduled'] ?? false,
-      publishedAt: (data['publishedAt'] as Timestamp).toDate(),
+      publishedAt: data['publishedAt'] != null 
+          ? (data['publishedAt'] as Timestamp).toDate() 
+          : (data['createdAt'] as Timestamp).toDate(),
       scheduledPublishAt: data['scheduledPublishAt'] != null 
           ? (data['scheduledPublishAt'] as Timestamp).toDate() 
           : null,

@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-enum UserRole { petOwner, veterinarian, shelterAdmin }
+enum UserRole { petOwner, veterinarian, shelterAdmin, admin }
 
 class UserModel {
   final String id;
@@ -10,6 +10,7 @@ class UserModel {
   final String? phoneNumber;
   final UserRole role;
   final String? profileImageUrl;
+  final String? bio;
   final DateTime createdAt;
   final DateTime updatedAt;
   final bool isActive;
@@ -28,6 +29,7 @@ class UserModel {
     this.phoneNumber,
     required this.role,
     this.profileImageUrl,
+    this.bio,
     required this.createdAt,
     required this.updatedAt,
     this.isActive = true,
@@ -50,8 +52,13 @@ class UserModel {
         orElse: () => UserRole.petOwner,
       ),
       profileImageUrl: data['profileImageUrl'],
-      createdAt: (data['createdAt'] as Timestamp).toDate(),
-      updatedAt: (data['updatedAt'] as Timestamp).toDate(),
+      bio: data['bio'],
+      createdAt: data['createdAt'] != null 
+          ? (data['createdAt'] as Timestamp).toDate()
+          : DateTime.now(),
+      updatedAt: data['updatedAt'] != null 
+          ? (data['updatedAt'] as Timestamp).toDate()
+          : DateTime.now(),
       isActive: data['isActive'] ?? true,
       clinicName: data['clinicName'],
       licenseNumber: data['licenseNumber'],
@@ -68,6 +75,7 @@ class UserModel {
       'phoneNumber': phoneNumber,
       'role': role.toString().split('.').last,
       'profileImageUrl': profileImageUrl,
+      'bio': bio,
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedAt': Timestamp.fromDate(updatedAt),
       'isActive': isActive,
@@ -81,12 +89,15 @@ class UserModel {
   String get fullName => '$firstName $lastName';
 
   UserModel copyWith({
+    String? id,
     String? email,
     String? firstName,
     String? lastName,
     String? phoneNumber,
     UserRole? role,
     String? profileImageUrl,
+    String? bio,
+    DateTime? createdAt,
     DateTime? updatedAt,
     bool? isActive,
     String? clinicName,
@@ -95,14 +106,15 @@ class UserModel {
     String? address,
   }) {
     return UserModel(
-      id: id,
+      id: id ?? this.id,
       email: email ?? this.email,
       firstName: firstName ?? this.firstName,
       lastName: lastName ?? this.lastName,
       phoneNumber: phoneNumber ?? this.phoneNumber,
       role: role ?? this.role,
       profileImageUrl: profileImageUrl ?? this.profileImageUrl,
-      createdAt: createdAt,
+      bio: bio ?? this.bio,
+      createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       isActive: isActive ?? this.isActive,
       clinicName: clinicName ?? this.clinicName,
