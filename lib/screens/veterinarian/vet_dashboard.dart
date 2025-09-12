@@ -1,12 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:intl/intl.dart';
 import '../../services/auth_service.dart';
 import '../../services/appointment_service.dart';
+import '../../services/health_record_service.dart';
+import '../../services/pet_service.dart';
 import '../../models/appointment_model.dart';
+import '../../models/health_record_model.dart';
 import '../shared/profile_screen.dart';
 import '../shared/appointments_screen.dart';
 import '../shared/blog_screen.dart';
 import '../shared/admin_blog_management_screen.dart';
+import 'vet_health_records_screen.dart';
+import 'vet_pet_search_screen.dart';
+import 'vet_appointment_completion_screen.dart';
+import 'vet_availability_management_screen.dart';
+import 'vet_appointment_filters_screen.dart';
+import 'vet_appointment_calendar_screen.dart';
 
 class VetDashboard extends StatefulWidget {
   const VetDashboard({super.key});
@@ -19,6 +29,9 @@ class _VetDashboardState extends State<VetDashboard> {
   int _currentIndex = 0;
   List<AppointmentModel> _todaysAppointments = [];
   List<AppointmentModel> _upcomingAppointments = [];
+  List<HealthRecordModel> _recentHealthRecords = [];
+  int _totalPatients = 0;
+  int _totalHealthRecords = 0;
   bool _isLoading = true;
 
   @override
@@ -30,14 +43,29 @@ class _VetDashboardState extends State<VetDashboard> {
   Future<void> _loadDashboardData() async {
     final authService = Provider.of<AuthService>(context, listen: false);
     final appointmentService = Provider.of<AppointmentService>(context, listen: false);
+    final healthService = Provider.of<HealthRecordService>(context, listen: false);
+    final petService = Provider.of<PetService>(context, listen: false);
 
     if (authService.currentUser != null) {
       final todaysAppointments = await appointmentService.getTodaysAppointments(authService.currentUser!.uid);
       final upcomingAppointments = await appointmentService.getUpcomingAppointments(authService.currentUser!.uid, isVet: true);
+      final healthRecords = await healthService.getHealthRecordsByVetId(authService.currentUser!.uid);
+      
+      // Get unique patient count from appointments
+      final patientIds = <String>{};
+      for (final appointment in todaysAppointments) {
+        patientIds.add(appointment.petId);
+      }
+      for (final appointment in upcomingAppointments) {
+        patientIds.add(appointment.petId);
+      }
 
       setState(() {
         _todaysAppointments = todaysAppointments;
         _upcomingAppointments = upcomingAppointments;
+        _recentHealthRecords = healthRecords.take(5).toList();
+        _totalPatients = patientIds.length;
+        _totalHealthRecords = healthRecords.length;
         _isLoading = false;
       });
     }
@@ -47,7 +75,12 @@ class _VetDashboardState extends State<VetDashboard> {
   Widget build(BuildContext context) {
     final List<Widget> pages = [
       _buildHomeTab(),
+      const VetAppointmentCalendarScreen(),
       const AppointmentsScreen(),
+      const VetHealthRecordsScreen(),
+      const VetPetSearchScreen(),
+      const VetAvailabilityManagementScreen(),
+      const VetAppointmentFiltersScreen(),
       const BlogScreen(),
       const AdminBlogManagementScreen(),
       const ProfileScreen(),
@@ -68,8 +101,28 @@ class _VetDashboardState extends State<VetDashboard> {
             label: 'Dashboard',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.calendar_today),
+            icon: Icon(Icons.calendar_month),
+            label: 'Calendar',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.list_alt),
             label: 'Appointments',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.medical_services),
+            label: 'Health Records',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.pets),
+            label: 'Pet Search',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.schedule),
+            label: 'Availability',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.filter_list),
+            label: 'Filters',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.article),
@@ -179,6 +232,28 @@ class _VetDashboardState extends State<VetDashboard> {
                         ),
                       ],
                     ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildStatCard(
+                            'Total Patients',
+                            _totalPatients.toString(),
+                            Icons.pets,
+                            Colors.purple,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _buildStatCard(
+                            'Health Records',
+                            _totalHealthRecords.toString(),
+                            Icons.medical_services,
+                            Colors.orange,
+                          ),
+                        ),
+                      ],
+                    ),
                     const SizedBox(height: 24),
 
                     // Today's Appointments
@@ -193,7 +268,7 @@ class _VetDashboardState extends State<VetDashboard> {
                         ),
                         if (_todaysAppointments.isNotEmpty)
                           TextButton(
-                            onPressed: () => setState(() => _currentIndex = 1),
+                            onPressed: () => setState(() => _currentIndex = 2),
                             child: const Text('View All'),
                           ),
                       ],
@@ -268,6 +343,78 @@ class _VetDashboardState extends State<VetDashboard> {
 
                     const SizedBox(height: 24),
 
+                    // Recent Health Records
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Recent Health Records',
+                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        if (_recentHealthRecords.isNotEmpty)
+                          TextButton(
+                            onPressed: () => setState(() => _currentIndex = 3),
+                            child: const Text('View All'),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+
+                    if (_recentHealthRecords.isEmpty)
+                      Card(
+                        child: Padding(
+                          padding: const EdgeInsets.all(24),
+                          child: Column(
+                            children: [
+                              Icon(
+                                Icons.medical_services_outlined,
+                                size: 48,
+                                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.3),
+                              ),
+                              const SizedBox(height: 12),
+                              Text(
+                                'No recent health records',
+                                style: Theme.of(context).textTheme.titleMedium,
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Health records will appear here after appointments',
+                                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      )
+                    else
+                      ...(_recentHealthRecords.take(3).map((record) {
+                        return Card(
+                          margin: const EdgeInsets.only(bottom: 8),
+                          child: ListTile(
+                            leading: CircleAvatar(
+                              backgroundColor: _getRecordTypeColor(record.type).withOpacity(0.1),
+                              child: Icon(
+                                _getRecordTypeIcon(record.type),
+                                color: _getRecordTypeColor(record.type),
+                                size: 20,
+                              ),
+                            ),
+                            title: Text(record.title),
+                            subtitle: Text(
+                              '${DateFormat('MMM dd, yyyy').format(record.recordDate)} • ${record.type.toString().split('.').last}',
+                            ),
+                            onTap: () {
+                              // TODO: Navigate to health record details
+                            },
+                          ),
+                        );
+                      }).toList()),
+
+                    const SizedBox(height: 24),
+
                     // Quick Actions
                     Text(
                       'Quick Actions',
@@ -282,9 +429,53 @@ class _VetDashboardState extends State<VetDashboard> {
                         Expanded(
                           child: _buildActionCard(
                             'View Calendar',
-                            Icons.calendar_today,
+                            Icons.calendar_month,
                             Colors.blue,
                             () => setState(() => _currentIndex = 1),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _buildActionCard(
+                            'Health Records',
+                            Icons.medical_services,
+                            Colors.orange,
+                            () => setState(() => _currentIndex = 3),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildActionCard(
+                            'Pet Search',
+                            Icons.pets,
+                            Colors.purple,
+                            () => setState(() => _currentIndex = 4),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _buildActionCard(
+                            'Availability',
+                            Icons.schedule,
+                            Colors.teal,
+                            () => setState(() => _currentIndex = 5),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildActionCard(
+                            'Filter Appointments',
+                            Icons.filter_list,
+                            Colors.indigo,
+                            () => setState(() => _currentIndex = 6),
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -293,7 +484,7 @@ class _VetDashboardState extends State<VetDashboard> {
                             'Manage Blog',
                             Icons.admin_panel_settings,
                             Colors.green,
-                            () => setState(() => _currentIndex = 3),
+                            () => setState(() => _currentIndex = 7),
                           ),
                         ),
                       ],
@@ -390,6 +581,44 @@ class _VetDashboardState extends State<VetDashboard> {
         return Icons.content_cut;
       case AppointmentType.consultation:
         return Icons.chat;
+    }
+  }
+
+  Color _getRecordTypeColor(HealthRecordType type) {
+    switch (type) {
+      case HealthRecordType.vaccination:
+        return Colors.green;
+      case HealthRecordType.medication:
+        return Colors.blue;
+      case HealthRecordType.checkup:
+        return Colors.orange;
+      case HealthRecordType.surgery:
+        return Colors.red;
+      case HealthRecordType.allergy:
+        return Colors.purple;
+      case HealthRecordType.injury:
+        return Colors.red.shade800;
+      case HealthRecordType.other:
+        return Colors.grey;
+    }
+  }
+
+  IconData _getRecordTypeIcon(HealthRecordType type) {
+    switch (type) {
+      case HealthRecordType.vaccination:
+        return Icons.vaccines;
+      case HealthRecordType.medication:
+        return Icons.medication;
+      case HealthRecordType.checkup:
+        return Icons.health_and_safety;
+      case HealthRecordType.surgery:
+        return Icons.medical_services;
+      case HealthRecordType.allergy:
+        return Icons.warning;
+      case HealthRecordType.injury:
+        return Icons.healing;
+      case HealthRecordType.other:
+        return Icons.medical_information;
     }
   }
 }

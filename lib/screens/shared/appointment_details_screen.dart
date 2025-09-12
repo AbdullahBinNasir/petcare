@@ -6,6 +6,7 @@ import '../../models/user_model.dart';
 import '../../services/appointment_service.dart';
 import '../../services/auth_service.dart';
 import '../../services/notification_service.dart';
+import '../veterinarian/vet_appointment_completion_screen.dart';
 
 class AppointmentDetailsScreen extends StatelessWidget {
   final AppointmentModel appointment;
@@ -72,6 +73,19 @@ class AppointmentDetailsScreen extends StatelessWidget {
                         Icon(Icons.done, color: Colors.teal),
                         SizedBox(width: 8),
                         Text('Complete'),
+                      ],
+                    ),
+                  ),
+                ],
+                if (isVet && (appointment.status == AppointmentStatus.scheduled || 
+                              appointment.status == AppointmentStatus.confirmed)) ...[
+                  const PopupMenuItem(
+                    value: 'complete_detailed',
+                    child: Row(
+                      children: [
+                        Icon(Icons.medical_services, color: Colors.blue),
+                        SizedBox(width: 8),
+                        Text('Complete with Medical Details'),
                       ],
                     ),
                   ),
@@ -367,6 +381,17 @@ class AppointmentDetailsScreen extends StatelessWidget {
             diagnosis: 'Completed via app',
           );
           _showSnackBar(context, 'Appointment completed');
+          break;
+        case 'complete_detailed':
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => VetAppointmentCompletionScreen(appointment: appointment),
+            ),
+          ).then((_) {
+            // Refresh the screen if needed
+            Navigator.pop(context);
+          });
           break;
         case 'edit':
           // Navigate to edit screen
