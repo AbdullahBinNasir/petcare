@@ -24,6 +24,7 @@ import 'services/contact_submission_service.dart';
 import 'services/feedback_submission_service.dart';
 import 'services/bookmark_service.dart';
 import 'services/analytics_service.dart';
+import 'services/booking_statistics_service.dart';
 import 'models/user_model.dart';
 
 Future<void> main() async {
@@ -60,6 +61,7 @@ class PetCareApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => AnalyticsService()),
         ChangeNotifierProvider(create: (_) => ContactSubmissionService()),
         ChangeNotifierProvider(create: (_) => FeedbackSubmissionService()),
+        ChangeNotifierProvider(create: (_) => BookingStatisticsService()),
       ],
       child: MaterialApp(
         title: 'Pet Care',

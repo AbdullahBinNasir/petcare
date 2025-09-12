@@ -105,7 +105,7 @@ class StoreItemModel {
       'brand': brand,
       'isInStock': isInStock,
       'stockQuantity': stockQuantity,
-      'rating': rating,
+      'rating': rating ?? 0.0, // Handle null rating
       'reviewCount': reviewCount,
       'externalUrl': externalUrl,
       'specifications': specifications,

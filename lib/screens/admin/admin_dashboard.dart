@@ -3,11 +3,16 @@ import 'package:provider/provider.dart';
 import '../../services/auth_service.dart';
 import '../../services/contact_submission_service.dart';
 import '../../services/feedback_submission_service.dart';
+import '../../services/booking_statistics_service.dart';
 import '../../models/contact_submission_model.dart';
 import '../../models/feedback_submission_model.dart';
 import 'contact_management_screen.dart';
 import 'feedback_management_screen.dart';
 import '../shared/analytics_dashboard_screen.dart';
+import '../shared/admin_store_management_screen.dart';
+import '../shared/pet_store_screen.dart';
+import '../shared/order_management_screen.dart';
+import 'booking_analytics_screen.dart';
 
 class AdminDashboard extends StatefulWidget {
   const AdminDashboard({super.key});
@@ -36,10 +41,12 @@ class _AdminDashboardState extends State<AdminDashboard> {
     try {
       final contactService = Provider.of<ContactSubmissionService>(context, listen: false);
       final feedbackService = Provider.of<FeedbackSubmissionService>(context, listen: false);
+      final bookingService = Provider.of<BookingStatisticsService>(context, listen: false);
 
       await Future.wait([
         contactService.loadSubmissions(),
         feedbackService.loadSubmissions(),
+        bookingService.loadBookingStatistics(),
       ]);
 
       setState(() {
@@ -61,6 +68,10 @@ class _AdminDashboardState extends State<AdminDashboard> {
       _buildHomeTab(),
       const ContactManagementScreen(),
       const FeedbackManagementScreen(),
+      const PetStoreScreen(),
+      const AdminStoreManagementScreen(),
+      const OrderManagementScreen(),
+      const BookingAnalyticsScreen(),
       const AnalyticsDashboardScreen(),
     ];
 
@@ -87,6 +98,22 @@ class _AdminDashboardState extends State<AdminDashboard> {
           BottomNavigationBarItem(
             icon: Icon(Icons.feedback),
             label: 'Feedback',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.store),
+            label: 'Store',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.admin_panel_settings),
+            label: 'Store Admin',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.shopping_bag),
+            label: 'Orders',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.calendar_today),
+            label: 'Bookings',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.analytics),
@@ -211,30 +238,56 @@ class _AdminDashboardState extends State<AdminDashboard> {
   }
 
   Widget _buildQuickStats() {
-    return Consumer2<ContactSubmissionService, FeedbackSubmissionService>(
-      builder: (context, contactService, feedbackService, child) {
+    return Consumer3<ContactSubmissionService, FeedbackSubmissionService, BookingStatisticsService>(
+      builder: (context, contactService, feedbackService, bookingService, child) {
         final contactStats = contactService.getSubmissionStatistics();
         final feedbackStats = feedbackService.getSubmissionStatistics();
-        final avgRating = feedbackService.getAverageRating();
+        final bookingStats = bookingService.statistics;
 
-        return Row(
+        return Column(
           children: [
-            Expanded(
-              child: _buildStatCard(
-                'Pending Contacts',
-                contactStats['pending']?.toString() ?? '0',
-                Icons.contact_support,
-                Colors.orange,
-              ),
+            Row(
+              children: [
+                Expanded(
+                  child: _buildStatCard(
+                    'Pending Contacts',
+                    contactStats['pending']?.toString() ?? '0',
+                    Icons.contact_support,
+                    Colors.orange,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _buildStatCard(
+                    'Pending Feedback',
+                    feedbackStats['pending']?.toString() ?? '0',
+                    Icons.feedback,
+                    Colors.blue,
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _buildStatCard(
-                'Pending Feedback',
-                feedbackStats['pending']?.toString() ?? '0',
-                Icons.feedback,
-                Colors.blue,
-              ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: _buildStatCard(
+                    'Today\'s Bookings',
+                    bookingStats['todayAppointments']?.toString() ?? '0',
+                    Icons.calendar_today,
+                    Colors.green,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _buildStatCard(
+                    'Total Bookings',
+                    bookingStats['totalAppointments']?.toString() ?? '0',
+                    Icons.event,
+                    Colors.purple,
+                  ),
+                ),
+              ],
             ),
           ],
         );
@@ -349,10 +402,54 @@ class _AdminDashboardState extends State<AdminDashboard> {
           children: [
             Expanded(
               child: _buildActionCard(
+                'Pet Store',
+                Icons.store,
+                Colors.green,
+                () => setState(() => _currentIndex = 3),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildActionCard(
+                'Store Management',
+                Icons.admin_panel_settings,
+                Colors.purple,
+                () => setState(() => _currentIndex = 4),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: _buildActionCard(
+                'Order Management',
+                Icons.shopping_bag,
+                Colors.orange,
+                () => setState(() => _currentIndex = 5),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildActionCard(
+                'Booking Analytics',
+                Icons.calendar_today,
+                Colors.indigo,
+                () => setState(() => _currentIndex = 6),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: _buildActionCard(
                 'Store Analytics',
                 Icons.analytics,
-                Colors.purple,
-                () => setState(() => _currentIndex = 3),
+                Colors.teal,
+                () => setState(() => _currentIndex = 7),
               ),
             ),
             const SizedBox(width: 12),

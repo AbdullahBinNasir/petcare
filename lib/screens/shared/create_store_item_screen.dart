@@ -250,12 +250,11 @@ class _CreateStoreItemScreenState extends State<CreateStoreItemScreen> {
                 border: OutlineInputBorder(),
               ),
               validator: (value) {
-                if (value == null || value.trim().isEmpty) {
-                  return 'Please enter a purchase URL';
-                }
-                final uri = Uri.tryParse(value);
-                if (uri == null || !uri.hasAbsolutePath) {
-                  return 'Please enter a valid URL';
+                if (value != null && value.trim().isNotEmpty) {
+                  final uri = Uri.tryParse(value);
+                  if (uri == null || !uri.hasAbsolutePath) {
+                    return 'Please enter a valid URL';
+                  }
                 }
                 return null;
               },
