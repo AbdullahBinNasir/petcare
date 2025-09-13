@@ -46,6 +46,7 @@ class _VetHealthRecordsScreenState extends State<VetHealthRecordsScreen> with Si
   }
 
   Future<void> _loadData() async {
+    print('🏥 VetHealthRecordsScreen: Starting to load data...');
     setState(() => _isLoading = true);
 
     try {
@@ -54,10 +55,17 @@ class _VetHealthRecordsScreenState extends State<VetHealthRecordsScreen> with Si
       final petService = Provider.of<PetService>(context, listen: false);
       final appointmentService = Provider.of<AppointmentService>(context, listen: false);
 
-      if (authService.currentUser == null) return;
+      if (authService.currentUser == null) {
+        print('❌ VetHealthRecordsScreen: No current user found');
+        return;
+      }
 
+      print('👤 VetHealthRecordsScreen: Current user: ${authService.currentUser!.uid}');
+      
       // Load all health records created by this veterinarian
+      print('🏥 VetHealthRecordsScreen: Loading health records for vet ID: ${authService.currentUser!.uid}');
       final records = await healthService.getHealthRecordsByVetId(authService.currentUser!.uid);
+      print('📊 VetHealthRecordsScreen: Received ${records.length} health records from service');
       
       // Load pets from appointments (pets assigned to this veterinarian)
       final appointments = await appointmentService.getAppointmentsByVeterinarian(authService.currentUser!.uid);
@@ -84,7 +92,16 @@ class _VetHealthRecordsScreenState extends State<VetHealthRecordsScreen> with Si
         _overdueRecords = records.where((r) => r.isOverdue).toList();
         _isLoading = false;
       });
+      
+      print('✅ VetHealthRecordsScreen: Data loaded successfully');
+      print('📊 VetHealthRecordsScreen: Final counts:');
+      print('  - All records: ${_allRecords.length}');
+      print('  - Recent records: ${_recentRecords.length}');
+      print('  - Due records: ${_dueRecords.length}');
+      print('  - Overdue records: ${_overdueRecords.length}');
+      print('  - Pets loaded: ${_pets.length}');
     } catch (e) {
+      print('❌ VetHealthRecordsScreen: Error loading health records: $e');
       debugPrint('Error loading health records: $e');
       setState(() => _isLoading = false);
     }

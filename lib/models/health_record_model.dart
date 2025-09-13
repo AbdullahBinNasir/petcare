@@ -14,7 +14,11 @@ class HealthRecordModel {
   final String? medication;
   final String? dosage;
   final String? notes;
+  final String? diagnosis;
+  final String? prescription;
+  final String? treatmentNotes;
   final List<String> attachmentUrls;
+  final List<String> fileAttachments;
   final DateTime createdAt;
   final DateTime updatedAt;
   final bool isActive;
@@ -31,7 +35,11 @@ class HealthRecordModel {
     this.medication,
     this.dosage,
     this.notes,
+    this.diagnosis,
+    this.prescription,
+    this.treatmentNotes,
     this.attachmentUrls = const [],
+    this.fileAttachments = const [],
     required this.createdAt,
     required this.updatedAt,
     this.isActive = true,
@@ -56,7 +64,11 @@ class HealthRecordModel {
       medication: data['medication'],
       dosage: data['dosage'],
       notes: data['notes'],
+      diagnosis: data['diagnosis'],
+      prescription: data['prescription'],
+      treatmentNotes: data['treatmentNotes'],
       attachmentUrls: List<String>.from(data['attachmentUrls'] ?? []),
+      fileAttachments: List<String>.from(data['fileAttachments'] ?? []),
       createdAt: (data['createdAt'] as Timestamp).toDate(),
       updatedAt: (data['updatedAt'] as Timestamp).toDate(),
       isActive: data['isActive'] ?? true,
@@ -75,7 +87,11 @@ class HealthRecordModel {
       'medication': medication,
       'dosage': dosage,
       'notes': notes,
+      'diagnosis': diagnosis,
+      'prescription': prescription,
+      'treatmentNotes': treatmentNotes,
       'attachmentUrls': attachmentUrls,
+      'fileAttachments': fileAttachments,
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedAt': Timestamp.fromDate(updatedAt),
       'isActive': isActive,

@@ -41,15 +41,24 @@ class _VetDashboardState extends State<VetDashboard> {
   }
 
   Future<void> _loadDashboardData() async {
+    print('🏥 VetDashboard: Starting to load dashboard data...');
+    
     final authService = Provider.of<AuthService>(context, listen: false);
     final appointmentService = Provider.of<AppointmentService>(context, listen: false);
     final healthService = Provider.of<HealthRecordService>(context, listen: false);
     final petService = Provider.of<PetService>(context, listen: false);
 
+    print('👤 VetDashboard: Current user: ${authService.currentUser?.uid}');
+    print('👤 VetDashboard: Current user model: ${authService.currentUserModel?.firstName} ${authService.currentUserModel?.lastName}');
+
     if (authService.currentUser != null) {
+      print('📅 VetDashboard: Loading appointments...');
       final todaysAppointments = await appointmentService.getTodaysAppointments(authService.currentUser!.uid);
       final upcomingAppointments = await appointmentService.getUpcomingAppointments(authService.currentUser!.uid, isVet: true);
+      
+      print('🏥 VetDashboard: Loading health records for vet ID: ${authService.currentUser!.uid}');
       final healthRecords = await healthService.getHealthRecordsByVetId(authService.currentUser!.uid);
+      print('📊 VetDashboard: Received ${healthRecords.length} health records from service');
       
       // Get unique patient count from appointments
       final patientIds = <String>{};
@@ -60,6 +69,13 @@ class _VetDashboardState extends State<VetDashboard> {
         patientIds.add(appointment.petId);
       }
 
+      print('📊 VetDashboard: Setting state with data:');
+      print('  - Today\'s appointments: ${todaysAppointments.length}');
+      print('  - Upcoming appointments: ${upcomingAppointments.length}');
+      print('  - Health records: ${healthRecords.length}');
+      print('  - Recent health records (first 5): ${healthRecords.take(5).length}');
+      print('  - Total patients: ${patientIds.length}');
+      
       setState(() {
         _todaysAppointments = todaysAppointments;
         _upcomingAppointments = upcomingAppointments;
@@ -68,6 +84,29 @@ class _VetDashboardState extends State<VetDashboard> {
         _totalHealthRecords = healthRecords.length;
         _isLoading = false;
       });
+      
+      print('✅ VetDashboard: State updated successfully');
+      print('📊 VetDashboard: Final _recentHealthRecords length: ${_recentHealthRecords.length}');
+    }
+  }
+
+  Future<void> _testFetchAllRecords() async {
+    print('🧪 VetDashboard: Testing fetch all records...');
+    final healthService = Provider.of<HealthRecordService>(context, listen: false);
+    final allRecords = await healthService.getAllHealthRecords();
+    print('🧪 VetDashboard: Fetched ${allRecords.length} total records from all vets');
+    
+    if (allRecords.isNotEmpty) {
+      print('🧪 VetDashboard: Sample records:');
+      for (int i = 0; i < allRecords.length && i < 3; i++) {
+        final record = allRecords[i];
+        print('  Record ${i + 1}:');
+        print('    ID: ${record.id}');
+        print('    Title: ${record.title}');
+        print('    Vet ID: ${record.veterinarianId}');
+        print('    Pet ID: ${record.petId}');
+        print('    Type: ${record.type}');
+      }
     }
   }
 
@@ -361,6 +400,35 @@ class _VetDashboardState extends State<VetDashboard> {
                       ],
                     ),
                     const SizedBox(height: 12),
+
+                    // Debug info for health records
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      margin: const EdgeInsets.only(bottom: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(4),
+                        border: Border.all(color: Colors.blue.withOpacity(0.3)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('🐛 DEBUG INFO:', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue[800])),
+                          Text('_recentHealthRecords.length: ${_recentHealthRecords.length}'),
+                          Text('_isLoading: $_isLoading'),
+                          Text('_totalHealthRecords: $_totalHealthRecords'),
+                          if (_recentHealthRecords.isNotEmpty) ...[
+                            Text('First record title: ${_recentHealthRecords.first.title}'),
+                            Text('First record type: ${_recentHealthRecords.first.type}'),
+                          ],
+                          const SizedBox(height: 8),
+                          ElevatedButton(
+                            onPressed: _testFetchAllRecords,
+                            child: const Text('Test Fetch All Records'),
+                          ),
+                        ],
+                      ),
+                    ),
 
                     if (_recentHealthRecords.isEmpty)
                       Card(

@@ -14,7 +14,7 @@ class HealthRecordService extends ChangeNotifier {
       QuerySnapshot querySnapshot;
       try {
         querySnapshot = await _firestore
-            .collection('pet_records')
+            .collection('health_records')
             .where('petId', isEqualTo: petId)
             .where('isActive', isEqualTo: true)
             .orderBy('recordDate', descending: true)
@@ -22,7 +22,7 @@ class HealthRecordService extends ChangeNotifier {
       } catch (e) {
         debugPrint('OrderBy failed, trying without orderBy: $e');
         querySnapshot = await _firestore
-            .collection('pet_records')
+            .collection('health_records')
             .where('petId', isEqualTo: petId)
             .where('isActive', isEqualTo: true)
             .get();
@@ -66,7 +66,7 @@ class HealthRecordService extends ChangeNotifier {
       debugPrint('HealthRecordService: Fetching ALL health records for debugging...');
       
       final querySnapshot = await _firestore
-          .collection('pet_records')
+          .collection('health_records')
           .get();
 
       debugPrint('HealthRecordService: Found ${querySnapshot.docs.length} total health records');
@@ -98,18 +98,41 @@ class HealthRecordService extends ChangeNotifier {
   // Get health records by veterinarian ID
   Future<List<HealthRecordModel>> getHealthRecordsByVetId(String vetId) async {
     try {
+      print('🔍 HealthRecordService: Fetching health records for vet ID: $vetId');
+      
       final querySnapshot = await _firestore
-          .collection('pet_records')
+          .collection('health_records')
           .where('veterinarianId', isEqualTo: vetId)
           .where('isActive', isEqualTo: true)
           .orderBy('recordDate', descending: true)
           .get();
 
-      return querySnapshot.docs
-          .map((doc) => HealthRecordModel.fromFirestore(doc))
+      print('📊 HealthRecordService: Found ${querySnapshot.docs.length} health records for vet');
+      
+      if (querySnapshot.docs.isNotEmpty) {
+        print('📋 Sample health record data:');
+        final sampleDoc = querySnapshot.docs.first;
+        print('  Document ID: ${sampleDoc.id}');
+        print('  Data: ${sampleDoc.data()}');
+      }
+
+      final records = querySnapshot.docs
+          .map((doc) {
+            try {
+              return HealthRecordModel.fromFirestore(doc);
+            } catch (e) {
+              print('❌ Error parsing health record ${doc.id}: $e');
+              return null;
+            }
+          })
+          .where((record) => record != null)
+          .cast<HealthRecordModel>()
           .toList();
+
+      print('✅ HealthRecordService: Successfully parsed ${records.length} health records');
+      return records;
     } catch (e) {
-      print('Error getting vet health records: $e');
+      print('❌ Error getting vet health records: $e');
       return [];
     }
   }
@@ -117,7 +140,7 @@ class HealthRecordService extends ChangeNotifier {
   // Add new health record
   Future<String?> addHealthRecord(HealthRecordModel record) async {
     try {
-      final docRef = await _firestore.collection('pet_records').add(record.toFirestore());
+      final docRef = await _firestore.collection('health_records').add(record.toFirestore());
       notifyListeners();
       return docRef.id;
     } catch (e) {
@@ -130,7 +153,7 @@ class HealthRecordService extends ChangeNotifier {
   Future<bool> updateHealthRecord(HealthRecordModel record) async {
     try {
       await _firestore
-          .collection('pet_records')
+          .collection('health_records')
           .doc(record.id)
           .update(record.copyWith(updatedAt: DateTime.now()).toFirestore());
       notifyListeners();
@@ -144,7 +167,7 @@ class HealthRecordService extends ChangeNotifier {
   // Delete health record (soft delete)
   Future<bool> deleteHealthRecord(String recordId) async {
     try {
-      await _firestore.collection('pet_records').doc(recordId).update({
+      await _firestore.collection('health_records').doc(recordId).update({
         'isActive': false,
         'updatedAt': Timestamp.fromDate(DateTime.now()),
       });
@@ -160,7 +183,7 @@ class HealthRecordService extends ChangeNotifier {
   Future<List<HealthRecordModel>> getDueHealthRecords(String petId) async {
     try {
       final querySnapshot = await _firestore
-          .collection('pet_records')
+          .collection('health_records')
           .where('petId', isEqualTo: petId)
           .where('isActive', isEqualTo: true)
           .get();
@@ -182,7 +205,7 @@ class HealthRecordService extends ChangeNotifier {
   Future<List<HealthRecordModel>> getOverdueHealthRecords(String petId) async {
     try {
       final querySnapshot = await _firestore
-          .collection('pet_records')
+          .collection('health_records')
           .where('petId', isEqualTo: petId)
           .where('isActive', isEqualTo: true)
           .get();
@@ -204,7 +227,7 @@ class HealthRecordService extends ChangeNotifier {
   Future<List<HealthRecordModel>> getHealthRecordsByType(String petId, HealthRecordType type) async {
     try {
       final querySnapshot = await _firestore
-          .collection('pet_records')
+          .collection('health_records')
           .where('petId', isEqualTo: petId)
           .where('type', isEqualTo: type.toString().split('.').last)
           .where('isActive', isEqualTo: true)
@@ -227,7 +250,7 @@ class HealthRecordService extends ChangeNotifier {
     HealthRecordType? type,
   }) async {
     try {
-      Query baseQuery = _firestore.collection('pet_records');
+      Query baseQuery = _firestore.collection('health_records');
       
       baseQuery = baseQuery.where('petId', isEqualTo: petId);
       baseQuery = baseQuery.where('isActive', isEqualTo: true);

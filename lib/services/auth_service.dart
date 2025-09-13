@@ -43,11 +43,12 @@ class AuthService extends ChangeNotifier {
         _currentUserModel = UserModel.fromFirestore(doc);
         debugPrint('User model loaded successfully: ${_currentUserModel?.firstName} ${_currentUserModel?.lastName}');
       } else {
-        debugPrint('User document not found for UID: $uid');
+        debugPrint('❌ User document not found for UID: $uid');
+        debugPrint('❌ This means the user was created in Firebase Auth but not in Firestore');
         _currentUserModel = null;
       }
     } catch (e) {
-      debugPrint('Error loading user model: $e');
+      debugPrint('❌ Error loading user model: $e');
       _currentUserModel = null;
     }
   }

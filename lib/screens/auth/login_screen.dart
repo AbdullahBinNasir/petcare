@@ -22,6 +22,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
+  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -138,21 +139,28 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(height: 24),
 
                   // Sign In Button
-                  Consumer<AuthService>(
-                    builder: (context, authService, child) {
-                      return ElevatedButton(
-                        onPressed: authService.isLoading ? null : _signIn,
-                        style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                        ),
-                        child: authService.isLoading
-                            ? const CircularProgressIndicator()
-                            : const Text(
-                                'Sign In',
-                                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  ElevatedButton(
+                    onPressed: _isLoading ? null : _signIn,
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                    ),
+                    child: _isLoading
+                        ? const Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(strokeWidth: 2),
                               ),
-                      );
-                    },
+                              SizedBox(width: 12),
+                              Text('Signing in...'),
+                            ],
+                          )
+                        : const Text(
+                            'Sign In',
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                          ),
                   ),
                   const SizedBox(height: 32),
 
@@ -201,25 +209,65 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _signIn() async {
     if (_formKey.currentState!.validate()) {
-      final authService = Provider.of<AuthService>(context, listen: false);
+      setState(() => _isLoading = true);
+      
+      try {
+        final authService = Provider.of<AuthService>(context, listen: false);
 
-      final error = await authService.signInWithEmailAndPassword(
-        email: _emailController.text.trim(),
-        password: _passwordController.text,
-      );
-
-      if (error != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(error),
-            backgroundColor: Colors.red,
-          ),
+        final error = await authService.signInWithEmailAndPassword(
+          email: _emailController.text.trim(),
+          password: _passwordController.text,
         );
-      } else {
-        // Login successful, navigate to appropriate dashboard
-        _navigateToDashboard();
+
+        if (error != null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(error),
+              backgroundColor: Colors.red,
+            ),
+          );
+        } else {
+          // Login successful, wait for user model to load and then navigate
+          await _waitForUserModelAndNavigate();
+        }
+      } finally {
+        if (mounted) {
+          setState(() => _isLoading = false);
+        }
       }
     }
+  }
+
+  Future<void> _waitForUserModelAndNavigate() async {
+    final authService = Provider.of<AuthService>(context, listen: false);
+    
+    // Wait for user model to be loaded
+    int attempts = 0;
+    const maxAttempts = 10;
+    const delayMs = 500;
+    
+    while (attempts < maxAttempts) {
+      await Future.delayed(Duration(milliseconds: delayMs));
+      
+      final user = authService.currentUserModel;
+      if (user != null) {
+        debugPrint('✅ User model loaded successfully after ${attempts + 1} attempts');
+        _navigateToDashboard();
+        return;
+      }
+      
+      attempts++;
+      debugPrint('⏳ Waiting for user model... attempt ${attempts + 1}/$maxAttempts');
+    }
+    
+    // If we reach here, user model still not loaded
+    debugPrint('❌ User model not loaded after $maxAttempts attempts');
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Login successful but user data is taking too long to load. Please try again.'),
+        backgroundColor: Colors.orange,
+      ),
+    );
   }
 
   void _navigateToDashboard() {
@@ -255,10 +303,10 @@ class _LoginScreenState extends State<LoginScreen> {
           (route) => false,
         );
       } else {
-        debugPrint('User model is null, cannot navigate');
+        debugPrint('❌ User model is null in _navigateToDashboard - this should not happen');
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('User data not found. Please try again.'),
+            content: Text('Unexpected error: User data not available. Please try again.'),
             backgroundColor: Colors.red,
           ),
         );
