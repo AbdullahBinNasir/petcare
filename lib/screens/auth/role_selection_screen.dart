@@ -87,6 +87,14 @@ class RoleSelectionScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 16),
                     _RoleCard(
+                      icon: Icons.pets,
+                      title: 'Shelter Owner',
+                      description: 'Manage pet listings, adoption requests, success stories, and volunteer forms',
+                      color: Colors.teal,
+                      onTap: () => _navigateToAuth(context, UserRole.shelterOwner),
+                    ),
+                    const SizedBox(height: 16),
+                    _RoleCard(
                       icon: Icons.admin_panel_settings,
                       title: 'Admin',
                       description: 'Manage contacts, feedback, and system administration',

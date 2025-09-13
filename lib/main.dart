@@ -9,6 +9,7 @@ import 'screens/auth/role_selection_screen.dart';
 import 'screens/pet_owner/pet_owner_dashboard.dart';
 import 'screens/veterinarian/vet_dashboard.dart';
 import 'screens/shelter/shelter_dashboard.dart';
+import 'screens/shelter_owner/shelter_owner_dashboard.dart';
 import 'screens/admin/admin_dashboard.dart';
 import 'services/auth_service.dart';
 import 'services/user_service.dart';
@@ -25,6 +26,10 @@ import 'services/feedback_submission_service.dart';
 import 'services/bookmark_service.dart';
 import 'services/analytics_service.dart';
 import 'services/booking_statistics_service.dart';
+import 'services/pet_listing_service.dart';
+import 'services/adoption_request_service.dart';
+import 'services/success_story_service.dart';
+import 'services/contact_volunteer_form_service.dart';
 import 'models/user_model.dart';
 
 Future<void> main() async {
@@ -62,6 +67,10 @@ class PetCareApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => ContactSubmissionService()),
         ChangeNotifierProvider(create: (_) => FeedbackSubmissionService()),
         ChangeNotifierProvider(create: (_) => BookingStatisticsService()),
+        ChangeNotifierProvider(create: (_) => PetListingService()),
+        ChangeNotifierProvider(create: (_) => AdoptionRequestService()),
+        ChangeNotifierProvider(create: (_) => SuccessStoryService()),
+        ChangeNotifierProvider(create: (_) => ContactVolunteerFormService()),
       ],
       child: MaterialApp(
         title: 'Pet Care',
@@ -146,6 +155,8 @@ class AuthWrapper extends StatelessWidget {
               return const VetDashboard();
             case UserRole.shelterAdmin:
               return const ShelterDashboard();
+            case UserRole.shelterOwner:
+              return const ShelterOwnerDashboard();
             case UserRole.admin:
               return const AdminDashboard();
           }

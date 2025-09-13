@@ -7,6 +7,7 @@ import 'forgot_password_screen.dart';
 import '../pet_owner/pet_owner_dashboard.dart';
 import '../veterinarian/vet_dashboard.dart';
 import '../shelter/shelter_dashboard.dart';
+import '../shelter_owner/shelter_owner_dashboard.dart';
 import '../admin/admin_dashboard.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -239,6 +240,9 @@ class _LoginScreenState extends State<LoginScreen> {
             break;
           case UserRole.shelterAdmin:
             dashboard = const ShelterDashboard();
+            break;
+          case UserRole.shelterOwner:
+            dashboard = const ShelterOwnerDashboard();
             break;
           case UserRole.admin:
             dashboard = const AdminDashboard();

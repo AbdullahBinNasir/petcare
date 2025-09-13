@@ -351,6 +351,8 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
         return 'Veterinarian';
       case UserRole.shelterAdmin:
         return 'Shelter Admin';
+      case UserRole.shelterOwner:
+        return 'Shelter Owner';
       case UserRole.admin:
         return 'Admin';
     }
@@ -364,6 +366,8 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
         return Icons.medical_services;
       case UserRole.shelterAdmin:
         return Icons.home;
+      case UserRole.shelterOwner:
+        return Icons.pets;
       case UserRole.admin:
         return Icons.admin_panel_settings;
     }
@@ -377,6 +381,8 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
         return Colors.green;
       case UserRole.shelterAdmin:
         return Colors.orange;
+      case UserRole.shelterOwner:
+        return Colors.teal;
       case UserRole.admin:
         return Colors.purple;
     }

@@ -16,6 +16,10 @@ import 'pet_profile_screen.dart';
 import 'book_appointment_screen.dart';
 import 'health_records_screen.dart';
 import 'health_tracking_screen.dart';
+import 'pet_adoption_screen.dart';
+import 'success_stories_screen.dart';
+import 'contact_volunteer_form_screen.dart';
+import '../../models/contact_volunteer_form_model.dart';
 
 class PetOwnerDashboard extends StatefulWidget {
   const PetOwnerDashboard({super.key});
@@ -203,7 +207,8 @@ class _PetOwnerDashboardState extends State<PetOwnerDashboard> {
       const AppointmentsScreen(),
       const HealthTrackingScreen(),
       const PetStoreScreen(),
-      const BlogScreen(),
+      const PetAdoptionScreen(),
+      const SuccessStoriesScreen(),
       const ProfileScreen(),
     ];
 
@@ -236,8 +241,12 @@ class _PetOwnerDashboardState extends State<PetOwnerDashboard> {
             label: 'Pet Store',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.article),
-            label: 'Blog & Tips',
+            icon: Icon(Icons.pets),
+            label: 'Adopt',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.celebration),
+            label: 'Stories',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.person),
@@ -969,10 +978,32 @@ class _PetOwnerDashboardState extends State<PetOwnerDashboard> {
             const SizedBox(width: 12),
             Expanded(
               child: _buildActionCard(
-                'Blog & Tips',
-                Icons.article,
-                Colors.purple,
+                'Adopt a Pet',
+                Icons.pets,
+                Colors.teal,
                 () => setState(() => _currentIndex = 4),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: _buildActionCard(
+                'Success Stories',
+                Icons.celebration,
+                Colors.amber,
+                () => setState(() => _currentIndex = 5),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildActionCard(
+                'Contact Us',
+                Icons.contact_mail,
+                Colors.blue,
+                () => _showContactOptions(),
               ),
             ),
           ],
@@ -1024,6 +1055,72 @@ class _PetOwnerDashboardState extends State<PetOwnerDashboard> {
           ),
         ],
       ),
+    );
+  }
+
+  void _showContactOptions() {
+    showModalBottomSheet(
+      context: context,
+      builder: (BuildContext context) {
+        return Container(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'Contact Options',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 16),
+              ListTile(
+                leading: const Icon(Icons.contact_mail, color: Colors.blue),
+                title: const Text('General Contact'),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const ContactVolunteerFormScreen(
+                        formType: FormType.contact,
+                      ),
+                    ),
+                  );
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.volunteer_activism, color: Colors.green),
+                title: const Text('Volunteer Application'),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const ContactVolunteerFormScreen(
+                        formType: FormType.volunteer,
+                      ),
+                    ),
+                  );
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.attach_money, color: Colors.orange),
+                title: const Text('Donation Inquiry'),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const ContactVolunteerFormScreen(
+                        formType: FormType.donation,
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 

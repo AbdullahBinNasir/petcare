@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-enum UserRole { petOwner, veterinarian, shelterAdmin, admin }
+enum UserRole { petOwner, veterinarian, shelterAdmin, shelterOwner, admin }
 
 class UserModel {
   final String id;
