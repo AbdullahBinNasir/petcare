@@ -30,6 +30,12 @@ class _AddEditSuccessStoryScreenState extends State<AddEditSuccessStoryScreen> {
   bool _isLoading = false;
   bool _isFeatured = false;
 
+  // Custom color scheme
+  static const Color primaryColor = Color(0xFF7d4d20);
+  static const Color backgroundColor = Color(0xFFfafaf0);
+  static const Color cardColor = Color(0xFFfefefe);
+  static const Color accentColor = Color(0xFF9d6d40);
+
   @override
   void initState() {
     super.initState();
@@ -145,70 +151,97 @@ class _AddEditSuccessStoryScreenState extends State<AddEditSuccessStoryScreen> {
 
   void _showErrorSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: Colors.red),
+      SnackBar(
+        content: Text(message, style: const TextStyle(color: Colors.white)),
+        backgroundColor: Colors.red.shade600,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ),
     );
   }
 
   void _showSuccessSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: Colors.green),
+      SnackBar(
+        content: Text(message, style: const TextStyle(color: Colors.white)),
+        backgroundColor: Colors.green.shade600,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: backgroundColor,
       appBar: AppBar(
-        title: Text(widget.successStory != null ? 'Edit Success Story' : 'Add Success Story'),
-        backgroundColor: Colors.teal,
-        foregroundColor: Colors.white,
+        elevation: 0,
+        title: Text(
+          widget.successStory != null ? 'Edit Success Story' : 'Add Success Story',
+          style: const TextStyle(
+            fontWeight: FontWeight.w600,
+            fontSize: 20,
+          ),
+        ),
+        backgroundColor: primaryColor,
+        foregroundColor: backgroundColor,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(20)),
+        ),
         actions: [
           if (_isLoading)
             const Padding(
               padding: EdgeInsets.all(16.0),
               child: SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.5,
+                  color: Color(0xFFfafaf0),
+                ),
               ),
             )
           else
-            TextButton(
-              onPressed: _saveSuccessStory,
-              child: const Text('Save', style: TextStyle(color: Colors.white)),
+            Container(
+              margin: const EdgeInsets.only(right: 16, top: 8, bottom: 8),
+              child: ElevatedButton.icon(
+                onPressed: _saveSuccessStory,
+                icon: const Icon(Icons.save, size: 18),
+                label: const Text('Save'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: accentColor,
+                  foregroundColor: backgroundColor,
+                  elevation: 2,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(25),
+                  ),
+                ),
+              ),
             ),
         ],
       ),
       body: Form(
         key: _formKey,
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.all(20.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Story Images Section
               _buildImageSection(),
-              const SizedBox(height: 20),
+              const SizedBox(height: 24),
 
               // Story Information
-              _buildSectionTitle('Story Information'),
-              const SizedBox(height: 12),
               _buildStoryInformationSection(),
-
-              const SizedBox(height: 20),
+              const SizedBox(height: 24),
 
               // Pet and Adopter Information
-              _buildSectionTitle('Pet and Adopter Information'),
-              const SizedBox(height: 12),
               _buildPetAdopterInformationSection(),
-
-              const SizedBox(height: 20),
+              const SizedBox(height: 24),
 
               // Featured Status
-              _buildSectionTitle('Featured Status'),
-              const SizedBox(height: 12),
               _buildFeaturedStatusSection(),
-
               const SizedBox(height: 40),
             ],
           ),
@@ -218,247 +251,524 @@ class _AddEditSuccessStoryScreenState extends State<AddEditSuccessStoryScreen> {
   }
 
   Widget _buildImageSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Story Photos',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 8),
-        // Existing photos
-        if (_photoUrls.isNotEmpty) ...[
-          SizedBox(
-            height: 100,
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              itemCount: _photoUrls.length,
-              itemBuilder: (context, index) {
-                return Container(
-                  margin: const EdgeInsets.only(right: 8),
-                  child: Stack(
-                    children: [
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: Image.network(
-                          _photoUrls[index],
-                          width: 100,
-                          height: 100,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) => Container(
-                            width: 100,
-                            height: 100,
-                            color: Colors.grey[200],
-                            child: const Icon(Icons.error),
-                          ),
-                        ),
-                      ),
-                      Positioned(
-                        top: 4,
-                        right: 4,
-                        child: GestureDetector(
-                          onTap: () {
-                            setState(() {
-                              _photoUrls.removeAt(index);
-                            });
-                          },
+    return Container(
+      decoration: BoxDecoration(
+        color: cardColor,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: primaryColor.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.photo_library, color: primaryColor, size: 24),
+              const SizedBox(width: 12),
+              const Text(
+                'Story Photos',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF2d2d2d),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          
+          // Existing photos
+          if (_photoUrls.isNotEmpty) ...[
+            Container(
+              height: 120,
+              margin: const EdgeInsets.only(bottom: 16),
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                itemCount: _photoUrls.length,
+                itemBuilder: (context, index) {
+                  return Container(
+                    margin: const EdgeInsets.only(right: 12),
+                    child: Stack(
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
                           child: Container(
-                            padding: const EdgeInsets.all(4),
-                            decoration: const BoxDecoration(
-                              color: Colors.red,
-                              shape: BoxShape.circle,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: primaryColor.withOpacity(0.2)),
                             ),
-                            child: const Icon(Icons.close, color: Colors.white, size: 16),
+                            child: Image.network(
+                              _photoUrls[index],
+                              width: 120,
+                              height: 120,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) => Container(
+                                width: 120,
+                                height: 120,
+                                decoration: BoxDecoration(
+                                  color: backgroundColor,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Icon(Icons.error, color: primaryColor),
+                              ),
+                            ),
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-                );
-              },
+                        Positioned(
+                          top: 8,
+                          right: 8,
+                          child: GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                _photoUrls.removeAt(index);
+                              });
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                color: Colors.red.shade600,
+                                shape: BoxShape.circle,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.2),
+                                    blurRadius: 4,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: const Icon(Icons.close, color: Colors.white, size: 16),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+          
+          // Add photos button
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: _pickImages,
+              icon: const Icon(Icons.add_photo_alternate),
+              label: const Text('Add Photos'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: primaryColor,
+                foregroundColor: backgroundColor,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                elevation: 2,
+              ),
             ),
           ),
-          const SizedBox(height: 8),
+          
+          if (_selectedImages.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.green.shade50,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.green.shade200),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.check_circle, color: Colors.green.shade600, size: 20),
+                  const SizedBox(width: 8),
+                  Text(
+                    '${_selectedImages.length} image(s) selected for upload',
+                    style: TextStyle(color: Colors.green.shade700, fontWeight: FontWeight.w500),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ],
-        // Add photos button
-        ElevatedButton.icon(
-          onPressed: _pickImages,
-          icon: const Icon(Icons.add_photo_alternate),
-          label: const Text('Add Photos'),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.teal,
-            foregroundColor: Colors.white,
-          ),
-        ),
-        if (_selectedImages.isNotEmpty) ...[
-          const SizedBox(height: 8),
-          Text('${_selectedImages.length} image(s) selected for upload'),
-        ],
-      ],
-    );
-  }
-
-  Widget _buildSectionTitle(String title) {
-    return Text(
-      title,
-      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+      ),
     );
   }
 
   Widget _buildStoryInformationSection() {
-    return Column(
-      children: [
-        TextFormField(
-          controller: _storyTitleController,
-          decoration: const InputDecoration(
-            labelText: 'Story Title *',
-            border: OutlineInputBorder(),
-            hintText: 'e.g., "Max found his forever home"',
+    return Container(
+      decoration: BoxDecoration(
+        color: cardColor,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: primaryColor.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
-          validator: (value) {
-            if (value == null || value.trim().isEmpty) {
-              return 'Please enter story title';
-            }
-            return null;
-          },
-        ),
-        const SizedBox(height: 12),
-        TextFormField(
-          controller: _storyDescriptionController,
-          decoration: const InputDecoration(
-            labelText: 'Story Description *',
-            border: OutlineInputBorder(),
-            hintText: 'Tell the heartwarming story of this adoption...',
+        ],
+      ),
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.auto_stories, color: primaryColor, size: 24),
+              const SizedBox(width: 12),
+              const Text(
+                'Story Information',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF2d2d2d),
+                ),
+              ),
+            ],
           ),
-          maxLines: 4,
-          validator: (value) {
-            if (value == null || value.trim().isEmpty) {
-              return 'Please enter story description';
-            }
-            return null;
-          },
-        ),
-        const SizedBox(height: 12),
-        ListTile(
-          title: const Text('Adoption Date'),
-          subtitle: Text(_adoptionDate != null 
-              ? '${_adoptionDate!.day}/${_adoptionDate!.month}/${_adoptionDate!.year}'
-              : 'Not set'),
-          trailing: const Icon(Icons.calendar_today),
-          onTap: () async {
-            final date = await showDatePicker(
-              context: context,
-              initialDate: _adoptionDate ?? DateTime.now(),
-              firstDate: DateTime(2020),
-              lastDate: DateTime.now(),
-            );
-            if (date != null) {
-              setState(() => _adoptionDate = date);
-            }
-          },
-        ),
-      ],
+          const SizedBox(height: 20),
+          
+          TextFormField(
+            controller: _storyTitleController,
+            decoration: InputDecoration(
+              labelText: 'Story Title *',
+              labelStyle: TextStyle(color: primaryColor),
+              hintText: 'e.g., "Max found his forever home"',
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: primaryColor.withOpacity(0.3)),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: primaryColor, width: 2),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: primaryColor.withOpacity(0.3)),
+              ),
+              filled: true,
+              fillColor: backgroundColor.withOpacity(0.5),
+            ),
+            validator: (value) {
+              if (value == null || value.trim().isEmpty) {
+                return 'Please enter story title';
+              }
+              return null;
+            },
+          ),
+          const SizedBox(height: 16),
+          
+          TextFormField(
+            controller: _storyDescriptionController,
+            decoration: InputDecoration(
+              labelText: 'Story Description *',
+              labelStyle: TextStyle(color: primaryColor),
+              hintText: 'Tell the heartwarming story of this adoption...',
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: primaryColor.withOpacity(0.3)),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: primaryColor, width: 2),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: primaryColor.withOpacity(0.3)),
+              ),
+              filled: true,
+              fillColor: backgroundColor.withOpacity(0.5),
+            ),
+            maxLines: 4,
+            validator: (value) {
+              if (value == null || value.trim().isEmpty) {
+                return 'Please enter story description';
+              }
+              return null;
+            },
+          ),
+          const SizedBox(height: 16),
+          
+          Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: primaryColor.withOpacity(0.3)),
+              color: backgroundColor.withOpacity(0.5),
+            ),
+            child: ListTile(
+              leading: Icon(Icons.calendar_today, color: primaryColor),
+              title: const Text('Adoption Date', style: TextStyle(fontWeight: FontWeight.w600)),
+              subtitle: Text(
+                _adoptionDate != null 
+                    ? '${_adoptionDate!.day}/${_adoptionDate!.month}/${_adoptionDate!.year}'
+                    : 'Tap to select date',
+                style: TextStyle(color: primaryColor.withOpacity(0.8)),
+              ),
+              trailing: Icon(Icons.arrow_forward_ios, color: primaryColor, size: 16),
+              onTap: () async {
+                final date = await showDatePicker(
+                  context: context,
+                  initialDate: _adoptionDate ?? DateTime.now(),
+                  firstDate: DateTime(2020),
+                  lastDate: DateTime.now(),
+                  builder: (context, child) {
+                    return Theme(
+                      data: Theme.of(context).copyWith(
+                        colorScheme: ColorScheme.light(
+                          primary: primaryColor,
+                          onPrimary: backgroundColor,
+                          surface: cardColor,
+                          onSurface: primaryColor,
+                        ),
+                      ),
+                      child: child!,
+                    );
+                  },
+                );
+                if (date != null) {
+                  setState(() => _adoptionDate = date);
+                }
+              },
+            ),
+          ),
+        ],
+      ),
     );
   }
 
   Widget _buildPetAdopterInformationSection() {
-    return Column(
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: TextFormField(
-                controller: _petNameController,
-                decoration: const InputDecoration(
-                  labelText: 'Pet Name *',
-                  border: OutlineInputBorder(),
+    return Container(
+      decoration: BoxDecoration(
+        color: cardColor,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: primaryColor.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.pets, color: primaryColor, size: 24),
+              const SizedBox(width: 12),
+              const Text(
+                'Pet & Adopter Information',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF2d2d2d),
                 ),
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Please enter pet name';
-                  }
-                  return null;
-                },
               ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: TextFormField(
-                controller: _petTypeController,
-                decoration: const InputDecoration(
-                  labelText: 'Pet Type *',
-                  border: OutlineInputBorder(),
-                  hintText: 'e.g., Dog, Cat',
+            ],
+          ),
+          const SizedBox(height: 20),
+          
+          Row(
+            children: [
+              Expanded(
+                child: TextFormField(
+                  controller: _petNameController,
+                  decoration: InputDecoration(
+                    labelText: 'Pet Name *',
+                    labelStyle: TextStyle(color: primaryColor),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: primaryColor.withOpacity(0.3)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: primaryColor, width: 2),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: primaryColor.withOpacity(0.3)),
+                    ),
+                    filled: true,
+                    fillColor: backgroundColor.withOpacity(0.5),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Please enter pet name';
+                    }
+                    return null;
+                  },
                 ),
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Please enter pet type';
-                  }
-                  return null;
-                },
               ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: TextFormField(
-                controller: _adopterNameController,
-                decoration: const InputDecoration(
-                  labelText: 'Adopter Name *',
-                  border: OutlineInputBorder(),
+              const SizedBox(width: 16),
+              Expanded(
+                child: TextFormField(
+                  controller: _petTypeController,
+                  decoration: InputDecoration(
+                    labelText: 'Pet Type *',
+                    labelStyle: TextStyle(color: primaryColor),
+                    hintText: 'e.g., Dog, Cat',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: primaryColor.withOpacity(0.3)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: primaryColor, width: 2),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: primaryColor.withOpacity(0.3)),
+                    ),
+                    filled: true,
+                    fillColor: backgroundColor.withOpacity(0.5),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Please enter pet type';
+                    }
+                    return null;
+                  },
                 ),
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Please enter adopter name';
-                  }
-                  return null;
-                },
               ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: TextFormField(
-                controller: _adopterEmailController,
-                decoration: const InputDecoration(
-                  labelText: 'Adopter Email *',
-                  border: OutlineInputBorder(),
+            ],
+          ),
+          const SizedBox(height: 16),
+          
+          Row(
+            children: [
+              Expanded(
+                child: TextFormField(
+                  controller: _adopterNameController,
+                  decoration: InputDecoration(
+                    labelText: 'Adopter Name *',
+                    labelStyle: TextStyle(color: primaryColor),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: primaryColor.withOpacity(0.3)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: primaryColor, width: 2),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: primaryColor.withOpacity(0.3)),
+                    ),
+                    filled: true,
+                    fillColor: backgroundColor.withOpacity(0.5),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Please enter adopter name';
+                    }
+                    return null;
+                  },
                 ),
-                keyboardType: TextInputType.emailAddress,
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Please enter adopter email';
-                  }
-                  if (!value.contains('@')) {
-                    return 'Please enter valid email';
-                  }
-                  return null;
-                },
               ),
-            ),
-          ],
-        ),
-      ],
+              const SizedBox(width: 16),
+              Expanded(
+                child: TextFormField(
+                  controller: _adopterEmailController,
+                  decoration: InputDecoration(
+                    labelText: 'Adopter Email *',
+                    labelStyle: TextStyle(color: primaryColor),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: primaryColor.withOpacity(0.3)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: primaryColor, width: 2),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: primaryColor.withOpacity(0.3)),
+                    ),
+                    filled: true,
+                    fillColor: backgroundColor.withOpacity(0.5),
+                  ),
+                  keyboardType: TextInputType.emailAddress,
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Please enter adopter email';
+                    }
+                    if (!value.contains('@')) {
+                      return 'Please enter valid email';
+                    }
+                    return null;
+                  },
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 
   Widget _buildFeaturedStatusSection() {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            SwitchListTile(
-              title: const Text('Featured Story'),
+    return Container(
+      decoration: BoxDecoration(
+        color: cardColor,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: primaryColor.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.star, color: primaryColor, size: 24),
+              const SizedBox(width: 12),
+              const Text(
+                'Featured Status',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF2d2d2d),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          
+          Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              color: backgroundColor.withOpacity(0.5),
+              border: Border.all(color: primaryColor.withOpacity(0.2)),
+            ),
+            child: SwitchListTile(
+              title: const Text(
+                'Featured Story',
+                style: TextStyle(fontWeight: FontWeight.w600),
+              ),
               subtitle: const Text('Featured stories are shown to all users'),
               value: _isFeatured,
               onChanged: (value) => setState(() => _isFeatured = value),
-              activeColor: Colors.amber,
+              activeColor: Colors.amber.shade600,
+              activeTrackColor: Colors.amber.shade200,
+              inactiveThumbColor: Colors.grey.shade400,
+              inactiveTrackColor: Colors.grey.shade200,
+              secondary: Icon(
+                _isFeatured ? Icons.star : Icons.star_border,
+                color: _isFeatured ? Colors.amber.shade600 : Colors.grey.shade400,
+              ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

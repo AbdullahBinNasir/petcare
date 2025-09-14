@@ -91,27 +91,55 @@ class _SuccessStoryManagementScreenState extends State<SuccessStoryManagementScr
 
   void _showErrorSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: Colors.red),
+      SnackBar(
+        content: Text(message, style: const TextStyle(color: Color(0xFFFAFAF0))),
+        backgroundColor: const Color(0xFFDC143C),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
     );
   }
 
   void _showSuccessSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: Colors.green),
+      SnackBar(
+        content: Text(message, style: const TextStyle(color: Color(0xFFFAFAF0))),
+        backgroundColor: const Color(0xFF228B22),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFFAFAF0),
       appBar: AppBar(
-        title: const Text('Success Stories Management'),
-        backgroundColor: Colors.teal,
-        foregroundColor: Colors.white,
+        title: const Text(
+          'Success Stories Management',
+          style: TextStyle(
+            fontWeight: FontWeight.w600,
+            letterSpacing: 0.5,
+          ),
+        ),
+        backgroundColor: const Color(0xFF7D4D20),
+        foregroundColor: const Color(0xFFFAFAF0),
+        elevation: 0,
+        centerTitle: true,
+        iconTheme: const IconThemeData(color: Color(0xFFFAFAF0)),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _loadSuccessStories,
+          Container(
+            margin: const EdgeInsets.only(right: 12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFAFAF0).withOpacity(0.15),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: IconButton(
+              icon: const Icon(Icons.refresh_rounded),
+              onPressed: _loadSuccessStories,
+              tooltip: 'Refresh',
+            ),
           ),
         ],
       ),
@@ -119,59 +147,118 @@ class _SuccessStoryManagementScreenState extends State<SuccessStoryManagementScr
         children: [
           // Search Section
           Container(
-            padding: const EdgeInsets.all(16.0),
-            color: Colors.grey[100],
-            child: TextField(
-              decoration: InputDecoration(
-                hintText: 'Search success stories...',
-                prefixIcon: const Icon(Icons.search),
-                suffixIcon: _searchQuery.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.clear),
-                        onPressed: () {
-                          setState(() => _searchQuery = '');
-                          _loadSuccessStories();
-                        },
-                      )
-                    : null,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF7D4D20).withOpacity(0.08),
+                  offset: const Offset(0, 2),
+                  blurRadius: 8,
+                ),
+              ],
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFAFAF0),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: const Color(0xFF7D4D20).withOpacity(0.2),
+                  ),
+                ),
+                child: TextField(
+                  decoration: InputDecoration(
+                    hintText: 'Search success stories...',
+                    hintStyle: TextStyle(color: const Color(0xFF7D4D20).withOpacity(0.6)),
+                    prefixIcon: Icon(
+                      Icons.search_rounded,
+                      color: const Color(0xFF7D4D20).withOpacity(0.7),
+                    ),
+                    suffixIcon: _searchQuery.isNotEmpty
+                        ? Container(
+                            margin: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF7D4D20).withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: IconButton(
+                              icon: const Icon(Icons.clear_rounded, size: 20),
+                              color: const Color(0xFF7D4D20),
+                              onPressed: () {
+                                setState(() => _searchQuery = '');
+                                _loadSuccessStories();
+                              },
+                            ),
+                          )
+                        : null,
+                    border: InputBorder.none,
+                    contentPadding: const EdgeInsets.all(16),
+                  ),
+                  style: const TextStyle(color: Color(0xFF7D4D20)),
+                  onChanged: (value) {
+                    setState(() => _searchQuery = value);
+                    if (value.isEmpty) {
+                      _loadSuccessStories();
+                    } else {
+                      _searchSuccessStories();
+                    }
+                  },
                 ),
               ),
-              onChanged: (value) {
-                setState(() => _searchQuery = value);
-                if (value.isEmpty) {
-                  _loadSuccessStories();
-                } else {
-                  _searchSuccessStories();
-                }
-              },
             ),
           ),
           // Success Stories List
           Expanded(
             child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
+                ? const Center(
+                    child: CircularProgressIndicator(
+                      color: Color(0xFF7D4D20),
+                      strokeWidth: 3,
+                    ),
+                  )
                 : _successStories.isEmpty
-                    ? const Center(
+                    ? Center(
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.celebration, size: 64, color: Colors.grey),
-                            SizedBox(height: 16),
-                            Text(
-                              'No success stories found',
-                              style: TextStyle(fontSize: 18, color: Colors.grey),
+                            Container(
+                              padding: const EdgeInsets.all(24),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF7D4D20).withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(24),
+                              ),
+                              child: Icon(
+                                Icons.celebration_outlined,
+                                size: 64,
+                                color: const Color(0xFF7D4D20).withOpacity(0.6),
+                              ),
                             ),
+                            const SizedBox(height: 24),
+                            const Text(
+                              'No success stories found',
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF7D4D20),
+                              ),
+                            ),
+                            const SizedBox(height: 8),
                             Text(
                               'Add your first success story to inspire others',
-                              style: TextStyle(color: Colors.grey),
+                              style: TextStyle(
+                                color: const Color(0xFF7D4D20).withOpacity(0.7),
+                                fontSize: 14,
+                              ),
+                              textAlign: TextAlign.center,
                             ),
                           ],
                         ),
                       )
-                    : ListView.builder(
+                    : ListView.separated(
+                        padding: const EdgeInsets.all(16),
                         itemCount: _successStories.length,
+                        separatorBuilder: (context, index) => const SizedBox(height: 12),
                         itemBuilder: (context, index) {
                           final story = _successStories[index];
                           return _buildSuccessStoryCard(story);
@@ -180,29 +267,65 @@ class _SuccessStoryManagementScreenState extends State<SuccessStoryManagementScr
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          final result = await Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const AddEditSuccessStoryScreen(),
+      floatingActionButton: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              const Color(0xFF7D4D20),
+              const Color(0xFF7D4D20).withOpacity(0.8),
+            ],
+          ),
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF7D4D20).withOpacity(0.3),
+              offset: const Offset(0, 4),
+              blurRadius: 12,
             ),
-          );
-          if (result == true) {
-            _loadSuccessStories();
-          }
-        },
-        backgroundColor: Colors.teal,
-        child: const Icon(Icons.add, color: Colors.white),
+          ],
+        ),
+        child: FloatingActionButton(
+          onPressed: () async {
+            final result = await Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const AddEditSuccessStoryScreen(),
+              ),
+            );
+            if (result == true) {
+              _loadSuccessStories();
+            }
+          },
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          child: const Icon(
+            Icons.add_rounded,
+            color: Color(0xFFFAFAF0),
+            size: 28,
+          ),
+        ),
       ),
     );
   }
 
   Widget _buildSuccessStoryCard(SuccessStoryModel story) {
-    return Card(
-      margin: const EdgeInsets.all(8.0),
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF7D4D20).withOpacity(0.08),
+            offset: const Offset(0, 4),
+            blurRadius: 12,
+            spreadRadius: 0,
+          ),
+        ],
+      ),
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(20.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -210,29 +333,33 @@ class _SuccessStoryManagementScreenState extends State<SuccessStoryManagementScr
               children: [
                 // Story Image
                 Container(
-                  width: 80,
-                  height: 80,
+                  width: 90,
+                  height: 90,
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(8),
-                    color: Colors.grey[200],
+                    borderRadius: BorderRadius.circular(16),
+                    color: const Color(0xFF7D4D20).withOpacity(0.1),
+                    border: Border.all(
+                      color: const Color(0xFF7D4D20).withOpacity(0.2),
+                      width: 1,
+                    ),
                   ),
                   child: story.photoUrls.isNotEmpty
                       ? ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(16),
                           child: Image.network(
                             story.photoUrls.first,
                             fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) => const Icon(
-                              Icons.celebration,
+                            errorBuilder: (context, error, stackTrace) => Icon(
+                              Icons.celebration_rounded,
                               size: 40,
-                              color: Colors.grey,
+                              color: const Color(0xFF7D4D20).withOpacity(0.6),
                             ),
                           ),
                         )
-                      : const Icon(
-                          Icons.celebration,
+                      : Icon(
+                          Icons.celebration_rounded,
                           size: 40,
-                          color: Colors.grey,
+                          color: const Color(0xFF7D4D20).withOpacity(0.6),
                         ),
                 ),
                 const SizedBox(width: 16),
@@ -249,100 +376,198 @@ class _SuccessStoryManagementScreenState extends State<SuccessStoryManagementScr
                               style: const TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
+                                color: Color(0xFF7D4D20),
                               ),
                             ),
                           ),
                           if (story.isFeatured)
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                               decoration: BoxDecoration(
-                                color: Colors.amber.withOpacity(0.2),
-                                borderRadius: BorderRadius.circular(12),
+                                color: const Color(0xFFFFD700),
+                                borderRadius: BorderRadius.circular(16),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.1),
+                                    offset: const Offset(0, 2),
+                                    blurRadius: 4,
+                                  ),
+                                ],
                               ),
-                              child: const Text(
-                                'Featured',
-                                style: TextStyle(
-                                  color: Colors.amber,
-                                  fontWeight: FontWeight.w500,
-                                  fontSize: 12,
-                                ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.star_rounded,
+                                    size: 14,
+                                    color: const Color(0xFF7D4D20),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  const Text(
+                                    'Featured',
+                                    style: TextStyle(
+                                      color: Color(0xFF7D4D20),
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                         ],
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        '${story.petName} adopted by ${story.adopterName}',
-                        style: TextStyle(color: Colors.grey[600]),
+                      const SizedBox(height: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFAFAF0).withOpacity(0.7),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          '${story.petName} adopted by ${story.adopterName}',
+                          style: TextStyle(
+                            color: const Color(0xFF7D4D20).withOpacity(0.8),
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 6),
                       Text(
                         'Adopted ${story.timeSinceAdoption}',
-                        style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                        style: TextStyle(
+                          color: const Color(0xFF7D4D20).withOpacity(0.6),
+                          fontSize: 12,
+                        ),
                       ),
                     ],
                   ),
                 ),
-                // Action Buttons
-                PopupMenuButton<String>(
-                  onSelected: (value) {
-                    switch (value) {
-                      case 'edit':
-                        _editSuccessStory(story);
-                        break;
-                      case 'feature':
-                        _toggleFeaturedStatus(story.id, !story.isFeatured);
-                        break;
-                      case 'delete':
-                        _showDeleteDialog(story);
-                        break;
-                    }
-                  },
-                  itemBuilder: (context) => [
-                    const PopupMenuItem(
-                      value: 'edit',
-                      child: Row(
-                        children: [
-                          Icon(Icons.edit, size: 20),
-                          SizedBox(width: 8),
-                          Text('Edit'),
-                        ],
-                      ),
+                // Action Menu Button
+                Container(
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF7D4D20).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: PopupMenuButton<String>(
+                    icon: Icon(
+                      Icons.more_vert_rounded,
+                      color: const Color(0xFF7D4D20),
                     ),
-                    PopupMenuItem(
-                      value: 'feature',
-                      child: Row(
-                        children: [
-                          Icon(
-                            story.isFeatured ? Icons.star_border : Icons.star,
-                            size: 20,
-                            color: Colors.amber,
-                          ),
-                          const SizedBox(width: 8),
-                          Text(story.isFeatured ? 'Remove from Featured' : 'Mark as Featured'),
-                        ],
+                    color: const Color(0xFFFAFAF0),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    onSelected: (value) {
+                      switch (value) {
+                        case 'edit':
+                          _editSuccessStory(story);
+                          break;
+                        case 'feature':
+                          _toggleFeaturedStatus(story.id, !story.isFeatured);
+                          break;
+                        case 'delete':
+                          _showDeleteDialog(story);
+                          break;
+                      }
+                    },
+                    itemBuilder: (context) => [
+                      PopupMenuItem(
+                        value: 'edit',
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF4169E1).withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Icon(
+                                Icons.edit_rounded,
+                                size: 16,
+                                color: Color(0xFF4169E1),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            const Text(
+                              'Edit',
+                              style: TextStyle(color: Color(0xFF7D4D20)),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                    const PopupMenuItem(
-                      value: 'delete',
-                      child: Row(
-                        children: [
-                          Icon(Icons.delete, size: 20, color: Colors.red),
-                          SizedBox(width: 8),
-                          Text('Delete', style: TextStyle(color: Colors.red)),
-                        ],
+                      PopupMenuItem(
+                        value: 'feature',
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFFFD700).withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Icon(
+                                story.isFeatured ? Icons.star_border_rounded : Icons.star_rounded,
+                                size: 16,
+                                color: const Color(0xFFFFD700),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Text(
+                              story.isFeatured ? 'Remove Featured' : 'Mark Featured',
+                              style: const TextStyle(color: Color(0xFF7D4D20)),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
+                      PopupMenuItem(
+                        value: 'delete',
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFDC143C).withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Icon(
+                                Icons.delete_rounded,
+                                size: 16,
+                                color: Color(0xFFDC143C),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            const Text(
+                              'Delete',
+                              style: TextStyle(color: Color(0xFFDC143C)),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
-            const SizedBox(height: 12),
-            Text(
-              story.storyDescription,
-              style: TextStyle(color: Colors.grey[700]),
-              maxLines: 3,
-              overflow: TextOverflow.ellipsis,
+            const SizedBox(height: 16),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFAFAF0).withOpacity(0.5),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: const Color(0xFF7D4D20).withOpacity(0.1),
+                ),
+              ),
+              child: Text(
+                story.storyDescription,
+                style: TextStyle(
+                  color: const Color(0xFF7D4D20).withOpacity(0.8),
+                  fontSize: 14,
+                  height: 1.5,
+                ),
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
           ],
         ),
@@ -367,19 +592,67 @@ class _SuccessStoryManagementScreenState extends State<SuccessStoryManagementScr
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('Delete Success Story'),
-          content: Text('Are you sure you want to delete "${story.storyTitle}"?'),
+          backgroundColor: const Color(0xFFFAFAF0),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFDC143C).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.delete_outline_rounded,
+                  color: Color(0xFFDC143C),
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Text(
+                'Delete Success Story',
+                style: TextStyle(
+                  color: Color(0xFF7D4D20),
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          content: RichText(
+            text: TextSpan(
+              style: TextStyle(
+                color: const Color(0xFF7D4D20).withOpacity(0.8),
+                fontSize: 16,
+              ),
+              children: [
+                const TextSpan(text: 'Are you sure you want to delete "'),
+                TextSpan(
+                  text: story.storyTitle,
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+                const TextSpan(text: '"?'),
+              ],
+            ),
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
+              style: TextButton.styleFrom(
+                foregroundColor: const Color(0xFF7D4D20).withOpacity(0.7),
+              ),
               child: const Text('Cancel'),
             ),
-            TextButton(
+            ElevatedButton(
               onPressed: () {
                 Navigator.of(context).pop();
                 _deleteSuccessStory(story.id);
               },
-              child: const Text('Delete', style: TextStyle(color: Colors.red)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFDC143C),
+                foregroundColor: const Color(0xFFFAFAF0),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              child: const Text('Delete'),
             ),
           ],
         );

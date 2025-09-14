@@ -9,13 +9,21 @@ class FormDetailsScreen extends StatelessWidget {
     required this.form,
   });
 
+  // Custom color scheme
+  static const Color primaryBrown = Color(0xFF7D4D20);
+  static const Color creamBackground = Color(0xFFFAFAF0);
+  static const Color lightBrown = Color(0xFF9D6B40);
+  static const Color darkBrown = Color(0xFF5D3518);
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: creamBackground,
       appBar: AppBar(
         title: const Text('Form Details'),
-        backgroundColor: Colors.teal,
-        foregroundColor: Colors.white,
+        backgroundColor: primaryBrown,
+        foregroundColor: creamBackground,
+        elevation: 0,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
@@ -24,26 +32,36 @@ class FormDetailsScreen extends StatelessWidget {
           children: [
             // Header Card
             Card(
+              color: Colors.white,
+              elevation: 4,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+                side: BorderSide(color: primaryBrown.withOpacity(0.1), width: 1),
+              ),
               child: Padding(
-                padding: const EdgeInsets.all(16.0),
+                padding: const EdgeInsets.all(20.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
                       children: [
                         Container(
-                          padding: const EdgeInsets.all(8),
+                          padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: _getTypeColor(form.formType).withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(8),
+                            color: _getTypeColor(form.formType).withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: _getTypeColor(form.formType).withOpacity(0.3),
+                              width: 1,
+                            ),
                           ),
                           child: Icon(
                             _getTypeIcon(form.formType),
                             color: _getTypeColor(form.formType),
-                            size: 24,
+                            size: 28,
                           ),
                         ),
-                        const SizedBox(width: 12),
+                        const SizedBox(width: 16),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -53,46 +71,68 @@ class FormDetailsScreen extends StatelessWidget {
                                 style: const TextStyle(
                                   fontSize: 24,
                                   fontWeight: FontWeight.bold,
+                                  color: darkBrown,
                                 ),
                               ),
-                              const SizedBox(height: 4),
+                              const SizedBox(height: 6),
                               Text(
                                 '${form.formTypeDisplayName} • From ${form.submitterName}',
-                                style: TextStyle(color: Colors.grey[600]),
+                                style: TextStyle(
+                                  color: primaryBrown.withOpacity(0.7),
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                ),
                               ),
                             ],
                           ),
                         ),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                           decoration: BoxDecoration(
-                            color: _getStatusColor(form.status).withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(16),
+                            color: _getStatusColor(form.status).withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: _getStatusColor(form.status).withOpacity(0.3),
+                              width: 1,
+                            ),
                           ),
                           child: Text(
                             form.statusDisplayName,
                             style: TextStyle(
                               color: _getStatusColor(form.status),
-                              fontWeight: FontWeight.w500,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 12,
                             ),
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Submitted: ${form.timeSinceSubmission}',
-                      style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: primaryBrown.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        'Submitted: ${form.timeSinceSubmission}',
+                        style: TextStyle(
+                          color: primaryBrown.withOpacity(0.8),
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
                     ),
                   ],
                 ),
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 24),
 
             // Submitter Information
             _buildSectionCard(
               'Submitter Information',
+              Icons.person,
               [
                 _buildInfoRow('Name', form.submitterName),
                 _buildInfoRow('Email', form.submitterEmail),
@@ -105,6 +145,7 @@ class FormDetailsScreen extends StatelessWidget {
             // Form Message
             _buildSectionCard(
               'Message',
+              Icons.message,
               [
                 _buildInfoRow('Subject', form.subject),
                 _buildInfoRow('Message', form.message),
@@ -117,6 +158,7 @@ class FormDetailsScreen extends StatelessWidget {
             if (form.formType == FormType.volunteer) ...[
               _buildSectionCard(
                 'Volunteer Information',
+                Icons.volunteer_activism,
                 [
                   if (form.volunteerInterests != null)
                     _buildInfoRow('Interests', form.volunteerInterests!),
@@ -134,6 +176,7 @@ class FormDetailsScreen extends StatelessWidget {
             if (form.formType == FormType.donation) ...[
               _buildSectionCard(
                 'Donation Information',
+                Icons.attach_money,
                 [
                   if (form.donationAmount != null)
                     _buildInfoRow('Amount', form.donationAmount!),
@@ -148,6 +191,7 @@ class FormDetailsScreen extends StatelessWidget {
             if (form.response != null) ...[
               _buildSectionCard(
                 'Your Response',
+                Icons.reply,
                 [
                   _buildInfoRow('Response', form.response!),
                   if (form.responseDate != null)
@@ -157,28 +201,52 @@ class FormDetailsScreen extends StatelessWidget {
               const SizedBox(height: 16),
             ],
 
-            const SizedBox(height: 20),
+            const SizedBox(height: 24),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildSectionCard(String title, List<Widget> children) {
+  Widget _buildSectionCard(String title, IconData icon, List<Widget> children) {
     return Card(
+      color: Colors.white,
+      elevation: 3,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: primaryBrown.withOpacity(0.1), width: 1),
+      ),
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(20.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: primaryBrown.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(
+                    icon,
+                    color: primaryBrown,
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: darkBrown,
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
             ...children,
           ],
         ),
@@ -187,8 +255,14 @@ class FormDetailsScreen extends StatelessWidget {
   }
 
   Widget _buildInfoRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8.0),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12.0),
+      padding: const EdgeInsets.all(12.0),
+      decoration: BoxDecoration(
+        color: creamBackground.withOpacity(0.5),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: primaryBrown.withOpacity(0.1), width: 1),
+      ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -196,13 +270,21 @@ class FormDetailsScreen extends StatelessWidget {
             width: 120,
             child: Text(
               '$label:',
-              style: const TextStyle(fontWeight: FontWeight.w500),
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                color: primaryBrown,
+                fontSize: 14,
+              ),
             ),
           ),
           Expanded(
             child: Text(
               value,
-              style: TextStyle(color: Colors.grey[700]),
+              style: TextStyle(
+                color: darkBrown.withOpacity(0.8),
+                fontSize: 14,
+                height: 1.4,
+              ),
             ),
           ),
         ],
@@ -213,11 +295,11 @@ class FormDetailsScreen extends StatelessWidget {
   Color _getTypeColor(FormType type) {
     switch (type) {
       case FormType.contact:
-        return Colors.blue;
+        return const Color(0xFF4A90E2); // Blue
       case FormType.volunteer:
-        return Colors.green;
+        return const Color(0xFF7ED321); // Green
       case FormType.donation:
-        return Colors.orange;
+        return const Color(0xFFF5A623); // Orange
     }
   }
 
@@ -235,11 +317,11 @@ class FormDetailsScreen extends StatelessWidget {
   Color _getStatusColor(FormStatus status) {
     switch (status) {
       case FormStatus.pending:
-        return Colors.orange;
+        return const Color(0xFFF5A623); // Orange
       case FormStatus.responded:
-        return Colors.green;
+        return const Color(0xFF7ED321); // Green
       case FormStatus.closed:
-        return Colors.grey;
+        return primaryBrown; // Brown for closed status
     }
   }
 
