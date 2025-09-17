@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import '../../services/pet_listing_service.dart';
 import '../../models/pet_listing_model.dart';
 import '../../theme/pet_care_theme.dart';
+import '../../widgets/universal_image_widget.dart';
+import '../../utils/pet_listing_image_helper.dart';
 import 'adoption_form_screen.dart';
 
 class PetAdoptionScreen extends StatefulWidget {
@@ -79,6 +81,12 @@ class _PetAdoptionScreenState extends State<PetAdoptionScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      floatingActionButton: FloatingActionButton(
+        onPressed: _addTestImagesToPetListings,
+        backgroundColor: PetCareTheme.primaryBrown,
+        child: const Icon(Icons.image, color: Colors.white),
+        tooltip: 'Add Test Images to Pet Listings',
+      ),
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
@@ -172,7 +180,7 @@ class _PetAdoptionScreenState extends State<PetAdoptionScreen> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [PetCareTheme.elevatedShadow],
         border: Border.all(
-          color: PetCareTheme.primaryBrown.withValues(alpha: 0.1),
+          color: PetCareTheme.primaryBrown.withOpacity( 0.1),
           width: 1,
         ),
       ),
@@ -205,13 +213,13 @@ class _PetAdoptionScreenState extends State<PetAdoptionScreen> {
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(16),
                 borderSide: BorderSide(
-                  color: PetCareTheme.primaryBrown.withValues(alpha: 0.3),
+                  color: PetCareTheme.primaryBrown.withOpacity( 0.3),
                 ),
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(16),
                 borderSide: BorderSide(
-                  color: PetCareTheme.primaryBrown.withValues(alpha: 0.3),
+                  color: PetCareTheme.primaryBrown.withOpacity( 0.3),
                 ),
               ),
               focusedBorder: OutlineInputBorder(
@@ -222,7 +230,7 @@ class _PetAdoptionScreenState extends State<PetAdoptionScreen> {
                 ),
               ),
               filled: true,
-              fillColor: PetCareTheme.primaryBeige.withValues(alpha: 0.05),
+              fillColor: PetCareTheme.primaryBeige.withOpacity( 0.05),
             ),
             onChanged: (value) {
               setState(() => _searchQuery = value);
@@ -246,13 +254,13 @@ class _PetAdoptionScreenState extends State<PetAdoptionScreen> {
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(16),
                 borderSide: BorderSide(
-                  color: PetCareTheme.primaryBrown.withValues(alpha: 0.3),
+                  color: PetCareTheme.primaryBrown.withOpacity( 0.3),
                 ),
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(16),
                 borderSide: BorderSide(
-                  color: PetCareTheme.primaryBrown.withValues(alpha: 0.3),
+                  color: PetCareTheme.primaryBrown.withOpacity( 0.3),
                 ),
               ),
               focusedBorder: OutlineInputBorder(
@@ -263,7 +271,7 @@ class _PetAdoptionScreenState extends State<PetAdoptionScreen> {
                 ),
               ),
               filled: true,
-              fillColor: PetCareTheme.primaryBeige.withValues(alpha: 0.05),
+              fillColor: PetCareTheme.primaryBeige.withOpacity( 0.05),
             ),
             dropdownColor: PetCareTheme.cardWhite,
             style: TextStyle(
@@ -301,7 +309,7 @@ class _PetAdoptionScreenState extends State<PetAdoptionScreen> {
       child: Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: PetCareTheme.cardWhite.withValues(alpha: 0.8),
+          color: PetCareTheme.cardWhite.withOpacity( 0.8),
           borderRadius: BorderRadius.circular(20),
         ),
         child: Column(
@@ -345,8 +353,8 @@ class _PetAdoptionScreenState extends State<PetAdoptionScreen> {
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [
-                    PetCareTheme.primaryBrown.withValues(alpha: 0.1),
-                    PetCareTheme.lightBrown.withValues(alpha: 0.1),
+                    PetCareTheme.primaryBrown.withOpacity( 0.1),
+                    PetCareTheme.lightBrown.withOpacity( 0.1),
                   ],
                 ),
                 shape: BoxShape.circle,
@@ -354,7 +362,7 @@ class _PetAdoptionScreenState extends State<PetAdoptionScreen> {
               child: Icon(
                 Icons.pets_rounded,
                 size: 50,
-                color: PetCareTheme.primaryBrown.withValues(alpha: 0.6),
+                color: PetCareTheme.primaryBrown.withOpacity( 0.6),
               ),
             ),
             const SizedBox(height: 24),
@@ -402,7 +410,7 @@ class _PetAdoptionScreenState extends State<PetAdoptionScreen> {
         color: PetCareTheme.cardWhite,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: statusColor.withValues(alpha: 0.2),
+          color: statusColor.withOpacity( 0.2),
           width: 1.5,
         ),
         boxShadow: [
@@ -413,7 +421,7 @@ class _PetAdoptionScreenState extends State<PetAdoptionScreen> {
             spreadRadius: 1,
           ),
           BoxShadow(
-            color: statusColor.withValues(alpha: 0.1),
+            color: statusColor.withOpacity( 0.1),
             blurRadius: 8,
             offset: const Offset(0, 4),
           ),
@@ -437,28 +445,24 @@ class _PetAdoptionScreenState extends State<PetAdoptionScreen> {
                       borderRadius: BorderRadius.circular(16),
                       gradient: LinearGradient(
                         colors: [
-                          PetCareTheme.primaryBeige.withValues(alpha: 0.1),
-                          PetCareTheme.lightBrown.withValues(alpha: 0.1),
+                          PetCareTheme.primaryBeige.withOpacity( 0.1),
+                          PetCareTheme.lightBrown.withOpacity( 0.1),
                         ],
                       ),
                     ),
                     child: petListing.photoUrls.isNotEmpty
                         ? ClipRRect(
                             borderRadius: BorderRadius.circular(16),
-                            child: Image.network(
-                              petListing.photoUrls.first,
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) => Icon(
-                                Icons.pets_rounded,
-                                size: 40,
-                                color: PetCareTheme.primaryBrown.withValues(alpha: 0.6),
-                              ),
+                            child: PetImageWidget(
+                              imageUrl: petListing.photoUrls.first,
+                              width: double.infinity,
+                              height: double.infinity,
                             ),
                           )
                         : Icon(
                             Icons.pets_rounded,
                             size: 40,
-                            color: PetCareTheme.primaryBrown.withValues(alpha: 0.6),
+                            color: PetCareTheme.primaryBrown.withOpacity( 0.6),
                           ),
                   ),
                   const SizedBox(width: 20),
@@ -502,10 +506,10 @@ class _PetAdoptionScreenState extends State<PetAdoptionScreen> {
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                               decoration: BoxDecoration(
-                                color: statusColor.withValues(alpha: 0.1),
+                                color: statusColor.withOpacity( 0.1),
                                 borderRadius: BorderRadius.circular(16),
                                 border: Border.all(
-                                  color: statusColor.withValues(alpha: 0.3),
+                                  color: statusColor.withOpacity( 0.3),
                                   width: 1,
                                 ),
                               ),
@@ -523,10 +527,10 @@ class _PetAdoptionScreenState extends State<PetAdoptionScreen> {
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                                 decoration: BoxDecoration(
-                                  color: PetCareTheme.softGreen.withValues(alpha: 0.1),
+                                  color: PetCareTheme.softGreen.withOpacity( 0.1),
                                   borderRadius: BorderRadius.circular(16),
                                   border: Border.all(
-                                    color: PetCareTheme.softGreen.withValues(alpha: 0.3),
+                                    color: PetCareTheme.softGreen.withOpacity( 0.3),
                                     width: 1,
                                   ),
                                 ),
@@ -545,10 +549,10 @@ class _PetAdoptionScreenState extends State<PetAdoptionScreen> {
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                                 decoration: BoxDecoration(
-                                  color: PetCareTheme.accentGold.withValues(alpha: 0.1),
+                                  color: PetCareTheme.accentGold.withOpacity( 0.1),
                                   borderRadius: BorderRadius.circular(16),
                                   border: Border.all(
-                                    color: PetCareTheme.accentGold.withValues(alpha: 0.3),
+                                    color: PetCareTheme.accentGold.withOpacity( 0.3),
                                     width: 1,
                                   ),
                                 ),
@@ -604,10 +608,10 @@ class _PetAdoptionScreenState extends State<PetAdoptionScreen> {
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: PetCareTheme.primaryBeige.withValues(alpha: 0.1),
+                    color: PetCareTheme.primaryBeige.withOpacity( 0.1),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: PetCareTheme.primaryBeige.withValues(alpha: 0.2),
+                      color: PetCareTheme.primaryBeige.withOpacity( 0.2),
                       width: 1,
                     ),
                   ),
@@ -683,28 +687,24 @@ class _PetAdoptionScreenState extends State<PetAdoptionScreen> {
                         borderRadius: BorderRadius.circular(16),
                         gradient: LinearGradient(
                           colors: [
-                            PetCareTheme.primaryBeige.withValues(alpha: 0.1),
-                            PetCareTheme.lightBrown.withValues(alpha: 0.1),
+                            PetCareTheme.primaryBeige.withOpacity( 0.1),
+                            PetCareTheme.lightBrown.withOpacity( 0.1),
                           ],
                         ),
                       ),
                       child: petListing.photoUrls.isNotEmpty
                           ? ClipRRect(
                               borderRadius: BorderRadius.circular(16),
-                              child: Image.network(
-                                petListing.photoUrls.first,
-                                fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) => Icon(
-                                  Icons.pets_rounded,
-                                  size: 30,
-                                  color: PetCareTheme.primaryBrown.withValues(alpha: 0.6),
-                                ),
+                              child: PetImageWidget(
+                                imageUrl: petListing.photoUrls.first,
+                                width: 60,
+                                height: 60,
                               ),
                             )
                           : Icon(
                               Icons.pets_rounded,
                               size: 30,
-                              color: PetCareTheme.primaryBrown.withValues(alpha: 0.6),
+                              color: PetCareTheme.primaryBrown.withOpacity( 0.6),
                             ),
                     ),
                     const SizedBox(width: 16),
@@ -740,10 +740,10 @@ class _PetAdoptionScreenState extends State<PetAdoptionScreen> {
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: PetCareTheme.primaryBeige.withValues(alpha: 0.1),
+                    color: PetCareTheme.primaryBeige.withOpacity( 0.1),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: PetCareTheme.primaryBeige.withValues(alpha: 0.2),
+                      color: PetCareTheme.primaryBeige.withOpacity( 0.2),
                       width: 1,
                     ),
                   ),
@@ -771,10 +771,10 @@ class _PetAdoptionScreenState extends State<PetAdoptionScreen> {
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: PetCareTheme.lightBrown.withValues(alpha: 0.05),
+                      color: PetCareTheme.lightBrown.withOpacity( 0.05),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: PetCareTheme.lightBrown.withValues(alpha: 0.1),
+                        color: PetCareTheme.lightBrown.withOpacity( 0.1),
                         width: 1,
                       ),
                     ),
@@ -807,10 +807,10 @@ class _PetAdoptionScreenState extends State<PetAdoptionScreen> {
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: PetCareTheme.warmPurple.withValues(alpha: 0.05),
+                      color: PetCareTheme.warmPurple.withOpacity( 0.05),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: PetCareTheme.warmPurple.withValues(alpha: 0.1),
+                        color: PetCareTheme.warmPurple.withOpacity( 0.1),
                         width: 1,
                       ),
                     ),
@@ -847,10 +847,10 @@ class _PetAdoptionScreenState extends State<PetAdoptionScreen> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                         decoration: BoxDecoration(
-                          color: PetCareTheme.softGreen.withValues(alpha: 0.1),
+                          color: PetCareTheme.softGreen.withOpacity( 0.1),
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(
-                            color: PetCareTheme.softGreen.withValues(alpha: 0.3),
+                            color: PetCareTheme.softGreen.withOpacity( 0.3),
                             width: 1,
                           ),
                         ),
@@ -867,10 +867,10 @@ class _PetAdoptionScreenState extends State<PetAdoptionScreen> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                         decoration: BoxDecoration(
-                          color: PetCareTheme.accentGold.withValues(alpha: 0.1),
+                          color: PetCareTheme.accentGold.withOpacity( 0.1),
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(
-                            color: PetCareTheme.accentGold.withValues(alpha: 0.3),
+                            color: PetCareTheme.accentGold.withOpacity( 0.3),
                             width: 1,
                           ),
                         ),
@@ -950,5 +950,37 @@ class _PetAdoptionScreenState extends State<PetAdoptionScreen> {
         builder: (context) => AdoptionFormScreen(petListing: petListing),
       ),
     );
+  }
+
+  Future<void> _addTestImagesToPetListings() async {
+    try {
+      if (_petListings.isNotEmpty) {
+        for (int i = 0; i < _petListings.length; i++) {
+          final petListing = _petListings[i];
+          final base64Image = PetListingImageHelper.createColoredBase64Image('listing_$i');
+          
+          await PetListingImageHelper.addBase64ImageToPetListing(petListing.id, base64Image);
+          print('✅ Added base64 image to pet listing ${i + 1}: ${petListing.name}');
+        }
+        
+        // Reload data to show the new images
+        _loadPetListings();
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Base64 images added to all pet listings!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      print('❌ Error adding base64 images to pet listings: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error adding images: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 }

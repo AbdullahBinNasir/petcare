@@ -1,7 +1,22 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-enum AppointmentStatus { scheduled, confirmed, inProgress, completed, cancelled, noShow }
-enum AppointmentType { checkup, vaccination, surgery, emergency, grooming, consultation }
+enum AppointmentStatus {
+  scheduled,
+  confirmed,
+  inProgress,
+  completed,
+  cancelled,
+  noShow,
+}
+
+enum AppointmentType {
+  checkup,
+  vaccination,
+  surgery,
+  emergency,
+  grooming,
+  consultation,
+}
 
 class AppointmentModel {
   final String id;
@@ -90,15 +105,15 @@ class AppointmentModel {
 
   String _enumToString(dynamic enumValue) {
     if (enumValue == null) return '';
-    
+
     final enumString = enumValue.toString();
     final parts = enumString.split('.');
-    
+
     // Ensure we have at least one part and return the last part
     if (parts.isNotEmpty && parts.length > 1) {
       return parts.last;
     }
-    
+
     // Fallback: return the original string or handle specific enum types
     if (enumValue is AppointmentType) {
       switch (enumValue) {
@@ -116,7 +131,7 @@ class AppointmentModel {
           return 'consultation';
       }
     }
-    
+
     if (enumValue is AppointmentStatus) {
       switch (enumValue) {
         case AppointmentStatus.scheduled:
@@ -133,11 +148,11 @@ class AppointmentModel {
           return 'noShow';
       }
     }
-    
+
     // Final fallback
     return enumString.contains('.') ? enumString.split('.').last : enumString;
   }
-  
+
   // Test method to validate enum conversion
   static void testEnumConversion() {
     final model = AppointmentModel(
@@ -152,20 +167,27 @@ class AppointmentModel {
       createdAt: DateTime.now(),
       updatedAt: DateTime.now(),
     );
-    
-    print('Type conversion test: ${model._enumToString(AppointmentType.checkup)}');
-    print('Status conversion test: ${model._enumToString(AppointmentStatus.scheduled)}');
+
+    print(
+      'Type conversion test: ${model._enumToString(AppointmentType.checkup)}',
+    );
+    print(
+      'Status conversion test: ${model._enumToString(AppointmentStatus.scheduled)}',
+    );
     print('Firestore data: ${model.toFirestore()}');
   }
 
-  bool get isUpcoming => appointmentDate.isAfter(DateTime.now()) && 
-      status != AppointmentStatus.cancelled && 
+  bool get isUpcoming =>
+      appointmentDate.isAfter(DateTime.now()) &&
+      status != AppointmentStatus.cancelled &&
       status != AppointmentStatus.completed;
 
-  bool get isPast => appointmentDate.isBefore(DateTime.now()) || 
+  bool get isPast =>
+      appointmentDate.isBefore(DateTime.now()) ||
       status == AppointmentStatus.completed;
 
   AppointmentModel copyWith({
+    String? id,
     String? petOwnerId,
     String? petId,
     String? veterinarianId,
@@ -182,7 +204,7 @@ class AppointmentModel {
     DateTime? updatedAt,
   }) {
     return AppointmentModel(
-      id: id,
+      id: id ?? this.id,
       petOwnerId: petOwnerId ?? this.petOwnerId,
       petId: petId ?? this.petId,
       veterinarianId: veterinarianId ?? this.veterinarianId,

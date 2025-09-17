@@ -4,6 +4,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:intl/intl.dart';
 import '../../models/blog_post_model.dart';
 import '../../services/blog_service.dart';
+import '../../utils/blog_image_helper.dart';
 import 'create_blog_post_screen.dart';
 
 class AdminBlogManagementScreen extends StatefulWidget {
@@ -30,12 +31,47 @@ class _AdminBlogManagementScreenState extends State<AdminBlogManagementScreen> {
     super.dispose();
   }
 
+  Future<void> _fixAllBlogImages() async {
+    try {
+      await BlogImageHelper.addImagesToAllBlogPosts();
+      
+      // Reload the blog posts to show the new images
+      Provider.of<BlogService>(context, listen: false).loadBlogPosts(publishedOnly: false);
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Fixed images for all blog posts'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      print('Error fixing blog images: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error fixing images: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Blog Management'),
         actions: [
+          // Debug button for fixing images
+          IconButton(
+            icon: const Icon(Icons.bug_report_rounded),
+            onPressed: _fixAllBlogImages,
+            tooltip: 'Fix Blog Images',
+          ),
+          // Add new post button
           IconButton(
             icon: const Icon(Icons.add),
             onPressed: () {

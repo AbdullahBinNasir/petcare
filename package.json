@@ -1,0 +1,28 @@
+{
+  "name": "wiz",
+  "version": "1.0.0",
+  "description": "A new Flutter project.",
+  "main": "ecosystem.config.js",
+  "directories": {
+    "lib": "lib",
+    "test": "test"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AbdullahBinNasir/petcare.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/AbdullahBinNasir/petcare/issues"
+  },
+  "homepage": "https://github.com/AbdullahBinNasir/petcare#readme",
+  "dependencies": {
+    "express": "^5.1.0"
+  }
+}

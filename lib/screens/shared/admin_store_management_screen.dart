@@ -4,6 +4,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'dart:convert';
 import '../../models/store_item_model.dart';
 import '../../services/store_service.dart';
+import '../../theme/pet_care_theme.dart';
 import 'create_store_item_screen.dart';
 
 class AdminStoreManagementScreen extends StatefulWidget {
@@ -65,63 +66,166 @@ class _AdminStoreManagementScreenState extends State<AdminStoreManagementScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Store Management'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.bug_report),
-            onPressed: () {
-              Provider.of<StoreService>(context, listen: false).loadAllStoreItems();
-            },
-            tooltip: 'Debug: Load All Items',
+      backgroundColor: Colors.transparent,
+      appBar: _buildModernAppBar(context),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: PetCareTheme.backgroundGradient,
           ),
-          IconButton(
-            icon: const Icon(Icons.add),
+        ),
+        child: Column(
+          children: [
+            _buildSearchBar(),
+            _buildStatsCards(),
+            Expanded(child: _buildItemsList()),
+          ],
+        ),
+      ),
+    );
+  }
+
+  PreferredSizeWidget _buildModernAppBar(BuildContext context) {
+    return AppBar(
+      elevation: 0,
+      flexibleSpace: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: PetCareTheme.primaryGradient,
+          ),
+        ),
+      ),
+      backgroundColor: Colors.transparent,
+      foregroundColor: PetCareTheme.primaryBeige,
+      title: Text(
+        'Store Management',
+        style: TextStyle(
+          fontSize: 22,
+          fontWeight: FontWeight.w700,
+          color: PetCareTheme.primaryBeige,
+          letterSpacing: 0.5,
+        ),
+      ),
+      actions: [
+        Container(
+          margin: const EdgeInsets.only(right: 8),
+          decoration: BoxDecoration(
+            color: PetCareTheme.primaryBeige.withOpacity(0.2),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: PetCareTheme.primaryBeige.withOpacity(0.3),
+              width: 1,
+            ),
+          ),
+          child: IconButton(
+            icon: Icon(
+              Icons.refresh_rounded,
+              color: PetCareTheme.primaryBeige,
+              size: 20,
+            ),
             onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const CreateStoreItemScreen(),
+              Provider.of<StoreService>(context, listen: false).loadStoreItems();
+            },
+            tooltip: 'Refresh',
+          ),
+        ),
+        Container(
+          margin: const EdgeInsets.only(right: 12),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [PetCareTheme.accentGold, PetCareTheme.lightBrown],
+            ),
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: PetCareTheme.accentGold.withOpacity(0.3),
+                blurRadius: 8,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const CreateStoreItemScreen(),
+                  ),
+                );
+              },
+              borderRadius: BorderRadius.circular(12),
+              child: const Padding(
+                padding: EdgeInsets.all(12),
+                child: Icon(
+                  Icons.add_rounded,
+                  color: Colors.white,
+                  size: 20,
                 ),
-              );
-            },
+              ),
+            ),
           ),
-        ],
-      ),
-      body: Column(
-        children: [
-          _buildSearchBar(),
-          _buildStatsCards(),
-          Expanded(child: _buildItemsList()),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
   Widget _buildSearchBar() {
     return Container(
-      padding: const EdgeInsets.all(16),
-      child: TextField(
-        controller: _searchController,
-        decoration: InputDecoration(
-          hintText: 'Search store items...',
-          prefixIcon: const Icon(Icons.search),
-          suffixIcon: _searchController.text.isNotEmpty
-              ? IconButton(
-                  icon: const Icon(Icons.clear),
-                  onPressed: () {
-                    _searchController.clear();
-                    Provider.of<StoreService>(context, listen: false).searchItems('');
-                  },
-                )
-              : null,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
+      padding: const EdgeInsets.all(20),
+      child: Container(
+        decoration: BoxDecoration(
+          color: PetCareTheme.cardWhite,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [PetCareTheme.cardShadow],
         ),
-        onChanged: (value) {
-          Provider.of<StoreService>(context, listen: false).searchItems(value);
-        },
+        child: TextField(
+          controller: _searchController,
+          decoration: InputDecoration(
+            hintText: 'Search store items...',
+            hintStyle: TextStyle(
+              color: PetCareTheme.textLight,
+              fontSize: 16,
+            ),
+            prefixIcon: Icon(
+              Icons.search_rounded,
+              color: PetCareTheme.primaryBrown,
+              size: 24,
+            ),
+            suffixIcon: _searchController.text.isNotEmpty
+                ? IconButton(
+                    icon: Icon(
+                      Icons.clear_rounded,
+                      color: PetCareTheme.textLight,
+                    ),
+                    onPressed: () {
+                      _searchController.clear();
+                      Provider.of<StoreService>(context, listen: false).searchItems('');
+                      setState(() {});
+                    },
+                  )
+                : null,
+            border: InputBorder.none,
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 20,
+              vertical: 16,
+            ),
+          ),
+          style: TextStyle(
+            color: PetCareTheme.textDark,
+            fontSize: 16,
+            fontWeight: FontWeight.w500,
+          ),
+          onChanged: (value) {
+            Provider.of<StoreService>(context, listen: false).searchItems(value);
+            setState(() {});
+          },
+        ),
       ),
     );
   }
@@ -134,33 +238,33 @@ class _AdminStoreManagementScreenState extends State<AdminStoreManagementScreen>
         final outOfStockItems = totalItems - inStockItems;
 
         return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
+          padding: const EdgeInsets.symmetric(horizontal: 20),
           child: Row(
             children: [
               Expanded(
                 child: _buildStatCard(
                   'Total Items',
                   totalItems.toString(),
-                  Icons.inventory,
-                  Colors.blue,
+                  Icons.inventory_2_rounded,
+                  PetCareTheme.accentGold,
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 16),
               Expanded(
                 child: _buildStatCard(
                   'In Stock',
                   inStockItems.toString(),
-                  Icons.check_circle,
-                  Colors.green,
+                  Icons.check_circle_rounded,
+                  PetCareTheme.softGreen,
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 16),
               Expanded(
                 child: _buildStatCard(
                   'Out of Stock',
                   outOfStockItems.toString(),
-                  Icons.warning,
-                  Colors.orange,
+                  Icons.warning_amber_rounded,
+                  PetCareTheme.warmRed,
                 ),
               ),
             ],
@@ -171,27 +275,111 @@ class _AdminStoreManagementScreenState extends State<AdminStoreManagementScreen>
   }
 
   Widget _buildStatCard(String title, String value, IconData icon, Color color) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            Icon(icon, color: color, size: 24),
-            const SizedBox(height: 8),
-            Text(
-              value,
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: color,
+    return Container(
+      decoration: BoxDecoration(
+        color: PetCareTheme.cardWhite,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: color.withOpacity(0.2),
+          width: 1.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: PetCareTheme.shadowColor,
+            blurRadius: 15,
+            offset: const Offset(0, 8),
+            spreadRadius: 1,
+          ),
+          BoxShadow(
+            color: color.withOpacity(0.1),
+            blurRadius: 6,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(20),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              color.withOpacity(0.05),
+              color.withOpacity(0.02),
+              Colors.white.withOpacity(0.8),
+            ],
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Icon Section
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      color.withOpacity(0.2),
+                      color.withOpacity(0.4),
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: color.withOpacity(0.3),
+                      blurRadius: 6,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
+                ),
+                child: Icon(
+                  icon,
+                  color: Colors.white,
+                  size: 20,
+                ),
               ),
-            ),
-            Text(
-              title,
-              style: const TextStyle(fontSize: 12),
-              textAlign: TextAlign.center,
-            ),
-          ],
+              
+              const SizedBox(height: 12),
+              
+              // Value Section
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    value,
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w900,
+                      color: PetCareTheme.primaryBrown,
+                      letterSpacing: -0.5,
+                      height: 1.0,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                      color: PetCareTheme.lightBrown.withOpacity(0.9),
+                      letterSpacing: 0.2,
+                      height: 1.1,
+                    ),
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );

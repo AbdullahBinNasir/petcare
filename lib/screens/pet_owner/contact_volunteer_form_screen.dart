@@ -315,7 +315,7 @@ class _ContactVolunteerFormScreenState extends State<ContactVolunteerFormScreen>
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: PetCareTheme.primaryBeige.withValues(alpha: 0.2),
+                    color: PetCareTheme.primaryBeige.withOpacity( 0.2),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: SizedBox(
@@ -373,7 +373,7 @@ class _ContactVolunteerFormScreenState extends State<ContactVolunteerFormScreen>
         borderRadius: BorderRadius.circular(20),
         boxShadow: [PetCareTheme.elevatedShadow],
         border: Border.all(
-          color: _getFormColor().withValues(alpha: 0.2),
+          color: _getFormColor().withOpacity( 0.2),
           width: 1.5,
         ),
       ),
@@ -387,8 +387,8 @@ class _ContactVolunteerFormScreenState extends State<ContactVolunteerFormScreen>
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [
-                      _getFormColor().withValues(alpha: 0.1),
-                      _getFormColor().withValues(alpha: 0.2),
+                      _getFormColor().withOpacity( 0.1),
+                      _getFormColor().withOpacity( 0.2),
                     ],
                   ),
                   borderRadius: BorderRadius.circular(16),
@@ -447,7 +447,7 @@ class _ContactVolunteerFormScreenState extends State<ContactVolunteerFormScreen>
         borderRadius: BorderRadius.circular(16),
         boxShadow: [PetCareTheme.elevatedShadow],
         border: Border.all(
-          color: PetCareTheme.primaryBrown.withValues(alpha: 0.1),
+          color: PetCareTheme.primaryBrown.withOpacity( 0.1),
           width: 1,
         ),
       ),
@@ -468,13 +468,13 @@ class _ContactVolunteerFormScreenState extends State<ContactVolunteerFormScreen>
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(16),
             borderSide: BorderSide(
-              color: PetCareTheme.primaryBrown.withValues(alpha: 0.3),
+              color: PetCareTheme.primaryBrown.withOpacity( 0.3),
             ),
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(16),
             borderSide: BorderSide(
-              color: PetCareTheme.primaryBrown.withValues(alpha: 0.3),
+              color: PetCareTheme.primaryBrown.withOpacity( 0.3),
             ),
           ),
           focusedBorder: OutlineInputBorder(
@@ -485,7 +485,7 @@ class _ContactVolunteerFormScreenState extends State<ContactVolunteerFormScreen>
             ),
           ),
           filled: true,
-          fillColor: PetCareTheme.primaryBeige.withValues(alpha: 0.05),
+          fillColor: PetCareTheme.primaryBeige.withOpacity( 0.05),
           contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         ),
         maxLines: maxLines,
@@ -507,7 +507,7 @@ class _ContactVolunteerFormScreenState extends State<ContactVolunteerFormScreen>
         borderRadius: BorderRadius.circular(20),
         boxShadow: [PetCareTheme.elevatedShadow],
         border: Border.all(
-          color: PetCareTheme.softGreen.withValues(alpha: 0.2),
+          color: PetCareTheme.softGreen.withOpacity( 0.2),
           width: 1.5,
         ),
       ),
@@ -521,8 +521,8 @@ class _ContactVolunteerFormScreenState extends State<ContactVolunteerFormScreen>
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [
-                      PetCareTheme.softGreen.withValues(alpha: 0.1),
-                      PetCareTheme.softGreen.withValues(alpha: 0.2),
+                      PetCareTheme.softGreen.withOpacity( 0.1),
+                      PetCareTheme.softGreen.withOpacity( 0.2),
                     ],
                   ),
                   borderRadius: BorderRadius.circular(12),
@@ -584,7 +584,7 @@ class _ContactVolunteerFormScreenState extends State<ContactVolunteerFormScreen>
         borderRadius: BorderRadius.circular(20),
         boxShadow: [PetCareTheme.elevatedShadow],
         border: Border.all(
-          color: PetCareTheme.accentGold.withValues(alpha: 0.2),
+          color: PetCareTheme.accentGold.withOpacity( 0.2),
           width: 1.5,
         ),
       ),
@@ -598,8 +598,8 @@ class _ContactVolunteerFormScreenState extends State<ContactVolunteerFormScreen>
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [
-                      PetCareTheme.accentGold.withValues(alpha: 0.1),
-                      PetCareTheme.accentGold.withValues(alpha: 0.2),
+                      PetCareTheme.accentGold.withOpacity( 0.1),
+                      PetCareTheme.accentGold.withOpacity( 0.2),
                     ],
                   ),
                   borderRadius: BorderRadius.circular(12),

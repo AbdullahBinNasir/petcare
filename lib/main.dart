@@ -8,6 +8,8 @@ import 'package:device_preview/device_preview.dart';
 import 'firebase_options.dart';
 
 import 'screens/auth/role_selection_screen.dart';
+import 'screens/auth/login_screen.dart';
+import 'screens/splash/splash_screen.dart';
 import 'screens/pet_owner/pet_owner_dashboard.dart';
 import 'screens/veterinarian/vet_dashboard.dart';
 import 'screens/shelter/shelter_dashboard.dart';
@@ -38,9 +40,7 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Add options here
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   // Initialize notification service
   await NotificationService().initialize();
@@ -78,21 +78,21 @@ class PetCareApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => AdoptionRequestService()),
         ChangeNotifierProvider(create: (_) => SuccessStoryService()),
         ChangeNotifierProvider(create: (_) => ContactVolunteerFormService()),
+        ChangeNotifierProvider(create: (_) => NotificationService()),
       ],
       child: MaterialApp(
-          title: 'Pet Care',
-          builder: DevicePreview.appBuilder,
-          theme: ThemeData(
+        title: 'Pet Care',
+        builder: DevicePreview.appBuilder,
+        theme: ThemeData(
           useMaterial3: true,
           colorScheme: ColorScheme.fromSeed(
-            seedColor: const Color(0xFF7D4D20), // Rich darker brown primary color
+            seedColor: const Color(
+              0xFF7D4D20,
+            ), // Rich darker brown primary color
             brightness: Brightness.light,
             secondary: const Color(0xFFF5F5DC), // Beige secondary color
           ),
-          appBarTheme: const AppBarTheme(
-            centerTitle: true,
-            elevation: 0,
-          ),
+          appBarTheme: const AppBarTheme(centerTitle: true, elevation: 0),
           cardTheme: CardThemeData(
             elevation: 2,
             shape: RoundedRectangleBorder(
@@ -108,13 +108,14 @@ class PetCareApp extends StatelessWidget {
             ),
           ),
           inputDecorationTheme: InputDecorationTheme(
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 12,
             ),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           ),
         ),
-        home: const AuthWrapper(),
+        home: SplashScreen(child: const LoginScreen()),
         debugShowCheckedModeBanner: false,
       ),
     );
@@ -123,40 +124,91 @@ class PetCareApp extends StatelessWidget {
 
 // Initialize service connections
 void _initializeServices(BuildContext context) {
-  final analyticsService = Provider.of<AnalyticsService>(context, listen: false);
+  final analyticsService = Provider.of<AnalyticsService>(
+    context,
+    listen: false,
+  );
   final storeService = Provider.of<StoreService>(context, listen: false);
-  
+
   // Connect analytics service to store service
   storeService.setAnalyticsService(analyticsService);
 }
 
-class AuthWrapper extends StatelessWidget {
+class AuthWrapper extends StatefulWidget {
   const AuthWrapper({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    // Initialize service connections
+  State<AuthWrapper> createState() => _AuthWrapperState();
+}
+
+class _AuthWrapperState extends State<AuthWrapper> {
+  bool _hasInitialized = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Initialize services after the first frame
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _initializeServices(context);
+      setState(() {
+        _hasInitialized = true;
+      });
     });
-    
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Consumer<AuthService>(
       builder: (context, authService, child) {
-        if (authService.isLoading) {
-          return const Scaffold(
-            body: Center(
-              child: CircularProgressIndicator(),
+        // Show loading screen while initializing or while auth service is loading
+        if (!_hasInitialized || authService.isLoading) {
+          return Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Color(0xFFFFFDF7), // PetCareTheme.cardWhite
+                  Color(0xFFF8F6F0), // PetCareTheme.surfaceBackground
+                ],
+              ),
+            ),
+            child: const Scaffold(
+              backgroundColor: Colors.transparent,
+              body: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    CircularProgressIndicator(
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        Color(0xFF7D4D20),
+                      ),
+                      backgroundColor: Color(0x337D4D20),
+                    ),
+                    SizedBox(height: 16),
+                    Text(
+                      'Loading...',
+                      style: TextStyle(
+                        color: Color(0xFF7D4D20),
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
           );
         }
 
+        // Check if user is not authenticated at all
         if (authService.currentUser == null) {
           return const RoleSelectionScreen();
         }
 
-        // User is logged in, navigate to appropriate dashboard
-        final user = authService.currentUserModel;
-        if (user != null) {
+        // Check if user is fully authenticated
+        if (authService.isFullyAuthenticated) {
+          final user = authService.currentUserModel!;
           switch (user.role) {
             case UserRole.petOwner:
               return const PetOwnerDashboard();
@@ -171,7 +223,48 @@ class AuthWrapper extends StatelessWidget {
           }
         }
 
-        // Fallback to role selection if user model is not loaded
+        // If user is partially authenticated (has Firebase user but no user model yet), show loading
+        if (authService.isPartiallyAuthenticated) {
+          return Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Color(0xFFFFFDF7), // PetCareTheme.cardWhite
+                  Color(0xFFF8F6F0), // PetCareTheme.surfaceBackground
+                ],
+              ),
+            ),
+            child: const Scaffold(
+              backgroundColor: Colors.transparent,
+              body: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    CircularProgressIndicator(
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        Color(0xFF7D4D20),
+                      ),
+                      backgroundColor: Color(0x337D4D20),
+                    ),
+                    SizedBox(height: 16),
+                    Text(
+                      'Loading user data...',
+                      style: TextStyle(
+                        color: Color(0xFF7D4D20),
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }
+
+        // Fallback - should not reach here
         return const RoleSelectionScreen();
       },
     );

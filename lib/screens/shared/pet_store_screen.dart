@@ -10,6 +10,7 @@ import '../../services/cart_service.dart';
 import '../../services/order_service.dart';
 import '../../models/order_model.dart';
 import '../../theme/pet_care_theme.dart';
+import '../../widgets/universal_image_widget.dart';
 import 'store_item_details_screen.dart';
 import 'shopping_cart_screen.dart';
 
@@ -49,36 +50,10 @@ class _PetStoreScreenState extends State<PetStoreScreen> {
   }
 
   Widget _buildImageWidget(String imageUrl) {
-    try {
-      if (imageUrl.startsWith('data:image')) {
-        final base64Part = imageUrl.split(',').last;
-        final bytes = base64Part.isNotEmpty ? base64Decode(base64Part) : null;
-        if (bytes != null) {
-          return Image.memory(
-            bytes,
-            fit: BoxFit.cover,
-            errorBuilder: (context, error, stackTrace) => Container(
-              color: Colors.grey[200],
-              child: const Icon(Icons.shopping_bag, size: 48),
-            ),
-          );
-        }
-      }
-    } catch (_) {}
-
-    return CachedNetworkImage(
+    return StoreItemImageWidget(
       imageUrl: imageUrl,
-      fit: BoxFit.cover,
-      placeholder: (context, url) => Container(
-        color: Colors.grey[200],
-        child: const Center(
-          child: CircularProgressIndicator(),
-        ),
-      ),
-      errorWidget: (context, url, error) => Container(
-        color: Colors.grey[200],
-        child: const Icon(Icons.image_not_supported),
-      ),
+      width: double.infinity,
+      height: double.infinity,
     );
   }
 
@@ -286,7 +261,7 @@ class _PetStoreScreenState extends State<PetStoreScreen> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [PetCareTheme.elevatedShadow],
         border: Border.all(
-          color: PetCareTheme.primaryBrown.withValues(alpha: 0.1),
+          color: PetCareTheme.primaryBrown.withOpacity( 0.1),
           width: 1,
         ),
       ),
@@ -317,13 +292,13 @@ class _PetStoreScreenState extends State<PetStoreScreen> {
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(16),
             borderSide: BorderSide(
-              color: PetCareTheme.primaryBrown.withValues(alpha: 0.3),
+              color: PetCareTheme.primaryBrown.withOpacity( 0.3),
             ),
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(16),
             borderSide: BorderSide(
-              color: PetCareTheme.primaryBrown.withValues(alpha: 0.3),
+              color: PetCareTheme.primaryBrown.withOpacity( 0.3),
             ),
           ),
           focusedBorder: OutlineInputBorder(
@@ -334,7 +309,7 @@ class _PetStoreScreenState extends State<PetStoreScreen> {
             ),
           ),
           filled: true,
-          fillColor: PetCareTheme.primaryBeige.withValues(alpha: 0.05),
+          fillColor: PetCareTheme.primaryBeige.withOpacity( 0.05),
         ),
         onChanged: (value) {
           Provider.of<StoreService>(context, listen: false).searchItems(value);
@@ -355,7 +330,7 @@ class _PetStoreScreenState extends State<PetStoreScreen> {
             borderRadius: BorderRadius.circular(20),
             boxShadow: [PetCareTheme.elevatedShadow],
             border: Border.all(
-              color: PetCareTheme.primaryBrown.withValues(alpha: 0.1),
+              color: PetCareTheme.primaryBrown.withOpacity( 0.1),
               width: 1,
             ),
           ),
@@ -375,13 +350,13 @@ class _PetStoreScreenState extends State<PetStoreScreen> {
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(16),
                           borderSide: BorderSide(
-                            color: PetCareTheme.primaryBrown.withValues(alpha: 0.3),
+                            color: PetCareTheme.primaryBrown.withOpacity( 0.3),
                           ),
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(16),
                           borderSide: BorderSide(
-                            color: PetCareTheme.primaryBrown.withValues(alpha: 0.3),
+                            color: PetCareTheme.primaryBrown.withOpacity( 0.3),
                           ),
                         ),
                         focusedBorder: OutlineInputBorder(
@@ -392,7 +367,7 @@ class _PetStoreScreenState extends State<PetStoreScreen> {
                           ),
                         ),
                         filled: true,
-                        fillColor: PetCareTheme.primaryBeige.withValues(alpha: 0.05),
+                        fillColor: PetCareTheme.primaryBeige.withOpacity( 0.05),
                       ),
                       dropdownColor: PetCareTheme.cardWhite,
                       style: TextStyle(
@@ -435,13 +410,13 @@ class _PetStoreScreenState extends State<PetStoreScreen> {
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(16),
                           borderSide: BorderSide(
-                            color: PetCareTheme.primaryBrown.withValues(alpha: 0.3),
+                            color: PetCareTheme.primaryBrown.withOpacity( 0.3),
                           ),
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(16),
                           borderSide: BorderSide(
-                            color: PetCareTheme.primaryBrown.withValues(alpha: 0.3),
+                            color: PetCareTheme.primaryBrown.withOpacity( 0.3),
                           ),
                         ),
                         focusedBorder: OutlineInputBorder(
@@ -452,7 +427,7 @@ class _PetStoreScreenState extends State<PetStoreScreen> {
                           ),
                         ),
                         filled: true,
-                        fillColor: PetCareTheme.primaryBeige.withValues(alpha: 0.05),
+                        fillColor: PetCareTheme.primaryBeige.withOpacity( 0.05),
                       ),
                       dropdownColor: PetCareTheme.cardWhite,
                       style: TextStyle(
@@ -523,7 +498,7 @@ class _PetStoreScreenState extends State<PetStoreScreen> {
             child: Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: PetCareTheme.cardWhite.withValues(alpha: 0.8),
+                color: PetCareTheme.cardWhite.withOpacity( 0.8),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Column(
@@ -567,8 +542,8 @@ class _PetStoreScreenState extends State<PetStoreScreen> {
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         colors: [
-                          PetCareTheme.primaryBrown.withValues(alpha: 0.1),
-                          PetCareTheme.lightBrown.withValues(alpha: 0.1),
+                          PetCareTheme.primaryBrown.withOpacity( 0.1),
+                          PetCareTheme.lightBrown.withOpacity( 0.1),
                         ],
                       ),
                       shape: BoxShape.circle,
@@ -576,7 +551,7 @@ class _PetStoreScreenState extends State<PetStoreScreen> {
                     child: Icon(
                       Icons.shopping_bag_outlined,
                       size: 50,
-                      color: PetCareTheme.primaryBrown.withValues(alpha: 0.6),
+                      color: PetCareTheme.primaryBrown.withOpacity( 0.6),
                     ),
                   ),
                   const SizedBox(height: 24),
@@ -630,7 +605,7 @@ class _PetStoreScreenState extends State<PetStoreScreen> {
         color: PetCareTheme.cardWhite,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: PetCareTheme.primaryBrown.withValues(alpha: 0.1),
+          color: PetCareTheme.primaryBrown.withOpacity( 0.1),
           width: 1.5,
         ),
         boxShadow: [
@@ -670,15 +645,15 @@ class _PetStoreScreenState extends State<PetStoreScreen> {
                             decoration: BoxDecoration(
                               gradient: LinearGradient(
                                 colors: [
-                                  PetCareTheme.primaryBeige.withValues(alpha: 0.1),
-                                  PetCareTheme.lightBrown.withValues(alpha: 0.1),
+                                  PetCareTheme.primaryBeige.withOpacity( 0.1),
+                                  PetCareTheme.lightBrown.withOpacity( 0.1),
                                 ],
                               ),
                             ),
                             child: Icon(
                               Icons.shopping_bag_rounded,
                               size: 32,
-                              color: PetCareTheme.primaryBrown.withValues(alpha: 0.6),
+                              color: PetCareTheme.primaryBrown.withOpacity( 0.6),
                             ),
                           ),
                   ),
@@ -851,10 +826,10 @@ class _PetStoreScreenState extends State<PetStoreScreen> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: PetCareTheme.primaryBrown.withValues(alpha: 0.1),
+                      color: PetCareTheme.primaryBrown.withOpacity( 0.1),
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
-                        color: PetCareTheme.primaryBrown.withValues(alpha: 0.2),
+                        color: PetCareTheme.primaryBrown.withOpacity( 0.2),
                         width: 1,
                       ),
                     ),
@@ -970,36 +945,10 @@ class FavoritesScreen extends StatelessWidget {
   const FavoritesScreen({super.key});
 
   Widget _buildImageWidget(String imageUrl) {
-    try {
-      if (imageUrl.startsWith('data:image')) {
-        final base64Part = imageUrl.split(',').last;
-        final bytes = base64Part.isNotEmpty ? base64Decode(base64Part) : null;
-        if (bytes != null) {
-          return Image.memory(
-            bytes,
-            fit: BoxFit.cover,
-            errorBuilder: (context, error, stackTrace) => Container(
-              color: Colors.grey[200],
-              child: const Icon(Icons.shopping_bag, size: 48),
-            ),
-          );
-        }
-      }
-    } catch (_) {}
-
-    return CachedNetworkImage(
+    return StoreItemImageWidget(
       imageUrl: imageUrl,
-      fit: BoxFit.cover,
-      placeholder: (context, url) => Container(
-        color: Colors.grey[200],
-        child: const Center(
-          child: CircularProgressIndicator(),
-        ),
-      ),
-      errorWidget: (context, url, error) => Container(
-        color: Colors.grey[200],
-        child: const Icon(Icons.image_not_supported),
-      ),
+      width: double.infinity,
+      height: double.infinity,
     );
   }
 
@@ -1220,8 +1169,8 @@ class FavoritesScreen extends StatelessWidget {
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         colors: [
-                          PetCareTheme.primaryBrown.withValues(alpha: 0.1),
-                          PetCareTheme.lightBrown.withValues(alpha: 0.1),
+                          PetCareTheme.primaryBrown.withOpacity( 0.1),
+                          PetCareTheme.lightBrown.withOpacity( 0.1),
                         ],
                       ),
                       shape: BoxShape.circle,
@@ -1229,7 +1178,7 @@ class FavoritesScreen extends StatelessWidget {
                     child: Icon(
                       Icons.favorite_border_rounded,
                       size: 50,
-                      color: PetCareTheme.primaryBrown.withValues(alpha: 0.6),
+                      color: PetCareTheme.primaryBrown.withOpacity( 0.6),
                     ),
                   ),
                   const SizedBox(height: 24),
@@ -1309,7 +1258,7 @@ class FavoritesScreen extends StatelessWidget {
         color: PetCareTheme.cardWhite,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: PetCareTheme.primaryBrown.withValues(alpha: 0.1),
+          color: PetCareTheme.primaryBrown.withOpacity( 0.1),
           width: 1.5,
         ),
         boxShadow: [
@@ -1347,15 +1296,15 @@ class FavoritesScreen extends StatelessWidget {
                             decoration: BoxDecoration(
                               gradient: LinearGradient(
                                 colors: [
-                                  PetCareTheme.primaryBeige.withValues(alpha: 0.1),
-                                  PetCareTheme.lightBrown.withValues(alpha: 0.1),
+                                  PetCareTheme.primaryBeige.withOpacity( 0.1),
+                                  PetCareTheme.lightBrown.withOpacity( 0.1),
                                 ],
                               ),
                             ),
                             child: Icon(
                               Icons.shopping_bag_rounded,
                               size: 32,
-                              color: PetCareTheme.primaryBrown.withValues(alpha: 0.6),
+                              color: PetCareTheme.primaryBrown.withOpacity( 0.6),
                             ),
                           ),
                   ),

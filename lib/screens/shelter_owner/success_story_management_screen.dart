@@ -3,6 +3,9 @@ import 'package:provider/provider.dart';
 import '../../services/auth_service.dart';
 import '../../services/success_story_service.dart';
 import '../../models/success_story_model.dart';
+import '../../widgets/universal_image_widget.dart';
+import '../../utils/success_story_image_helper.dart';
+import '../../utils/fix_success_story_images.dart';
 import 'add_edit_success_story_screen.dart';
 
 class SuccessStoryManagementScreen extends StatefulWidget {
@@ -115,6 +118,22 @@ class _SuccessStoryManagementScreenState extends State<SuccessStoryManagementScr
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFFAFAF0),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () async {
+          final result = await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const AddEditSuccessStoryScreen(),
+            ),
+          );
+          if (result == true) {
+            _loadSuccessStories();
+          }
+        },
+        backgroundColor: const Color(0xFF7D4D20),
+        child: const Icon(Icons.add, color: Colors.white),
+        tooltip: 'Add New Success Story',
+      ),
       appBar: AppBar(
         title: const Text(
           'Success Stories Management',
@@ -129,6 +148,30 @@ class _SuccessStoryManagementScreenState extends State<SuccessStoryManagementScr
         centerTitle: true,
         iconTheme: const IconThemeData(color: Color(0xFFFAFAF0)),
         actions: [
+          Container(
+            margin: const EdgeInsets.only(right: 8),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFAFAF0).withOpacity(0.15),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: IconButton(
+              icon: const Icon(Icons.bug_report_rounded),
+              onPressed: _fixSpecificStory,
+              tooltip: 'Fix Specific Story',
+            ),
+          ),
+          Container(
+            margin: const EdgeInsets.only(right: 8),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFAFAF0).withOpacity(0.15),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: IconButton(
+              icon: const Icon(Icons.image_rounded),
+              onPressed: _addTestImagesToStories,
+              tooltip: 'Add Test Images',
+            ),
+          ),
           Container(
             margin: const EdgeInsets.only(right: 12),
             decoration: BoxDecoration(
@@ -267,46 +310,6 @@ class _SuccessStoryManagementScreenState extends State<SuccessStoryManagementScr
           ),
         ],
       ),
-      floatingActionButton: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              const Color(0xFF7D4D20),
-              const Color(0xFF7D4D20).withOpacity(0.8),
-            ],
-          ),
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: const Color(0xFF7D4D20).withOpacity(0.3),
-              offset: const Offset(0, 4),
-              blurRadius: 12,
-            ),
-          ],
-        ),
-        child: FloatingActionButton(
-          onPressed: () async {
-            final result = await Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => const AddEditSuccessStoryScreen(),
-              ),
-            );
-            if (result == true) {
-              _loadSuccessStories();
-            }
-          },
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          child: const Icon(
-            Icons.add_rounded,
-            color: Color(0xFFFAFAF0),
-            size: 28,
-          ),
-        ),
-      ),
     );
   }
 
@@ -346,10 +349,12 @@ class _SuccessStoryManagementScreenState extends State<SuccessStoryManagementScr
                   child: story.photoUrls.isNotEmpty
                       ? ClipRRect(
                           borderRadius: BorderRadius.circular(16),
-                          child: Image.network(
-                            story.photoUrls.first,
+                          child: UniversalImageWidget(
+                            imageUrl: story.photoUrls.first,
+                            width: 90,
+                            height: 90,
                             fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) => Icon(
+                            errorWidget: Icon(
                               Icons.celebration_rounded,
                               size: 40,
                               color: const Color(0xFF7D4D20).withOpacity(0.6),
@@ -658,5 +663,61 @@ class _SuccessStoryManagementScreenState extends State<SuccessStoryManagementScr
         );
       },
     );
+  }
+
+  Future<void> _addTestImagesToStories() async {
+    try {
+      if (_successStories.isNotEmpty) {
+        for (int i = 0; i < _successStories.length; i++) {
+          final story = _successStories[i];
+          final base64Image = SuccessStoryImageHelper.createColoredBase64Image('story_$i');
+          
+          await SuccessStoryImageHelper.addBase64ImageToSuccessStory(story.id, base64Image);
+          print('✅ Added base64 image to story ${i + 1}: ${story.storyTitle}');
+        }
+        
+        // Reload data to show the new images
+        _loadSuccessStories();
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Base64 images added to all success stories!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      print('❌ Error adding base64 images to stories: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error adding images: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  Future<void> _fixSpecificStory() async {
+    try {
+      await FixSuccessStoryImages.addImageToSpecificStory();
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Fixed specific success story image!'),
+          backgroundColor: Colors.green,
+        ),
+      );
+      
+      // Reload data to show the new image
+      _loadSuccessStories();
+    } catch (e) {
+      print('❌ Error fixing specific story: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error fixing story: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 }

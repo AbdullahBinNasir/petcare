@@ -13,14 +13,25 @@ class AuthService extends ChangeNotifier {
   
   UserModel? _currentUserModel;
   UserModel? get currentUserModel => _currentUserModel;
+  
+  // Check if user is fully authenticated (has both Firebase user and user model)
+  bool get isFullyAuthenticated => currentUser != null && _currentUserModel != null;
+  
+  // Check if user is partially authenticated (has Firebase user but no user model yet)
+  bool get isPartiallyAuthenticated => currentUser != null && _currentUserModel == null;
 
   AuthService() {
     _auth.authStateChanges().listen(_onAuthStateChanged);
+    // Initialize loading state
+    _isLoading = true;
   }
 
   void _onAuthStateChanged(User? user) async {
     try {
       debugPrint('Auth state changed. User: ${user?.uid}');
+      _isLoading = true;
+      notifyListeners();
+      
       if (user != null) {
         await _loadUserModel(user.uid);
       } else {
@@ -30,6 +41,7 @@ class AuthService extends ChangeNotifier {
       debugPrint('Error in auth state change: $e');
       _currentUserModel = null;
     } finally {
+      _isLoading = false;
       notifyListeners();
     }
   }
@@ -37,7 +49,15 @@ class AuthService extends ChangeNotifier {
   Future<void> _loadUserModel(String uid) async {
     try {
       debugPrint('Loading user model for UID: $uid');
-      final doc = await _firestore.collection('users').doc(uid).get();
+      
+      // Add timeout to prevent infinite loading
+      final doc = await _firestore.collection('users').doc(uid).get().timeout(
+        const Duration(seconds: 10),
+        onTimeout: () {
+          throw Exception('Timeout loading user data');
+        },
+      );
+      
       if (doc.exists) {
         debugPrint('User document found, parsing...');
         _currentUserModel = UserModel.fromFirestore(doc);
@@ -154,6 +174,27 @@ class AuthService extends ChangeNotifier {
     await _auth.signOut();
     _currentUserModel = null;
     notifyListeners();
+  }
+
+  // Manually refresh authentication state
+  Future<void> refreshAuthState() async {
+    try {
+      _isLoading = true;
+      notifyListeners();
+      
+      final user = _auth.currentUser;
+      if (user != null) {
+        await _loadUserModel(user.uid);
+      } else {
+        _currentUserModel = null;
+      }
+    } catch (e) {
+      debugPrint('Error refreshing auth state: $e');
+      _currentUserModel = null;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
   }
 
   // Update user profile

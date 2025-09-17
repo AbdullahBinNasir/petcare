@@ -3,14 +3,17 @@ import 'package:provider/provider.dart';
 import '../../services/auth_service.dart';
 import '../../services/appointment_service.dart';
 import '../../services/health_record_service.dart';
+import '../../services/notification_service.dart';
 import '../../models/appointment_model.dart';
 import '../../models/health_record_model.dart';
 import '../../theme/pet_care_theme.dart';
 import '../shared/profile_screen.dart';
 import '../shared/blog_screen.dart';
+import '../shared/notifications_screen.dart';
 import 'vet_health_records_screen.dart';
 import 'vet_pet_search_screen.dart';
 import 'vet_appointment_calendar_screen.dart';
+import 'vet_blog_management_screen.dart';
 
 class VetDashboard extends StatefulWidget {
   const VetDashboard({super.key});
@@ -19,7 +22,8 @@ class VetDashboard extends StatefulWidget {
   State<VetDashboard> createState() => _VetDashboardState();
 }
 
-class _VetDashboardState extends State<VetDashboard> with TickerProviderStateMixin {
+class _VetDashboardState extends State<VetDashboard>
+    with TickerProviderStateMixin {
   int _currentIndex = 0;
   List<AppointmentModel> _todaysAppointments = [];
   List<AppointmentModel> _upcomingAppointments = [];
@@ -27,7 +31,7 @@ class _VetDashboardState extends State<VetDashboard> with TickerProviderStateMix
   int _totalPatients = 0;
   int _totalHealthRecords = 0;
   bool _isLoading = true;
-  
+
   // Animation controllers
   late AnimationController _slideAnimationController;
   late AnimationController _fadeAnimationController;
@@ -39,51 +43,49 @@ class _VetDashboardState extends State<VetDashboard> with TickerProviderStateMix
   @override
   void initState() {
     super.initState();
-    
+
     // Initialize animation controllers
     _slideAnimationController = AnimationController(
       duration: const Duration(milliseconds: 800),
       vsync: this,
     );
-    
+
     _fadeAnimationController = AnimationController(
       duration: const Duration(milliseconds: 600),
       vsync: this,
     );
-    
+
     _scaleAnimationController = AnimationController(
       duration: const Duration(milliseconds: 400),
       vsync: this,
     );
-    
+
     // Initialize animations
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 0.1),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(
-      parent: _slideAnimationController,
-      curve: Curves.easeOutCubic,
-    ));
-    
-    _fadeAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _fadeAnimationController,
-      curve: Curves.easeInOut,
-    ));
-    
-    _scaleAnimation = Tween<double>(
-      begin: 0.8,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _scaleAnimationController,
-      curve: Curves.elasticOut,
-    ));
-    
+    _slideAnimation =
+        Tween<Offset>(begin: const Offset(0, 0.1), end: Offset.zero).animate(
+          CurvedAnimation(
+            parent: _slideAnimationController,
+            curve: Curves.easeOutCubic,
+          ),
+        );
+
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _fadeAnimationController,
+        curve: Curves.easeInOut,
+      ),
+    );
+
+    _scaleAnimation = Tween<double>(begin: 0.8, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _scaleAnimationController,
+        curve: Curves.elasticOut,
+      ),
+    );
+
     _loadDashboardData();
   }
-  
+
   @override
   void dispose() {
     _slideAnimationController.dispose();
@@ -94,23 +96,40 @@ class _VetDashboardState extends State<VetDashboard> with TickerProviderStateMix
 
   Future<void> _loadDashboardData() async {
     print('🏥 VetDashboard: Starting to load dashboard data...');
-    
+
     final authService = Provider.of<AuthService>(context, listen: false);
-    final appointmentService = Provider.of<AppointmentService>(context, listen: false);
-    final healthService = Provider.of<HealthRecordService>(context, listen: false);
+    final appointmentService = Provider.of<AppointmentService>(
+      context,
+      listen: false,
+    );
+    final healthService = Provider.of<HealthRecordService>(
+      context,
+      listen: false,
+    );
 
     print('👤 VetDashboard: Current user: ${authService.currentUser?.uid}');
-    print('👤 VetDashboard: Current user model: ${authService.currentUserModel?.firstName} ${authService.currentUserModel?.lastName}');
+    print(
+      '👤 VetDashboard: Current user model: ${authService.currentUserModel?.firstName} ${authService.currentUserModel?.lastName}',
+    );
 
     if (authService.currentUser != null) {
       print('📅 VetDashboard: Loading appointments...');
-      final todaysAppointments = await appointmentService.getTodaysAppointments(authService.currentUser!.uid);
-      final upcomingAppointments = await appointmentService.getUpcomingAppointments(authService.currentUser!.uid, isVet: true);
-      
-      print('🏥 VetDashboard: Loading health records for vet ID: ${authService.currentUser!.uid}');
-      final healthRecords = await healthService.getHealthRecordsByVetId(authService.currentUser!.uid);
-      print('📊 VetDashboard: Received ${healthRecords.length} health records from service');
-      
+      final todaysAppointments = await appointmentService.getTodaysAppointments(
+        authService.currentUser!.uid,
+      );
+      final upcomingAppointments = await appointmentService
+          .getUpcomingAppointments(authService.currentUser!.uid, isVet: true);
+
+      print(
+        '🏥 VetDashboard: Loading health records for vet ID: ${authService.currentUser!.uid}',
+      );
+      final healthRecords = await healthService.getHealthRecordsByVetId(
+        authService.currentUser!.uid,
+      );
+      print(
+        '📊 VetDashboard: Received ${healthRecords.length} health records from service',
+      );
+
       // Get unique patient count from appointments
       final patientIds = <String>{};
       for (final appointment in todaysAppointments) {
@@ -124,9 +143,11 @@ class _VetDashboardState extends State<VetDashboard> with TickerProviderStateMix
       print('  - Today\'s appointments: ${todaysAppointments.length}');
       print('  - Upcoming appointments: ${upcomingAppointments.length}');
       print('  - Health records: ${healthRecords.length}');
-      print('  - Recent health records (first 5): ${healthRecords.take(5).length}');
+      print(
+        '  - Recent health records (first 5): ${healthRecords.take(5).length}',
+      );
       print('  - Total patients: ${patientIds.length}');
-      
+
       setState(() {
         _todaysAppointments = todaysAppointments;
         _upcomingAppointments = upcomingAppointments;
@@ -135,14 +156,16 @@ class _VetDashboardState extends State<VetDashboard> with TickerProviderStateMix
         _totalHealthRecords = healthRecords.length;
         _isLoading = false;
       });
-      
+
       // Start animations after data is loaded
       _slideAnimationController.forward();
       _fadeAnimationController.forward();
       _scaleAnimationController.forward();
-      
+
       print('✅ VetDashboard: State updated successfully');
-      print('📊 VetDashboard: Final _recentHealthRecords length: ${_recentHealthRecords.length}');
+      print(
+        '📊 VetDashboard: Final _recentHealthRecords length: ${_recentHealthRecords.length}',
+      );
     }
   }
 
@@ -152,7 +175,7 @@ class _VetDashboardState extends State<VetDashboard> with TickerProviderStateMix
       _buildHomeTab(),
       const VetPetSearchScreen(),
       const VetAppointmentCalendarScreen(),
-      const BlogScreen(),
+      const VetBlogManagementScreen(),
       const ProfileScreen(),
     ];
 
@@ -165,21 +188,18 @@ class _VetDashboardState extends State<VetDashboard> with TickerProviderStateMix
             colors: PetCareTheme.backgroundGradient,
           ),
         ),
-        child: IndexedStack(
-          index: _currentIndex,
-          children: pages,
-        ),
+        child: IndexedStack(index: _currentIndex, children: pages),
       ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
-        color: PetCareTheme.cardWhite,
-        boxShadow: [
-          BoxShadow(
-            color: PetCareTheme.shadowColor,
-            blurRadius: 15,
-            offset: const Offset(0, -5),
-          ),
-        ],
+          color: PetCareTheme.cardWhite,
+          boxShadow: [
+            BoxShadow(
+              color: PetCareTheme.shadowColor,
+              blurRadius: 15,
+              offset: const Offset(0, -5),
+            ),
+          ],
         ),
         child: BottomNavigationBar(
           type: BottomNavigationBarType.fixed,
@@ -250,26 +270,64 @@ class _VetDashboardState extends State<VetDashboard> with TickerProviderStateMix
           ),
         ),
         actions: [
-          Container(
-            margin: const EdgeInsets.only(right: 12),
-            decoration: BoxDecoration(
-              color: PetCareTheme.primaryBeige.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: PetCareTheme.primaryBeige.withOpacity(0.3),
-                width: 1,
-              ),
-            ),
-            child: IconButton(
-              icon: Icon(
-                Icons.notifications_rounded,
-                color: PetCareTheme.primaryBeige,
-                size: 24,
-              ),
-              onPressed: () {
-                // TODO: Implement notifications
-              },
-            ),
+          Consumer<NotificationService>(
+            builder: (context, notificationService, child) {
+              return Stack(
+                children: [
+                  Container(
+                    margin: const EdgeInsets.only(right: 12),
+                    decoration: BoxDecoration(
+                      color: PetCareTheme.primaryBeige.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: PetCareTheme.primaryBeige.withOpacity(0.3),
+                        width: 1,
+                      ),
+                    ),
+                    child: IconButton(
+                      icon: Icon(
+                        Icons.notifications_rounded,
+                        color: PetCareTheme.primaryBeige,
+                        size: 24,
+                      ),
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const NotificationsScreen(),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  if (notificationService.unreadCount > 0)
+                    Positioned(
+                      right: 8,
+                      top: 8,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: Colors.red,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        constraints: const BoxConstraints(
+                          minWidth: 20,
+                          minHeight: 20,
+                        ),
+                        child: Text(
+                          '${notificationService.unreadCount}',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ),
+                ],
+              );
+            },
           ),
         ],
       ),
@@ -285,7 +343,9 @@ class _VetDashboardState extends State<VetDashboard> with TickerProviderStateMix
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     CircularProgressIndicator(
-                      valueColor: AlwaysStoppedAnimation<Color>(PetCareTheme.primaryBrown),
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        PetCareTheme.primaryBrown,
+                      ),
                       strokeWidth: 3,
                     ),
                     const SizedBox(height: 16),
@@ -349,15 +409,19 @@ class _VetDashboardState extends State<VetDashboard> with TickerProviderStateMix
                                           Container(
                                             padding: const EdgeInsets.all(18),
                                             decoration: BoxDecoration(
-                                              color: PetCareTheme.primaryBeige.withOpacity(0.25),
-                                              borderRadius: BorderRadius.circular(20),
+                                              color: PetCareTheme.primaryBeige
+                                                  .withOpacity(0.25),
+                                              borderRadius:
+                                                  BorderRadius.circular(20),
                                               border: Border.all(
-                                                color: PetCareTheme.primaryBeige.withOpacity(0.4),
+                                                color: PetCareTheme.primaryBeige
+                                                    .withOpacity(0.4),
                                                 width: 2,
                                               ),
                                               boxShadow: [
                                                 BoxShadow(
-                                                  color: Colors.black.withOpacity(0.1),
+                                                  color: Colors.black
+                                                      .withOpacity(0.1),
                                                   blurRadius: 8,
                                                   offset: const Offset(0, 4),
                                                 ),
@@ -372,12 +436,15 @@ class _VetDashboardState extends State<VetDashboard> with TickerProviderStateMix
                                           const SizedBox(width: 22),
                                           Expanded(
                                             child: Column(
-                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
                                               children: [
                                                 Text(
                                                   'Welcome back,',
                                                   style: TextStyle(
-                                                    color: PetCareTheme.primaryBeige.withOpacity(0.9),
+                                                    color: PetCareTheme
+                                                        .primaryBeige
+                                                        .withOpacity(0.9),
                                                     fontSize: 15,
                                                     fontWeight: FontWeight.w500,
                                                     letterSpacing: 0.3,
@@ -387,29 +454,39 @@ class _VetDashboardState extends State<VetDashboard> with TickerProviderStateMix
                                                 Text(
                                                   'Dr. ${user?.fullName ?? 'Veterinarian'}',
                                                   style: TextStyle(
-                                                    color: PetCareTheme.primaryBeige,
+                                                    color: PetCareTheme
+                                                        .primaryBeige,
                                                     fontSize: 22,
                                                     fontWeight: FontWeight.w800,
                                                     letterSpacing: 0.5,
                                                   ),
                                                 ),
-                                                if (user?.clinicName != null) ...[
+                                                if (user?.clinicName !=
+                                                    null) ...[
                                                   const SizedBox(height: 6),
                                                   Container(
-                                                    padding: const EdgeInsets.symmetric(
-                                                      horizontal: 12,
-                                                      vertical: 4,
-                                                    ),
+                                                    padding:
+                                                        const EdgeInsets.symmetric(
+                                                          horizontal: 12,
+                                                          vertical: 4,
+                                                        ),
                                                     decoration: BoxDecoration(
-                                                      color: PetCareTheme.primaryBeige.withOpacity(0.2),
-                                                      borderRadius: BorderRadius.circular(12),
+                                                      color: PetCareTheme
+                                                          .primaryBeige
+                                                          .withOpacity(0.2),
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            12,
+                                                          ),
                                                     ),
                                                     child: Text(
                                                       user!.clinicName!,
                                                       style: TextStyle(
-                                                        color: PetCareTheme.primaryBeige,
+                                                        color: PetCareTheme
+                                                            .primaryBeige,
                                                         fontSize: 13,
-                                                        fontWeight: FontWeight.w600,
+                                                        fontWeight:
+                                                            FontWeight.w600,
                                                       ),
                                                     ),
                                                   ),
@@ -437,13 +514,13 @@ class _VetDashboardState extends State<VetDashboard> with TickerProviderStateMix
                               ),
                             ),
                             const SizedBox(height: 20),
-                            
+
                             // Quick Stats Grid Layout (Always 2x2)
                             LayoutBuilder(
                               builder: (context, constraints) {
                                 final screenWidth = constraints.maxWidth;
                                 final spacing = 16.0;
-                                
+
                                 // Always show 2x2 grid layout
                                 return Column(
                                   children: [
@@ -453,7 +530,8 @@ class _VetDashboardState extends State<VetDashboard> with TickerProviderStateMix
                                         Expanded(
                                           child: _buildResponsiveStatCard(
                                             'Today\'s Appointments',
-                                            _todaysAppointments.length.toString(),
+                                            _todaysAppointments.length
+                                                .toString(),
                                             Icons.today_rounded,
                                             PetCareTheme.accentGold,
                                             screenWidth,
@@ -463,7 +541,8 @@ class _VetDashboardState extends State<VetDashboard> with TickerProviderStateMix
                                         Expanded(
                                           child: _buildResponsiveStatCard(
                                             'Upcoming',
-                                            _upcomingAppointments.length.toString(),
+                                            _upcomingAppointments.length
+                                                .toString(),
                                             Icons.schedule_rounded,
                                             PetCareTheme.softGreen,
                                             screenWidth,
@@ -504,9 +583,12 @@ class _VetDashboardState extends State<VetDashboard> with TickerProviderStateMix
 
                             // Today's Appointments Section Header
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 4),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 4,
+                              ),
                               child: Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
                                 children: [
                                   Text(
                                     'Today\'s Appointments',
@@ -521,16 +603,25 @@ class _VetDashboardState extends State<VetDashboard> with TickerProviderStateMix
                                     Container(
                                       decoration: BoxDecoration(
                                         gradient: LinearGradient(
-                                          colors: [PetCareTheme.accentGold.withOpacity(0.2), PetCareTheme.lightBrown.withOpacity(0.2)],
+                                          colors: [
+                                            PetCareTheme.accentGold.withOpacity(
+                                              0.2,
+                                            ),
+                                            PetCareTheme.lightBrown.withOpacity(
+                                              0.2,
+                                            ),
+                                          ],
                                         ),
                                         borderRadius: BorderRadius.circular(24),
                                         border: Border.all(
-                                          color: PetCareTheme.accentGold.withOpacity(0.3),
+                                          color: PetCareTheme.accentGold
+                                              .withOpacity(0.3),
                                           width: 1,
                                         ),
                                       ),
                                       child: TextButton(
-                                        onPressed: () => setState(() => _currentIndex = 2),
+                                        onPressed: () =>
+                                            setState(() => _currentIndex = 2),
                                         child: Text(
                                           'View Calendar',
                                           style: TextStyle(
@@ -548,7 +639,6 @@ class _VetDashboardState extends State<VetDashboard> with TickerProviderStateMix
 
                             // Appointments content would go here
                             // ... (appointments list implementation)
-
                             const SizedBox(height: 32),
 
                             // Quick Actions
@@ -568,7 +658,7 @@ class _VetDashboardState extends State<VetDashboard> with TickerProviderStateMix
                               builder: (context, constraints) {
                                 final screenWidth = constraints.maxWidth;
                                 final spacing = 16.0;
-                                
+
                                 return Column(
                                   children: [
                                     // First Row - Calendar and Health Records
@@ -579,7 +669,9 @@ class _VetDashboardState extends State<VetDashboard> with TickerProviderStateMix
                                             'View Calendar',
                                             Icons.calendar_month_rounded,
                                             PetCareTheme.accentGold,
-                                            () => setState(() => _currentIndex = 2),
+                                            () => setState(
+                                              () => _currentIndex = 2,
+                                            ),
                                             screenWidth,
                                           ),
                                         ),
@@ -589,7 +681,9 @@ class _VetDashboardState extends State<VetDashboard> with TickerProviderStateMix
                                             'Pet Search',
                                             Icons.pets_rounded,
                                             PetCareTheme.primaryBrown,
-                                            () => setState(() => _currentIndex = 1),
+                                            () => setState(
+                                              () => _currentIndex = 1,
+                                            ),
                                             screenWidth,
                                           ),
                                         ),
@@ -601,10 +695,12 @@ class _VetDashboardState extends State<VetDashboard> with TickerProviderStateMix
                                       children: [
                                         Expanded(
                                           child: _buildResponsiveActionCard(
-                                            'Blog',
+                                            'Manage Blog',
                                             Icons.article_rounded,
                                             PetCareTheme.warmRed,
-                                            () => setState(() => _currentIndex = 3),
+                                            () => setState(
+                                              () => _currentIndex = 3,
+                                            ),
                                             screenWidth,
                                           ),
                                         ),
@@ -618,7 +714,8 @@ class _VetDashboardState extends State<VetDashboard> with TickerProviderStateMix
                                               Navigator.push(
                                                 context,
                                                 MaterialPageRoute(
-                                                  builder: (context) => const VetHealthRecordsScreen(),
+                                                  builder: (context) =>
+                                                      const VetHealthRecordsScreen(),
                                                 ),
                                               );
                                             },
@@ -643,10 +740,16 @@ class _VetDashboardState extends State<VetDashboard> with TickerProviderStateMix
     );
   }
 
-  Widget _buildResponsiveStatCard(String title, String value, IconData icon, Color color, double screenWidth) {
+  Widget _buildResponsiveStatCard(
+    String title,
+    String value,
+    IconData icon,
+    Color color,
+    double screenWidth,
+  ) {
     // Calculate responsive dimensions
     final isSmallScreen = screenWidth < 400;
-    
+
     return AnimatedBuilder(
       animation: _scaleAnimation,
       builder: (context, child) {
@@ -654,224 +757,223 @@ class _VetDashboardState extends State<VetDashboard> with TickerProviderStateMix
           scale: _scaleAnimation.value,
           child: Container(
             decoration: BoxDecoration(
-                color: PetCareTheme.cardWhite,
+              color: PetCareTheme.cardWhite,
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: color.withOpacity(0.2), width: 1.5),
+              boxShadow: [
+                BoxShadow(
+                  color: PetCareTheme.shadowColor,
+                  blurRadius: 20,
+                  offset: const Offset(0, 10),
+                  spreadRadius: 2,
+                ),
+                BoxShadow(
+                  color: color.withOpacity(0.1),
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Container(
+              decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(24),
-                border: Border.all(
-                  color: color.withOpacity(0.2),
-                  width: 1.5,
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    color.withOpacity(0.05),
+                    color.withOpacity(0.02),
+                    Colors.white.withOpacity(0.8),
+                  ],
                 ),
-                boxShadow: [
-                  BoxShadow(
-                    color: PetCareTheme.shadowColor,
-                    blurRadius: 20,
-                    offset: const Offset(0, 10),
-                    spreadRadius: 2,
-                  ),
-                  BoxShadow(
-                    color: color.withOpacity(0.1),
-                    blurRadius: 8,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
               ),
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(24),
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      color.withOpacity(0.05),
-                      color.withOpacity(0.02),
-                      Colors.white.withOpacity(0.8),
-                    ],
-                  ),
+              child: Padding(
+                padding: EdgeInsets.symmetric(
+                  horizontal: isSmallScreen ? 12.0 : 16.0,
+                  vertical: isSmallScreen ? 16.0 : 20.0,
                 ),
-                child: Padding(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: isSmallScreen ? 12.0 : 16.0,
-                    vertical: isSmallScreen ? 16.0 : 20.0,
-                  ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // Icon Section
-                      Container(
-                        width: isSmallScreen ? 48.0 : 56.0,
-                        height: isSmallScreen ? 48.0 : 56.0,
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                            colors: [
-                              color.withOpacity(0.2),
-                              color.withOpacity(0.4),
-                            ],
-                          ),
-                          borderRadius: BorderRadius.circular(16),
-                          boxShadow: [
-                            BoxShadow(
-                              color: color.withOpacity(0.3),
-                              blurRadius: 8,
-                              offset: const Offset(0, 4),
-                            ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Icon Section
+                    Container(
+                      width: isSmallScreen ? 48.0 : 56.0,
+                      height: isSmallScreen ? 48.0 : 56.0,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            color.withOpacity(0.2),
+                            color.withOpacity(0.4),
                           ],
                         ),
-                        child: Icon(
-                          icon,
-                          color: Colors.white,
-                          size: isSmallScreen ? 24.0 : 28.0,
-                        ),
-                      ),
-                      
-                      SizedBox(height: isSmallScreen ? 12.0 : 16.0),
-                      
-                      // Value Section
-                      Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            value,
-                            style: TextStyle(
-                              fontSize: isSmallScreen ? 24.0 : 28.0,
-                              fontWeight: FontWeight.w900,
-                              color: PetCareTheme.primaryBrown,
-                              letterSpacing: -0.5,
-                              height: 1.0,
-                            ),
-                          ),
-                          SizedBox(height: isSmallScreen ? 4.0 : 6.0),
-                          Text(
-                            title,
-                            style: TextStyle(
-                              fontSize: isSmallScreen ? 11.0 : 12.0,
-                              fontWeight: FontWeight.w600,
-                              color: PetCareTheme.lightBrown.withOpacity(0.9),
-                              letterSpacing: 0.2,
-                              height: 1.1,
-                            ),
-                            textAlign: TextAlign.center,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: color.withOpacity(0.3),
+                            blurRadius: 8,
+                            offset: const Offset(0, 4),
                           ),
                         ],
                       ),
-                    ],
-                  ),
+                      child: Icon(
+                        icon,
+                        color: Colors.white,
+                        size: isSmallScreen ? 24.0 : 28.0,
+                      ),
+                    ),
+
+                    SizedBox(height: isSmallScreen ? 12.0 : 16.0),
+
+                    // Value Section
+                    Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          value,
+                          style: TextStyle(
+                            fontSize: isSmallScreen ? 24.0 : 28.0,
+                            fontWeight: FontWeight.w900,
+                            color: PetCareTheme.primaryBrown,
+                            letterSpacing: -0.5,
+                            height: 1.0,
+                          ),
+                        ),
+                        SizedBox(height: isSmallScreen ? 4.0 : 6.0),
+                        Text(
+                          title,
+                          style: TextStyle(
+                            fontSize: isSmallScreen ? 11.0 : 12.0,
+                            fontWeight: FontWeight.w600,
+                            color: PetCareTheme.lightBrown.withOpacity(0.9),
+                            letterSpacing: 0.2,
+                            height: 1.1,
+                          ),
+                          textAlign: TextAlign.center,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
+            ),
           ),
         );
       },
     );
   }
 
-  Widget _buildResponsiveActionCard(String title, IconData icon, Color color, VoidCallback onTap, double screenWidth) {
+  Widget _buildResponsiveActionCard(
+    String title,
+    IconData icon,
+    Color color,
+    VoidCallback onTap,
+    double screenWidth,
+  ) {
     // Calculate responsive dimensions
     final isSmallScreen = screenWidth < 400;
-    
+
     return AnimatedBuilder(
       animation: _fadeAnimation,
       builder: (context, child) {
         return FadeTransition(
           opacity: _fadeAnimation,
           child: Container(
-              decoration: BoxDecoration(
-                color: PetCareTheme.cardWhite,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                  color: color.withOpacity(0.2),
-                  width: 1.5,
+            decoration: BoxDecoration(
+              color: PetCareTheme.cardWhite,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: color.withOpacity(0.2), width: 1.5),
+              boxShadow: [
+                BoxShadow(
+                  color: PetCareTheme.shadowColor,
+                  blurRadius: 15,
+                  offset: const Offset(0, 8),
+                  spreadRadius: 1,
                 ),
-                boxShadow: [
-                  BoxShadow(
-                    color: PetCareTheme.shadowColor,
-                    blurRadius: 15,
-                    offset: const Offset(0, 8),
-                    spreadRadius: 1,
-                  ),
-                ],
-              ),
-              child: Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  onTap: onTap,
-                  borderRadius: BorderRadius.circular(20),
-                  splashColor: color.withOpacity(0.1),
-                  highlightColor: color.withOpacity(0.05),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(20),
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          color.withOpacity(0.03),
-                          Colors.white.withOpacity(0.8),
-                        ],
-                      ),
+              ],
+            ),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: onTap,
+                borderRadius: BorderRadius.circular(20),
+                splashColor: color.withOpacity(0.1),
+                highlightColor: color.withOpacity(0.05),
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(20),
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        color.withOpacity(0.03),
+                        Colors.white.withOpacity(0.8),
+                      ],
                     ),
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: isSmallScreen ? 12.0 : 16.0,
-                        vertical: isSmallScreen ? 12.0 : 16.0,
-                      ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(
-                            padding: EdgeInsets.all(isSmallScreen ? 10.0 : 12.0),
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                                colors: [
-                                  color.withOpacity(0.2),
-                                  color.withOpacity(0.4),
-                                ],
-                              ),
-                              borderRadius: BorderRadius.circular(12),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: color.withOpacity(0.3),
-                                  blurRadius: 6,
-                                  offset: const Offset(0, 3),
-                                ),
+                  ),
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: isSmallScreen ? 12.0 : 16.0,
+                      vertical: isSmallScreen ? 12.0 : 16.0,
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          padding: EdgeInsets.all(isSmallScreen ? 10.0 : 12.0),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [
+                                color.withOpacity(0.2),
+                                color.withOpacity(0.4),
                               ],
                             ),
-                            child: Icon(
-                              icon,
-                              color: Colors.white,
-                              size: isSmallScreen ? 20.0 : 24.0,
-                            ),
+                            borderRadius: BorderRadius.circular(12),
+                            boxShadow: [
+                              BoxShadow(
+                                color: color.withOpacity(0.3),
+                                blurRadius: 6,
+                                offset: const Offset(0, 3),
+                              ),
+                            ],
                           ),
-                          SizedBox(height: isSmallScreen ? 8.0 : 12.0),
-                          Text(
-                            title,
-                            style: TextStyle(
-                              fontSize: isSmallScreen ? 10.0 : 11.0,
-                              fontWeight: FontWeight.w600,
-                              color: PetCareTheme.primaryBrown,
-                              letterSpacing: 0.2,
-                              height: 1.1,
-                            ),
-                            textAlign: TextAlign.center,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
+                          child: Icon(
+                            icon,
+                            color: Colors.white,
+                            size: isSmallScreen ? 20.0 : 24.0,
                           ),
-                        ],
-                      ),
+                        ),
+                        SizedBox(height: isSmallScreen ? 8.0 : 12.0),
+                        Text(
+                          title,
+                          style: TextStyle(
+                            fontSize: isSmallScreen ? 10.0 : 11.0,
+                            fontWeight: FontWeight.w600,
+                            color: PetCareTheme.primaryBrown,
+                            letterSpacing: 0.2,
+                            height: 1.1,
+                          ),
+                          textAlign: TextAlign.center,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
                     ),
                   ),
                 ),
               ),
+            ),
           ),
         );
       },
     );
   }
-
 }

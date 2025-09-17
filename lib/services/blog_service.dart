@@ -341,7 +341,15 @@ class BlogService extends ChangeNotifier {
   // Admin functions
   Future<void> createBlogPost(BlogPostModel post) async {
     try {
-      await _firestore.collection('blog_posts').add(post.toFirestore());
+      if (post.id.isEmpty) {
+        // Generate a new document ID
+        final docRef = await _firestore.collection('blog_posts').add(post.toFirestore());
+        debugPrint('Created blog post with ID: ${docRef.id}');
+      } else {
+        // Use the provided ID
+        await _firestore.collection('blog_posts').doc(post.id).set(post.toFirestore());
+        debugPrint('Created blog post with provided ID: ${post.id}');
+      }
       await loadBlogPosts(publishedOnly: false); // Refresh the list
     } catch (e) {
       debugPrint('Error creating blog post: $e');
@@ -358,6 +366,22 @@ class BlogService extends ChangeNotifier {
       await loadBlogPosts(publishedOnly: false); // Refresh the list
     } catch (e) {
       debugPrint('Error updating blog post: $e');
+      rethrow;
+    }
+  }
+
+  // Update specific fields of a blog post
+  Future<void> updateBlogPostFields(String postId, Map<String, dynamic> updates) async {
+    try {
+      await _firestore
+          .collection('blog_posts')
+          .doc(postId)
+          .update({
+        ...updates,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      debugPrint('Error updating blog post fields: $e');
       rethrow;
     }
   }
@@ -447,6 +471,11 @@ class BlogService extends ChangeNotifier {
       debugPrint('Error getting posts by author: $e');
       return [];
     }
+  }
+
+  // Alias for getPostsByAuthor for consistency
+  Future<List<BlogPostModel>> getBlogPostsByAuthor(String authorId) async {
+    return getPostsByAuthor(authorId, includeUnpublished: true);
   }
 
   // Archive/Unarchive posts

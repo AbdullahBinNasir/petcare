@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:image_picker/image_picker.dart';
 import 'dart:io';
+import 'dart:convert';
 import '../models/pet_model.dart';
 
 class PetService extends ChangeNotifier {
@@ -135,6 +137,25 @@ Future<List<PetModel>> getPetsByOwnerId(String ownerId) async {
       return downloadUrl;
     } catch (e) {
       print('Error uploading photo: $e');
+      return null;
+    }
+  }
+
+  // Upload pet photo from XFile (for web compatibility)
+  Future<String?> uploadPetPhotoFromXFile(XFile xFile, String petId) async {
+    try {
+      print('Uploading photo from XFile for pet: $petId');
+      
+      // Converts XFile to base64 data URL
+      final bytes = await xFile.readAsBytes();
+      final base64String = base64Encode(bytes);
+      final mimeType = xFile.name.toLowerCase().endsWith('.png') ? 'image/png' : 'image/jpeg';
+      final dataUrl = 'data:$mimeType;base64,$base64String';
+      
+      print('Photo converted to base64 data URL successfully');
+      return dataUrl; // Returns base64 data URL
+    } catch (e) {
+      print('Error uploading photo from XFile: $e');
       return null;
     }
   }

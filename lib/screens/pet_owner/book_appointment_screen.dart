@@ -8,6 +8,7 @@ import '../../services/auth_service.dart';
 import '../../services/pet_service.dart';
 import '../../services/user_service.dart';
 import '../../services/appointment_service.dart';
+import '../../services/notification_service.dart';
 
 class BookAppointmentScreen extends StatefulWidget {
   const BookAppointmentScreen({super.key});
@@ -55,7 +56,9 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
     final userService = Provider.of<UserService>(context, listen: false);
 
     if (authService.currentUser != null) {
-      final pets = await petService.getPetsByOwnerId(authService.currentUser!.uid);
+      final pets = await petService.getPetsByOwnerId(
+        authService.currentUser!.uid,
+      );
       final vets = await userService.getVeterinarians();
 
       setState(() {
@@ -67,26 +70,50 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
   }
 
   Future<void> _loadAvailableSlots() async {
-    if (_selectedVeterinarian == null) return;
+    if (_selectedVeterinarian == null) {
+      print('BookAppointment: No veterinarian selected, skipping slot loading');
+      return;
+    }
 
+    print(
+      'BookAppointment: Loading slots for vet: ${_selectedVeterinarian!.id} on date: $_selectedDate',
+    );
     setState(() => _isLoadingSlots = true);
 
-    final appointmentService = Provider.of<AppointmentService>(context, listen: false);
-    final slots = await appointmentService.getAvailableTimeSlots(
-      _selectedVeterinarian!.id,
-      _selectedDate,
-    );
+    try {
+      final appointmentService = Provider.of<AppointmentService>(
+        context,
+        listen: false,
+      );
+      final slots = await appointmentService.getAvailableTimeSlots(
+        _selectedVeterinarian!.id,
+        _selectedDate,
+      );
 
-    setState(() {
-      _availableSlots = slots;
-      _selectedTimeSlot = null;
-      _isLoadingSlots = false;
-    });
+      print(
+        'BookAppointment: Received ${slots.length} available slots: $slots',
+      );
+
+      setState(() {
+        _availableSlots = slots;
+        _selectedTimeSlot = null;
+        _isLoadingSlots = false;
+      });
+    } catch (e) {
+      print('BookAppointment: Error loading slots: $e');
+      setState(() {
+        _availableSlots = [];
+        _selectedTimeSlot = null;
+        _isLoadingSlots = false;
+      });
+    }
   }
 
   Future<void> _bookAppointment() async {
     if (!_formKey.currentState!.validate()) return;
-    if (_selectedPet == null || _selectedVeterinarian == null || _selectedTimeSlot == null) {
+    if (_selectedPet == null ||
+        _selectedVeterinarian == null ||
+        _selectedTimeSlot == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please complete all required fields')),
       );
@@ -97,15 +124,20 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
 
     try {
       final authService = Provider.of<AuthService>(context, listen: false);
-      final appointmentService = Provider.of<AppointmentService>(context, listen: false);
+      final appointmentService = Provider.of<AppointmentService>(
+        context,
+        listen: false,
+      );
 
       print('Creating appointment with:');
       print('Pet: ${_selectedPet!.name} (${_selectedPet!.id})');
-      print('Vet: ${_selectedVeterinarian!.fullName} (${_selectedVeterinarian!.id})');
+      print(
+        'Vet: ${_selectedVeterinarian!.fullName} (${_selectedVeterinarian!.id})',
+      );
       print('Date: $_selectedDate');
       print('Time: $_selectedTimeSlot');
       print('Type: $_selectedType');
-      
+
       final appointment = AppointmentModel(
         id: '', // Firestore will auto-generate
         petOwnerId: authService.currentUser!.uid,
@@ -115,16 +147,28 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
         timeSlot: _selectedTimeSlot!,
         type: _selectedType,
         reason: _reasonController.text.trim(),
-        notes: _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
+        notes: _notesController.text.trim().isEmpty
+            ? null
+            : _notesController.text.trim(),
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
       );
 
       print('Appointment model created successfully');
-      
+
       final docId = await appointmentService.bookAppointment(appointment);
 
       if (docId != null) {
+        // Send notification about successful booking
+        final notificationService = Provider.of<NotificationService>(
+          context,
+          listen: false,
+        );
+        await notificationService.notifyAppointmentBooked(
+          appointment,
+          _selectedPet!.name,
+        );
+
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Appointment booked successfully!')),
@@ -134,7 +178,9 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
       } else {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Failed to book appointment. Please try again.')),
+            const SnackBar(
+              content: Text('Failed to book appointment. Please try again.'),
+            ),
           );
         }
       }
@@ -186,8 +232,17 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
                     // Pet Selection
                     DropdownButtonFormField<PetModel>(
                       value: _selectedPet,
-                      decoration: const InputDecoration(labelText: 'Select Pet'),
-                      items: _pets.map((pet) => DropdownMenuItem(value: pet, child: Text(pet.name))).toList(),
+                      decoration: const InputDecoration(
+                        labelText: 'Select Pet',
+                      ),
+                      items: _pets
+                          .map(
+                            (pet) => DropdownMenuItem(
+                              value: pet,
+                              child: Text(pet.name),
+                            ),
+                          )
+                          .toList(),
                       onChanged: (val) => setState(() => _selectedPet = val),
                       validator: (val) => val == null ? 'Select a pet' : null,
                     ),
@@ -195,8 +250,17 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
                     // Vet Selection
                     DropdownButtonFormField<UserModel>(
                       value: _selectedVeterinarian,
-                      decoration: const InputDecoration(labelText: 'Select Veterinarian'),
-                      items: _veterinarians.map((vet) => DropdownMenuItem(value: vet, child: Text(vet.fullName))).toList(),
+                      decoration: const InputDecoration(
+                        labelText: 'Select Veterinarian',
+                      ),
+                      items: _veterinarians
+                          .map(
+                            (vet) => DropdownMenuItem(
+                              value: vet,
+                              child: Text(vet.fullName),
+                            ),
+                          )
+                          .toList(),
                       onChanged: (val) {
                         setState(() => _selectedVeterinarian = val);
                         _loadAvailableSlots();
@@ -207,9 +271,16 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
                     // Appointment Type
                     DropdownButtonFormField<AppointmentType>(
                       value: _selectedType,
-                      decoration: const InputDecoration(labelText: 'Appointment Type'),
+                      decoration: const InputDecoration(
+                        labelText: 'Appointment Type',
+                      ),
                       items: AppointmentType.values
-                          .map((t) => DropdownMenuItem(value: t, child: Text(_getAppointmentTypeName(t))))
+                          .map(
+                            (t) => DropdownMenuItem(
+                              value: t,
+                              child: Text(_getAppointmentTypeName(t)),
+                            ),
+                          )
                           .toList(),
                       onChanged: (val) => setState(() => _selectedType = val!),
                     ),
@@ -224,42 +295,110 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
                               context: context,
                               initialDate: _selectedDate,
                               firstDate: DateTime.now(),
-                              lastDate: DateTime.now().add(const Duration(days: 90)),
+                              lastDate: DateTime.now().add(
+                                const Duration(days: 90),
+                              ),
                             );
                             if (date != null) {
                               setState(() => _selectedDate = date);
                               _loadAvailableSlots();
                             }
                           },
-                          child: Text('${_selectedDate.toLocal()}'.split(' ')[0]),
+                          child: Text(
+                            '${_selectedDate.toLocal()}'.split(' ')[0],
+                          ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 16),
                     // Time slots
-                    _isLoadingSlots
-                        ? const CircularProgressIndicator()
-                        : Wrap(
-                            spacing: 8,
-                            children: _availableSlots
-                                .map((slot) => ChoiceChip(
+                    if (_selectedVeterinarian != null) ...[
+                      const Text(
+                        'Available Time Slots:',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 8),
+                      _isLoadingSlots
+                          ? const Center(child: CircularProgressIndicator())
+                          : _availableSlots.isEmpty
+                          ? Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: Colors.orange.shade50,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: Colors.orange.shade200,
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.info_outline,
+                                    color: Colors.orange.shade600,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      'No available time slots for this date. Please try a different date.',
+                                      style: TextStyle(
+                                        color: Colors.orange.shade800,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            )
+                          : Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: _availableSlots
+                                  .map(
+                                    (slot) => ChoiceChip(
                                       label: Text(slot),
                                       selected: _selectedTimeSlot == slot,
-                                      onSelected: (_) => setState(() => _selectedTimeSlot = slot),
-                                    ))
-                                .toList(),
-                          ),
+                                      onSelected: (_) => setState(
+                                        () => _selectedTimeSlot = slot,
+                                      ),
+                                      selectedColor: Colors.blue.shade100,
+                                      labelStyle: TextStyle(
+                                        color: _selectedTimeSlot == slot
+                                            ? Colors.blue.shade800
+                                            : Colors.black87,
+                                        fontWeight: _selectedTimeSlot == slot
+                                            ? FontWeight.bold
+                                            : FontWeight.normal,
+                                      ),
+                                    ),
+                                  )
+                                  .toList(),
+                            ),
+                    ] else ...[
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade100,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Text(
+                          'Please select a veterinarian first to see available time slots.',
+                          style: TextStyle(color: Colors.grey),
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 16),
                     // Reason & notes
                     TextFormField(
                       controller: _reasonController,
                       decoration: const InputDecoration(labelText: 'Reason'),
-                      validator: (val) => val == null || val.isEmpty ? 'Enter reason' : null,
+                      validator: (val) =>
+                          val == null || val.isEmpty ? 'Enter reason' : null,
                     ),
                     const SizedBox(height: 16),
                     TextFormField(
                       controller: _notesController,
-                      decoration: const InputDecoration(labelText: 'Notes (optional)'),
+                      decoration: const InputDecoration(
+                        labelText: 'Notes (optional)',
+                      ),
                     ),
                     const SizedBox(height: 24),
                     SizedBox(

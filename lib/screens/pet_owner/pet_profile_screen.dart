@@ -7,6 +7,7 @@ import '../../models/pet_model.dart';
 import '../../models/appointment_model.dart';
 import '../../models/health_record_model.dart';
 import '../../theme/pet_care_theme.dart';
+import '../../widgets/universal_image_widget.dart';
 import 'edit_pet_screen.dart';
 import 'health_records_screen.dart';
 import 'add_health_record_screen.dart';
@@ -133,7 +134,7 @@ class _PetProfileScreenState extends State<PetProfileScreen> with SingleTickerPr
                       _getSpeciesName(widget.pet.species),
                       style: TextStyle(
                         fontSize: 16,
-                        color: PetCareTheme.primaryBeige.withValues(alpha: 0.8),
+                        color: PetCareTheme.primaryBeige.withOpacity( 0.8),
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -144,7 +145,7 @@ class _PetProfileScreenState extends State<PetProfileScreen> with SingleTickerPr
                 children: [
                   Container(
                     decoration: BoxDecoration(
-                      color: PetCareTheme.primaryBeige.withValues(alpha: 0.2),
+                      color: PetCareTheme.primaryBeige.withOpacity( 0.2),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: IconButton(
@@ -168,7 +169,7 @@ class _PetProfileScreenState extends State<PetProfileScreen> with SingleTickerPr
                   const SizedBox(width: 8),
                   Container(
                     decoration: BoxDecoration(
-                      color: PetCareTheme.primaryBeige.withValues(alpha: 0.2),
+                      color: PetCareTheme.primaryBeige.withOpacity( 0.2),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: PopupMenuButton<String>(
@@ -213,7 +214,7 @@ class _PetProfileScreenState extends State<PetProfileScreen> with SingleTickerPr
         borderRadius: BorderRadius.circular(16),
         boxShadow: [PetCareTheme.elevatedShadow],
         border: Border.all(
-          color: PetCareTheme.primaryBrown.withValues(alpha: 0.1),
+          color: PetCareTheme.primaryBrown.withOpacity( 0.1),
           width: 1,
         ),
       ),
@@ -282,30 +283,14 @@ class _PetProfileScreenState extends State<PetProfileScreen> with SingleTickerPr
                         ),
                       ],
                     ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(20),
-                      child: Image.network(
-                        widget.pet.photoUrls[index],
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return Container(
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [
-                                  PetCareTheme.primaryBeige.withValues(alpha: 0.1),
-                                  PetCareTheme.lightBrown.withValues(alpha: 0.1),
-                                ],
-                              ),
-                            ),
-                            child: Icon(
-                              Icons.pets_rounded,
-                              size: 64,
-                              color: PetCareTheme.primaryBrown.withValues(alpha: 0.6),
-                            ),
-                          );
-                        },
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(20),
+                        child: PetImageWidget(
+                          imageUrl: widget.pet.photoUrls[index],
+                          width: double.infinity,
+                          height: double.infinity,
+                        ),
                       ),
-                    ),
                   );
                 },
               ),
@@ -320,7 +305,7 @@ class _PetProfileScreenState extends State<PetProfileScreen> with SingleTickerPr
                 borderRadius: BorderRadius.circular(20),
                 boxShadow: [PetCareTheme.elevatedShadow],
                 border: Border.all(
-                  color: PetCareTheme.primaryBrown.withValues(alpha: 0.1),
+                  color: PetCareTheme.primaryBrown.withOpacity( 0.1),
                   width: 1,
                 ),
               ),
@@ -333,8 +318,8 @@ class _PetProfileScreenState extends State<PetProfileScreen> with SingleTickerPr
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         colors: [
-                          PetCareTheme.primaryBrown.withValues(alpha: 0.1),
-                          PetCareTheme.lightBrown.withValues(alpha: 0.1),
+                          PetCareTheme.primaryBrown.withOpacity( 0.1),
+                          PetCareTheme.lightBrown.withOpacity( 0.1),
                         ],
                       ),
                       shape: BoxShape.circle,
@@ -342,7 +327,7 @@ class _PetProfileScreenState extends State<PetProfileScreen> with SingleTickerPr
                     child: Icon(
                       Icons.pets_rounded,
                       size: 40,
-                      color: PetCareTheme.primaryBrown.withValues(alpha: 0.6),
+                      color: PetCareTheme.primaryBrown.withOpacity( 0.6),
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -368,7 +353,7 @@ class _PetProfileScreenState extends State<PetProfileScreen> with SingleTickerPr
               borderRadius: BorderRadius.circular(20),
               boxShadow: [PetCareTheme.elevatedShadow],
               border: Border.all(
-                color: PetCareTheme.primaryBrown.withValues(alpha: 0.1),
+                color: PetCareTheme.primaryBrown.withOpacity( 0.1),
                 width: 1,
               ),
             ),
@@ -382,8 +367,8 @@ class _PetProfileScreenState extends State<PetProfileScreen> with SingleTickerPr
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                           colors: [
-                            PetCareTheme.primaryBrown.withValues(alpha: 0.1),
-                            PetCareTheme.primaryBrown.withValues(alpha: 0.2),
+                            PetCareTheme.primaryBrown.withOpacity( 0.1),
+                            PetCareTheme.primaryBrown.withOpacity( 0.2),
                           ],
                         ),
                         borderRadius: BorderRadius.circular(12),
@@ -432,7 +417,7 @@ class _PetProfileScreenState extends State<PetProfileScreen> with SingleTickerPr
               borderRadius: BorderRadius.circular(20),
               boxShadow: [PetCareTheme.elevatedShadow],
               border: Border.all(
-                color: _getHealthStatusColor(widget.pet.healthStatus).withValues(alpha: 0.2),
+                color: _getHealthStatusColor(widget.pet.healthStatus).withOpacity( 0.2),
                 width: 1.5,
               ),
             ),
@@ -446,8 +431,8 @@ class _PetProfileScreenState extends State<PetProfileScreen> with SingleTickerPr
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                           colors: [
-                            _getHealthStatusColor(widget.pet.healthStatus).withValues(alpha: 0.1),
-                            _getHealthStatusColor(widget.pet.healthStatus).withValues(alpha: 0.2),
+                            _getHealthStatusColor(widget.pet.healthStatus).withOpacity( 0.1),
+                            _getHealthStatusColor(widget.pet.healthStatus).withOpacity( 0.2),
                           ],
                         ),
                         borderRadius: BorderRadius.circular(12),
@@ -478,8 +463,8 @@ class _PetProfileScreenState extends State<PetProfileScreen> with SingleTickerPr
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                           colors: [
-                            _getHealthStatusColor(widget.pet.healthStatus).withValues(alpha: 0.1),
-                            _getHealthStatusColor(widget.pet.healthStatus).withValues(alpha: 0.2),
+                            _getHealthStatusColor(widget.pet.healthStatus).withOpacity( 0.1),
+                            _getHealthStatusColor(widget.pet.healthStatus).withOpacity( 0.2),
                           ],
                         ),
                         borderRadius: BorderRadius.circular(16),
@@ -542,7 +527,7 @@ class _PetProfileScreenState extends State<PetProfileScreen> with SingleTickerPr
               borderRadius: BorderRadius.circular(20),
               boxShadow: [PetCareTheme.elevatedShadow],
               border: Border.all(
-                color: _getHealthStatusColor(widget.pet.healthStatus).withValues(alpha: 0.2),
+                color: _getHealthStatusColor(widget.pet.healthStatus).withOpacity( 0.2),
                 width: 1.5,
               ),
             ),
@@ -556,8 +541,8 @@ class _PetProfileScreenState extends State<PetProfileScreen> with SingleTickerPr
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                           colors: [
-                            _getHealthStatusColor(widget.pet.healthStatus).withValues(alpha: 0.1),
-                            _getHealthStatusColor(widget.pet.healthStatus).withValues(alpha: 0.2),
+                            _getHealthStatusColor(widget.pet.healthStatus).withOpacity( 0.1),
+                            _getHealthStatusColor(widget.pet.healthStatus).withOpacity( 0.2),
                           ],
                         ),
                         borderRadius: BorderRadius.circular(12),
@@ -586,13 +571,13 @@ class _PetProfileScreenState extends State<PetProfileScreen> with SingleTickerPr
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: [
-                        _getHealthStatusColor(widget.pet.healthStatus).withValues(alpha: 0.1),
-                        _getHealthStatusColor(widget.pet.healthStatus).withValues(alpha: 0.2),
+                        _getHealthStatusColor(widget.pet.healthStatus).withOpacity( 0.1),
+                        _getHealthStatusColor(widget.pet.healthStatus).withOpacity( 0.2),
                       ],
                     ),
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                      color: _getHealthStatusColor(widget.pet.healthStatus).withValues(alpha: 0.3),
+                      color: _getHealthStatusColor(widget.pet.healthStatus).withOpacity( 0.3),
                       width: 1,
                     ),
                   ),
@@ -619,7 +604,7 @@ class _PetProfileScreenState extends State<PetProfileScreen> with SingleTickerPr
                 borderRadius: BorderRadius.circular(20),
                 boxShadow: [PetCareTheme.elevatedShadow],
                 border: Border.all(
-                  color: PetCareTheme.accentGold.withValues(alpha: 0.3),
+                  color: PetCareTheme.accentGold.withOpacity( 0.3),
                   width: 1.5,
                 ),
               ),
@@ -633,8 +618,8 @@ class _PetProfileScreenState extends State<PetProfileScreen> with SingleTickerPr
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
                             colors: [
-                              PetCareTheme.accentGold.withValues(alpha: 0.1),
-                              PetCareTheme.accentGold.withValues(alpha: 0.2),
+                              PetCareTheme.accentGold.withOpacity( 0.1),
+                              PetCareTheme.accentGold.withOpacity( 0.2),
                             ],
                           ),
                           borderRadius: BorderRadius.circular(12),
@@ -662,10 +647,10 @@ class _PetProfileScreenState extends State<PetProfileScreen> with SingleTickerPr
                     margin: const EdgeInsets.only(bottom: 8),
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: PetCareTheme.accentGold.withValues(alpha: 0.05),
+                      color: PetCareTheme.accentGold.withOpacity( 0.05),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: PetCareTheme.accentGold.withValues(alpha: 0.2),
+                        color: PetCareTheme.accentGold.withOpacity( 0.2),
                         width: 1,
                       ),
                     ),
@@ -694,7 +679,7 @@ class _PetProfileScreenState extends State<PetProfileScreen> with SingleTickerPr
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: PetCareTheme.primaryBeige.withValues(alpha: 0.1),
+                        color: PetCareTheme.primaryBeige.withOpacity( 0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
@@ -722,7 +707,7 @@ class _PetProfileScreenState extends State<PetProfileScreen> with SingleTickerPr
                 borderRadius: BorderRadius.circular(20),
                 boxShadow: [PetCareTheme.elevatedShadow],
                 border: Border.all(
-                  color: PetCareTheme.softGreen.withValues(alpha: 0.2),
+                  color: PetCareTheme.softGreen.withOpacity( 0.2),
                   width: 1.5,
                 ),
               ),
@@ -736,8 +721,8 @@ class _PetProfileScreenState extends State<PetProfileScreen> with SingleTickerPr
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
                             colors: [
-                              PetCareTheme.softGreen.withValues(alpha: 0.1),
-                              PetCareTheme.softGreen.withValues(alpha: 0.2),
+                              PetCareTheme.softGreen.withOpacity( 0.1),
+                              PetCareTheme.softGreen.withOpacity( 0.2),
                             ],
                           ),
                           borderRadius: BorderRadius.circular(12),
@@ -764,10 +749,10 @@ class _PetProfileScreenState extends State<PetProfileScreen> with SingleTickerPr
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: PetCareTheme.softGreen.withValues(alpha: 0.05),
+                      color: PetCareTheme.softGreen.withOpacity( 0.05),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: PetCareTheme.softGreen.withValues(alpha: 0.2),
+                        color: PetCareTheme.softGreen.withOpacity( 0.2),
                         width: 1,
                       ),
                     ),
@@ -795,7 +780,7 @@ class _PetProfileScreenState extends State<PetProfileScreen> with SingleTickerPr
               borderRadius: BorderRadius.circular(20),
               boxShadow: [PetCareTheme.elevatedShadow],
               border: Border.all(
-                color: PetCareTheme.primaryBrown.withValues(alpha: 0.1),
+                color: PetCareTheme.primaryBrown.withOpacity( 0.1),
                 width: 1,
               ),
             ),
@@ -809,8 +794,8 @@ class _PetProfileScreenState extends State<PetProfileScreen> with SingleTickerPr
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                           colors: [
-                            PetCareTheme.primaryBrown.withValues(alpha: 0.1),
-                            PetCareTheme.primaryBrown.withValues(alpha: 0.2),
+                            PetCareTheme.primaryBrown.withOpacity( 0.1),
+                            PetCareTheme.primaryBrown.withOpacity( 0.2),
                           ],
                         ),
                         borderRadius: BorderRadius.circular(12),
@@ -875,10 +860,10 @@ class _PetProfileScreenState extends State<PetProfileScreen> with SingleTickerPr
                   Container(
                     padding: const EdgeInsets.all(32),
                     decoration: BoxDecoration(
-                      color: PetCareTheme.primaryBeige.withValues(alpha: 0.05),
+                      color: PetCareTheme.primaryBeige.withOpacity( 0.05),
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
-                        color: PetCareTheme.primaryBrown.withValues(alpha: 0.1),
+                        color: PetCareTheme.primaryBrown.withOpacity( 0.1),
                         width: 1,
                       ),
                     ),
@@ -890,8 +875,8 @@ class _PetProfileScreenState extends State<PetProfileScreen> with SingleTickerPr
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
                               colors: [
-                                PetCareTheme.primaryBrown.withValues(alpha: 0.1),
-                                PetCareTheme.lightBrown.withValues(alpha: 0.1),
+                                PetCareTheme.primaryBrown.withOpacity( 0.1),
+                                PetCareTheme.lightBrown.withOpacity( 0.1),
                               ],
                             ),
                             shape: BoxShape.circle,
@@ -899,7 +884,7 @@ class _PetProfileScreenState extends State<PetProfileScreen> with SingleTickerPr
                           child: Icon(
                             Icons.medical_services_outlined,
                             size: 40,
-                            color: PetCareTheme.primaryBrown.withValues(alpha: 0.6),
+                            color: PetCareTheme.primaryBrown.withOpacity( 0.6),
                           ),
                         ),
                         const SizedBox(height: 16),
@@ -1039,7 +1024,7 @@ class _PetProfileScreenState extends State<PetProfileScreen> with SingleTickerPr
                               style: OutlinedButton.styleFrom(
                                 foregroundColor: PetCareTheme.primaryBrown,
                                 side: BorderSide(
-                                  color: PetCareTheme.primaryBrown.withValues(alpha: 0.3),
+                                  color: PetCareTheme.primaryBrown.withOpacity( 0.3),
                                   width: 1,
                                 ),
                                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -1080,7 +1065,7 @@ class _PetProfileScreenState extends State<PetProfileScreen> with SingleTickerPr
                     borderRadius: BorderRadius.circular(20),
                     boxShadow: [PetCareTheme.elevatedShadow],
                     border: Border.all(
-                      color: PetCareTheme.primaryBrown.withValues(alpha: 0.1),
+                      color: PetCareTheme.primaryBrown.withOpacity( 0.1),
                       width: 1,
                     ),
                   ),
@@ -1094,8 +1079,8 @@ class _PetProfileScreenState extends State<PetProfileScreen> with SingleTickerPr
                             decoration: BoxDecoration(
                               gradient: LinearGradient(
                                 colors: [
-                                  PetCareTheme.primaryBrown.withValues(alpha: 0.1),
-                                  PetCareTheme.primaryBrown.withValues(alpha: 0.2),
+                                  PetCareTheme.primaryBrown.withOpacity( 0.1),
+                                  PetCareTheme.primaryBrown.withOpacity( 0.2),
                                 ],
                               ),
                               borderRadius: BorderRadius.circular(12),
@@ -1123,10 +1108,10 @@ class _PetProfileScreenState extends State<PetProfileScreen> with SingleTickerPr
                         Container(
                           padding: const EdgeInsets.all(32),
                           decoration: BoxDecoration(
-                            color: PetCareTheme.primaryBeige.withValues(alpha: 0.05),
+                            color: PetCareTheme.primaryBeige.withOpacity( 0.05),
                             borderRadius: BorderRadius.circular(16),
                             border: Border.all(
-                              color: PetCareTheme.primaryBrown.withValues(alpha: 0.1),
+                              color: PetCareTheme.primaryBrown.withOpacity( 0.1),
                               width: 1,
                             ),
                           ),
@@ -1138,8 +1123,8 @@ class _PetProfileScreenState extends State<PetProfileScreen> with SingleTickerPr
                                 decoration: BoxDecoration(
                                   gradient: LinearGradient(
                                     colors: [
-                                      PetCareTheme.primaryBrown.withValues(alpha: 0.1),
-                                      PetCareTheme.lightBrown.withValues(alpha: 0.1),
+                                      PetCareTheme.primaryBrown.withOpacity( 0.1),
+                                      PetCareTheme.lightBrown.withOpacity( 0.1),
                                     ],
                                   ),
                                   shape: BoxShape.circle,
@@ -1147,7 +1132,7 @@ class _PetProfileScreenState extends State<PetProfileScreen> with SingleTickerPr
                                 child: Icon(
                                   Icons.calendar_today_outlined,
                                   size: 40,
-                                  color: PetCareTheme.primaryBrown.withValues(alpha: 0.6),
+                                  color: PetCareTheme.primaryBrown.withOpacity( 0.6),
                                 ),
                               ),
                               const SizedBox(height: 16),
@@ -1189,10 +1174,10 @@ class _PetProfileScreenState extends State<PetProfileScreen> with SingleTickerPr
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: PetCareTheme.primaryBeige.withValues(alpha: 0.05),
+        color: PetCareTheme.primaryBeige.withOpacity( 0.05),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: PetCareTheme.primaryBrown.withValues(alpha: 0.1),
+          color: PetCareTheme.primaryBrown.withOpacity( 0.1),
           width: 1,
         ),
       ),
@@ -1201,7 +1186,7 @@ class _PetProfileScreenState extends State<PetProfileScreen> with SingleTickerPr
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: PetCareTheme.primaryBrown.withValues(alpha: 0.1),
+              color: PetCareTheme.primaryBrown.withOpacity( 0.1),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(
@@ -1243,10 +1228,10 @@ class _PetProfileScreenState extends State<PetProfileScreen> with SingleTickerPr
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: PetCareTheme.primaryBeige.withValues(alpha: 0.05),
+        color: PetCareTheme.primaryBeige.withOpacity( 0.05),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: PetCareTheme.primaryBrown.withValues(alpha: 0.1),
+          color: PetCareTheme.primaryBrown.withOpacity( 0.1),
           width: 1,
         ),
       ),
@@ -1255,7 +1240,7 @@ class _PetProfileScreenState extends State<PetProfileScreen> with SingleTickerPr
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: PetCareTheme.softGreen.withValues(alpha: 0.1),
+              color: PetCareTheme.softGreen.withOpacity( 0.1),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(
@@ -1293,10 +1278,10 @@ class _PetProfileScreenState extends State<PetProfileScreen> with SingleTickerPr
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
-                color: record.isOverdue ? PetCareTheme.warmRed.withValues(alpha: 0.1) : PetCareTheme.accentGold.withValues(alpha: 0.1),
+                color: record.isOverdue ? PetCareTheme.warmRed.withOpacity( 0.1) : PetCareTheme.accentGold.withOpacity( 0.1),
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
-                  color: record.isOverdue ? PetCareTheme.warmRed.withValues(alpha: 0.3) : PetCareTheme.accentGold.withValues(alpha: 0.3),
+                  color: record.isOverdue ? PetCareTheme.warmRed.withOpacity( 0.3) : PetCareTheme.accentGold.withOpacity( 0.3),
                   width: 1,
                 ),
               ),
@@ -1319,10 +1304,10 @@ class _PetProfileScreenState extends State<PetProfileScreen> with SingleTickerPr
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: PetCareTheme.primaryBeige.withValues(alpha: 0.05),
+        color: PetCareTheme.primaryBeige.withOpacity( 0.05),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: PetCareTheme.primaryBrown.withValues(alpha: 0.1),
+          color: PetCareTheme.primaryBrown.withOpacity( 0.1),
           width: 1,
         ),
       ),
@@ -1331,7 +1316,7 @@ class _PetProfileScreenState extends State<PetProfileScreen> with SingleTickerPr
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: PetCareTheme.primaryBrown.withValues(alpha: 0.1),
+              color: PetCareTheme.primaryBrown.withOpacity( 0.1),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(

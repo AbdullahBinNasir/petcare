@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import '../../services/success_story_service.dart';
 import '../../models/success_story_model.dart';
 import '../../theme/pet_care_theme.dart';
+import '../../widgets/universal_image_widget.dart';
+import '../../utils/success_story_image_helper.dart';
 
 class SuccessStoriesScreen extends StatefulWidget {
   const SuccessStoriesScreen({super.key});
@@ -70,6 +72,12 @@ class _SuccessStoriesScreenState extends State<SuccessStoriesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      floatingActionButton: FloatingActionButton(
+        onPressed: _addTestImagesToStories,
+        backgroundColor: PetCareTheme.primaryBrown,
+        child: const Icon(Icons.image, color: Colors.white),
+        tooltip: 'Add Test Images to Stories',
+      ),
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
@@ -163,7 +171,7 @@ class _SuccessStoriesScreenState extends State<SuccessStoriesScreen> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [PetCareTheme.elevatedShadow],
         border: Border.all(
-          color: PetCareTheme.primaryBrown.withValues(alpha: 0.1),
+          color: PetCareTheme.primaryBrown.withOpacity( 0.1),
           width: 1,
         ),
       ),
@@ -193,13 +201,13 @@ class _SuccessStoriesScreenState extends State<SuccessStoriesScreen> {
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(16),
             borderSide: BorderSide(
-              color: PetCareTheme.primaryBrown.withValues(alpha: 0.3),
+              color: PetCareTheme.primaryBrown.withOpacity( 0.3),
             ),
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(16),
             borderSide: BorderSide(
-              color: PetCareTheme.primaryBrown.withValues(alpha: 0.3),
+              color: PetCareTheme.primaryBrown.withOpacity( 0.3),
             ),
           ),
           focusedBorder: OutlineInputBorder(
@@ -210,7 +218,7 @@ class _SuccessStoriesScreenState extends State<SuccessStoriesScreen> {
             ),
           ),
           filled: true,
-          fillColor: PetCareTheme.primaryBeige.withValues(alpha: 0.05),
+          fillColor: PetCareTheme.primaryBeige.withOpacity( 0.05),
         ),
         onChanged: (value) {
           setState(() => _searchQuery = value);
@@ -229,7 +237,7 @@ class _SuccessStoriesScreenState extends State<SuccessStoriesScreen> {
       child: Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: PetCareTheme.cardWhite.withValues(alpha: 0.8),
+          color: PetCareTheme.cardWhite.withOpacity( 0.8),
           borderRadius: BorderRadius.circular(20),
         ),
         child: Column(
@@ -273,8 +281,8 @@ class _SuccessStoriesScreenState extends State<SuccessStoriesScreen> {
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [
-                    PetCareTheme.primaryBrown.withValues(alpha: 0.1),
-                    PetCareTheme.lightBrown.withValues(alpha: 0.1),
+                    PetCareTheme.primaryBrown.withOpacity( 0.1),
+                    PetCareTheme.lightBrown.withOpacity( 0.1),
                   ],
                 ),
                 shape: BoxShape.circle,
@@ -282,7 +290,7 @@ class _SuccessStoriesScreenState extends State<SuccessStoriesScreen> {
               child: Icon(
                 Icons.celebration_rounded,
                 size: 50,
-                color: PetCareTheme.primaryBrown.withValues(alpha: 0.6),
+                color: PetCareTheme.primaryBrown.withOpacity( 0.6),
               ),
             ),
             const SizedBox(height: 24),
@@ -329,8 +337,8 @@ class _SuccessStoriesScreenState extends State<SuccessStoriesScreen> {
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
           color: story.isFeatured 
-              ? PetCareTheme.accentGold.withValues(alpha: 0.3)
-              : PetCareTheme.primaryBrown.withValues(alpha: 0.1),
+              ? PetCareTheme.accentGold.withOpacity( 0.3)
+              : PetCareTheme.primaryBrown.withOpacity( 0.1),
           width: story.isFeatured ? 2 : 1.5,
         ),
         boxShadow: [
@@ -342,7 +350,7 @@ class _SuccessStoriesScreenState extends State<SuccessStoriesScreen> {
           ),
           if (story.isFeatured)
             BoxShadow(
-              color: PetCareTheme.accentGold.withValues(alpha: 0.1),
+              color: PetCareTheme.accentGold.withOpacity( 0.1),
               blurRadius: 8,
               offset: const Offset(0, 4),
             ),
@@ -366,28 +374,30 @@ class _SuccessStoriesScreenState extends State<SuccessStoriesScreen> {
                       borderRadius: BorderRadius.circular(16),
                       gradient: LinearGradient(
                         colors: [
-                          PetCareTheme.primaryBeige.withValues(alpha: 0.1),
-                          PetCareTheme.lightBrown.withValues(alpha: 0.1),
+                          PetCareTheme.primaryBeige.withOpacity( 0.1),
+                          PetCareTheme.lightBrown.withOpacity( 0.1),
                         ],
                       ),
                     ),
                     child: story.photoUrls.isNotEmpty
                         ? ClipRRect(
                             borderRadius: BorderRadius.circular(16),
-                            child: Image.network(
-                              story.photoUrls.first,
+                            child: UniversalImageWidget(
+                              imageUrl: story.photoUrls.first,
+                              width: 80,
+                              height: 80,
                               fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) => Icon(
+                              errorWidget: Icon(
                                 Icons.celebration_rounded,
                                 size: 40,
-                                color: PetCareTheme.primaryBrown.withValues(alpha: 0.6),
+                                color: PetCareTheme.primaryBrown.withOpacity( 0.6),
                               ),
                             ),
                           )
                         : Icon(
                             Icons.celebration_rounded,
                             size: 40,
-                            color: PetCareTheme.primaryBrown.withValues(alpha: 0.6),
+                            color: PetCareTheme.primaryBrown.withOpacity( 0.6),
                           ),
                   ),
                   const SizedBox(width: 16),
@@ -459,7 +469,7 @@ class _SuccessStoriesScreenState extends State<SuccessStoriesScreen> {
                   Icon(
                     Icons.arrow_forward_ios_rounded,
                     size: 16,
-                    color: PetCareTheme.primaryBrown.withValues(alpha: 0.6),
+                    color: PetCareTheme.primaryBrown.withOpacity( 0.6),
                   ),
                 ],
               ),
@@ -467,10 +477,10 @@ class _SuccessStoriesScreenState extends State<SuccessStoriesScreen> {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: PetCareTheme.primaryBeige.withValues(alpha: 0.1),
+                  color: PetCareTheme.primaryBeige.withOpacity( 0.1),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: PetCareTheme.primaryBeige.withValues(alpha: 0.2),
+                    color: PetCareTheme.primaryBeige.withOpacity( 0.2),
                     width: 1,
                   ),
                 ),
@@ -568,10 +578,10 @@ class _SuccessStoriesScreenState extends State<SuccessStoriesScreen> {
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: PetCareTheme.primaryBeige.withValues(alpha: 0.1),
+                    color: PetCareTheme.primaryBeige.withOpacity( 0.1),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: PetCareTheme.primaryBeige.withValues(alpha: 0.2),
+                      color: PetCareTheme.primaryBeige.withOpacity( 0.2),
                       width: 1,
                     ),
                   ),
@@ -617,15 +627,17 @@ class _SuccessStoriesScreenState extends State<SuccessStoriesScreen> {
                       child: PageView.builder(
                         itemCount: story.photoUrls.length,
                         itemBuilder: (context, index) {
-                          return Image.network(
-                            story.photoUrls[index],
+                          return UniversalImageWidget(
+                            imageUrl: story.photoUrls[index],
+                            width: double.infinity,
+                            height: 200,
                             fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) => Container(
-                              color: PetCareTheme.primaryBeige.withValues(alpha: 0.1),
+                            errorWidget: Container(
+                              color: PetCareTheme.primaryBeige.withOpacity( 0.1),
                               child: Icon(
                                 Icons.error_rounded,
                                 size: 50,
-                                color: PetCareTheme.primaryBrown.withValues(alpha: 0.6),
+                                color: PetCareTheme.primaryBrown.withOpacity( 0.6),
                               ),
                             ),
                           );
@@ -639,10 +651,10 @@ class _SuccessStoriesScreenState extends State<SuccessStoriesScreen> {
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: PetCareTheme.lightBrown.withValues(alpha: 0.05),
+                    color: PetCareTheme.lightBrown.withOpacity( 0.05),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: PetCareTheme.lightBrown.withValues(alpha: 0.1),
+                      color: PetCareTheme.lightBrown.withOpacity( 0.1),
                       width: 1,
                     ),
                   ),
@@ -706,5 +718,37 @@ class _SuccessStoriesScreenState extends State<SuccessStoriesScreen> {
         );
       },
     );
+  }
+
+  Future<void> _addTestImagesToStories() async {
+    try {
+      if (_successStories.isNotEmpty) {
+        for (int i = 0; i < _successStories.length; i++) {
+          final story = _successStories[i];
+          final base64Image = SuccessStoryImageHelper.createColoredBase64Image('story_$i');
+          
+          await SuccessStoryImageHelper.addBase64ImageToSuccessStory(story.id, base64Image);
+          print('✅ Added base64 image to story ${i + 1}: ${story.storyTitle}');
+        }
+        
+        // Reload data to show the new images
+        _loadSuccessStories();
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Base64 images added to all success stories!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      print('❌ Error adding base64 images to stories: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error adding images: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 }

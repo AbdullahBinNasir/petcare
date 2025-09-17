@@ -1,20 +1,25 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../services/auth_service.dart';
 import '../../services/pet_service.dart';
 import '../../services/appointment_service.dart';
+import '../../services/notification_service.dart';
 import '../../models/pet_model.dart';
 import '../../models/appointment_model.dart';
 import '../../theme/pet_care_theme.dart';
 import '../shared/profile_screen.dart';
 import '../shared/pet_store_screen.dart';
+import '../shared/notifications_screen.dart';
 import 'add_pet_screen.dart';
 import 'pet_profile_screen.dart';
 import 'book_appointment_screen.dart';
 import 'pet_adoption_screen.dart';
 import 'success_stories_screen.dart';
 import 'contact_volunteer_form_screen.dart';
+import 'health_tracking_screen.dart';
+import 'appointments_screen.dart';
 import '../../models/contact_volunteer_form_model.dart';
 
 class PetOwnerDashboard extends StatefulWidget {
@@ -24,13 +29,14 @@ class PetOwnerDashboard extends StatefulWidget {
   State<PetOwnerDashboard> createState() => _PetOwnerDashboardState();
 }
 
-class _PetOwnerDashboardState extends State<PetOwnerDashboard> with TickerProviderStateMixin {
+class _PetOwnerDashboardState extends State<PetOwnerDashboard>
+    with TickerProviderStateMixin {
   int _currentIndex = 0;
   List<PetModel> _pets = [];
   List<AppointmentModel> _upcomingAppointments = [];
   bool _isLoading = true;
   String? _errorMessage;
-  
+
   // Animation controllers
   late AnimationController _slideAnimationController;
   late AnimationController _fadeAnimationController;
@@ -38,55 +44,55 @@ class _PetOwnerDashboardState extends State<PetOwnerDashboard> with TickerProvid
   late Animation<Offset> _slideAnimation;
   late Animation<double> _fadeAnimation;
   late Animation<double> _scaleAnimation;
+  bool _animationsInitialized = false;
 
   @override
   void initState() {
     super.initState();
-    
+
     // Initialize animation controllers
     _slideAnimationController = AnimationController(
       duration: const Duration(milliseconds: 800),
       vsync: this,
     );
-    
+
     _fadeAnimationController = AnimationController(
       duration: const Duration(milliseconds: 600),
       vsync: this,
     );
-    
+
     _scaleAnimationController = AnimationController(
       duration: const Duration(milliseconds: 400),
       vsync: this,
     );
-    
+
     // Initialize animations
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 0.1),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(
-      parent: _slideAnimationController,
-      curve: Curves.easeOutCubic,
-    ));
-    
-    _fadeAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _fadeAnimationController,
-      curve: Curves.easeInOut,
-    ));
-    
-    _scaleAnimation = Tween<double>(
-      begin: 0.8,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _scaleAnimationController,
-      curve: Curves.elasticOut,
-    ));
-    
+    _slideAnimation =
+        Tween<Offset>(begin: const Offset(0, 0.1), end: Offset.zero).animate(
+          CurvedAnimation(
+            parent: _slideAnimationController,
+            curve: Curves.easeOutCubic,
+          ),
+        );
+
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _fadeAnimationController,
+        curve: Curves.easeInOut,
+      ),
+    );
+
+    _scaleAnimation = Tween<double>(begin: 0.8, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _scaleAnimationController,
+        curve: Curves.elasticOut,
+      ),
+    );
+
+    _animationsInitialized = true;
     _loadDashboardData();
   }
-  
+
   @override
   void dispose() {
     _slideAnimationController.dispose();
@@ -97,22 +103,22 @@ class _PetOwnerDashboardState extends State<PetOwnerDashboard> with TickerProvid
 
   Future<void> _debugEverything() async {
     print('\n======= COMPLETE DEBUG START =======');
-    
+
     try {
       final authService = Provider.of<AuthService>(context, listen: false);
       final currentUser = authService.currentUser;
-      
+
       print('1. USER CHECK:');
       print('   - Current User: ${currentUser?.uid}');
       print('   - User Email: ${currentUser?.email}');
       print('   - User Display Name: ${currentUser?.displayName}');
       print('   - User is null: ${currentUser == null}');
-      
+
       if (currentUser == null) {
         print('   ❌ USER NOT AUTHENTICATED - STOPPING DEBUG');
         return;
       }
-      
+
       print('\n2. FIRESTORE CONNECTION TEST:');
       try {
         await FirebaseFirestore.instance
@@ -123,14 +129,14 @@ class _PetOwnerDashboardState extends State<PetOwnerDashboard> with TickerProvid
       } catch (e) {
         print('   ❌ Firestore connection error: $e');
       }
-      
+
       print('\n3. ALL PETS IN DATABASE:');
       final allPetsSnapshot = await FirebaseFirestore.instance
           .collection('pets')
           .get();
-      
+
       print('   - Total pets in database: ${allPetsSnapshot.docs.length}');
-      
+
       if (allPetsSnapshot.docs.isEmpty) {
         print('   ❌ NO PETS IN DATABASE AT ALL');
         print('   → You need to add a pet first');
@@ -141,37 +147,39 @@ class _PetOwnerDashboardState extends State<PetOwnerDashboard> with TickerProvid
           print('   Pet Name: ${data['name']}');
           print('   Owner ID: ${data['ownerId']}');
           print('   Is Active: ${data['isActive']}');
-          print('   Matches Current User: ${data['ownerId'] == currentUser.uid}');
+          print(
+            '   Matches Current User: ${data['ownerId'] == currentUser.uid}',
+          );
           print('   ---');
         }
       }
-      
+
       print('\n4. PETS FOR CURRENT USER (NO FILTERS):');
       final userPetsSnapshot = await FirebaseFirestore.instance
           .collection('pets')
           .where('ownerId', isEqualTo: currentUser.uid)
           .get();
-      
+
       print('   - User pets (any status): ${userPetsSnapshot.docs.length}');
-      
+
       print('\n5. ACTIVE PETS FOR CURRENT USER:');
       final activePetsSnapshot = await FirebaseFirestore.instance
           .collection('pets')
           .where('ownerId', isEqualTo: currentUser.uid)
           .where('isActive', isEqualTo: true)
           .get();
-      
+
       print('   - Active user pets: ${activePetsSnapshot.docs.length}');
-      
+
       print('\n6. TESTING PET SERVICE:');
       final petService = Provider.of<PetService>(context, listen: false);
       final servicePets = await petService.getPetsByOwnerId(currentUser.uid);
       print('   - Pets from service: ${servicePets.length}');
-      
+
       for (var pet in servicePets) {
         print('   Service Pet: ${pet.name} (ID: ${pet.id})');
       }
-      
+
       print('\n7. TESTING ORDERED QUERY (EXACT DASHBOARD QUERY):');
       try {
         final orderedSnapshot = await FirebaseFirestore.instance
@@ -180,18 +188,19 @@ class _PetOwnerDashboardState extends State<PetOwnerDashboard> with TickerProvid
             .where('isActive', isEqualTo: true)
             .orderBy('createdAt', descending: true)
             .get();
-        
-        print('   ✅ Ordered query successful: ${orderedSnapshot.docs.length} pets');
+
+        print(
+          '   ✅ Ordered query successful: ${orderedSnapshot.docs.length} pets',
+        );
       } catch (e) {
         print('   ❌ Ordered query failed: $e');
         print('   → This might need a composite index in Firestore');
       }
-      
     } catch (e) {
       print('❌ DEBUG ERROR: $e');
       print('Stack trace: ${StackTrace.current}');
     }
-    
+
     print('======= COMPLETE DEBUG END =======\n');
   }
 
@@ -209,11 +218,14 @@ class _PetOwnerDashboardState extends State<PetOwnerDashboard> with TickerProvid
     try {
       final authService = Provider.of<AuthService>(context, listen: false);
       final petService = Provider.of<PetService>(context, listen: false);
-      final appointmentService = Provider.of<AppointmentService>(context, listen: false);
+      final appointmentService = Provider.of<AppointmentService>(
+        context,
+        listen: false,
+      );
 
       final currentUser = authService.currentUser;
       print('LOAD DATA: Current user: ${currentUser?.uid}');
-      
+
       if (currentUser == null) {
         throw Exception('User not authenticated');
       }
@@ -223,7 +235,9 @@ class _PetOwnerDashboardState extends State<PetOwnerDashboard> with TickerProvid
 
       print('LOAD DATA: Fetching pets...');
       final pets = await petService.getPetsByOwnerId(userId);
-      print('LOAD DATA: Fetched ${pets.length} pets: ${pets.map((p) => p.name).toList()}');
+      print(
+        'LOAD DATA: Fetched ${pets.length} pets: ${pets.map((p) => p.name).toList()}',
+      );
 
       print('LOAD DATA: Fetching appointments...');
       List<AppointmentModel> appointments = [];
@@ -231,7 +245,9 @@ class _PetOwnerDashboardState extends State<PetOwnerDashboard> with TickerProvid
         appointments = await appointmentService.getUpcomingAppointments(userId);
         print('LOAD DATA: Fetched ${appointments.length} appointments');
       } catch (e) {
-        print('LOAD DATA: Error loading appointments (continuing without them): $e');
+        print(
+          'LOAD DATA: Error loading appointments (continuing without them): $e',
+        );
       }
 
       if (mounted) {
@@ -240,13 +256,15 @@ class _PetOwnerDashboardState extends State<PetOwnerDashboard> with TickerProvid
           _upcomingAppointments = appointments;
           _isLoading = false;
         });
-        
+
         // Start animations after data is loaded
         _slideAnimationController.forward();
         _fadeAnimationController.forward();
         _scaleAnimationController.forward();
-        
-        print('LOAD DATA: UI updated with ${_pets.length} pets and ${_upcomingAppointments.length} appointments');
+
+        print(
+          'LOAD DATA: UI updated with ${_pets.length} pets and ${_upcomingAppointments.length} appointments',
+        );
       }
     } catch (e) {
       print('LOAD DATA: Error loading dashboard data: $e');
@@ -279,10 +297,7 @@ class _PetOwnerDashboardState extends State<PetOwnerDashboard> with TickerProvid
             colors: PetCareTheme.backgroundGradient,
           ),
         ),
-        child: IndexedStack(
-          index: _currentIndex,
-          children: pages,
-        ),
+        child: IndexedStack(index: _currentIndex, children: pages),
       ),
       bottomNavigationBar: _buildModernBottomNavBar(),
     );
@@ -307,7 +322,7 @@ class _PetOwnerDashboardState extends State<PetOwnerDashboard> with TickerProvid
         backgroundColor: Colors.transparent,
         elevation: 0,
         selectedItemColor: PetCareTheme.primaryBrown,
-        unselectedItemColor: PetCareTheme.lightBrown.withValues(alpha: 0.7),
+        unselectedItemColor: PetCareTheme.lightBrown.withOpacity(0.7),
         selectedFontSize: 12,
         unselectedFontSize: 11,
         selectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600),
@@ -374,31 +389,68 @@ class _PetOwnerDashboardState extends State<PetOwnerDashboard> with TickerProvid
         ),
       ),
       actions: [
-        Container(
-          margin: const EdgeInsets.only(right: 12),
-          decoration: BoxDecoration(
-            color: PetCareTheme.primaryBeige.withValues(alpha: 0.2),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: PetCareTheme.primaryBeige.withValues(alpha: 0.3),
-              width: 1,
-            ),
-          ),
-          child: IconButton(
-            icon: Icon(
-              Icons.notifications_rounded,
-              color: PetCareTheme.primaryBeige,
-              size: 24,
-            ),
-            onPressed: () {
-              // TODO: Implement notifications
-            },
-          ),
+        Consumer<NotificationService>(
+          builder: (context, notificationService, child) {
+            return Stack(
+              children: [
+                Container(
+                  margin: const EdgeInsets.only(right: 12),
+                  decoration: BoxDecoration(
+                    color: PetCareTheme.primaryBeige.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: PetCareTheme.primaryBeige.withOpacity(0.3),
+                      width: 1,
+                    ),
+                  ),
+                  child: IconButton(
+                    icon: Icon(
+                      Icons.notifications_rounded,
+                      color: PetCareTheme.primaryBeige,
+                      size: 24,
+                    ),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const NotificationsScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                if (notificationService.unreadCount > 0)
+                  Positioned(
+                    right: 8,
+                    top: 8,
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: Colors.red,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      constraints: const BoxConstraints(
+                        minWidth: 20,
+                        minHeight: 20,
+                      ),
+                      child: Text(
+                        '${notificationService.unreadCount}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
+              ],
+            );
+          },
         ),
       ],
     );
   }
-
 
   Widget _buildHomeBody() {
     if (_isLoading) {
@@ -415,33 +467,67 @@ class _PetOwnerDashboardState extends State<PetOwnerDashboard> with TickerProvid
       backgroundColor: PetCareTheme.cardWhite,
       child: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-        child: AnimatedBuilder(
-          animation: _fadeAnimation,
-          builder: (context, child) {
-            return FadeTransition(
-              opacity: _fadeAnimation,
-              child: SlideTransition(
-                position: _slideAnimation,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SizedBox(height: 8),
-                    _buildWelcomeSection(),
-                    const SizedBox(height: 32),
-                    _buildQuickStatsHeader(),
-                    const SizedBox(height: 20),
-                    _buildQuickStats(),
-                    const SizedBox(height: 36),
-                    _buildMyPetsSection(),
-                    const SizedBox(height: 32),
-                    _buildQuickActions(),
-                    const SizedBox(height: 20),
-                  ],
-                ),
+        child: _animationsInitialized
+            ? AnimatedBuilder(
+                animation: _fadeAnimation,
+                builder: (context, child) {
+                  return FadeTransition(
+                    opacity: _fadeAnimation,
+                    child: _animationsInitialized
+                        ? SlideTransition(
+                            position: _slideAnimation,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const SizedBox(height: 8),
+                                _buildWelcomeSection(),
+                                const SizedBox(height: 32),
+                                _buildQuickStatsHeader(),
+                                const SizedBox(height: 20),
+                                _buildQuickStats(),
+                                const SizedBox(height: 36),
+                                _buildMyPetsSection(),
+                                const SizedBox(height: 32),
+                                _buildQuickActions(),
+                                const SizedBox(height: 20),
+                              ],
+                            ),
+                          )
+                        : Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const SizedBox(height: 8),
+                              _buildWelcomeSection(),
+                              const SizedBox(height: 32),
+                              _buildQuickStatsHeader(),
+                              const SizedBox(height: 20),
+                              _buildQuickStats(),
+                              const SizedBox(height: 36),
+                              _buildMyPetsSection(),
+                              const SizedBox(height: 32),
+                              _buildQuickActions(),
+                              const SizedBox(height: 20),
+                            ],
+                          ),
+                  );
+                },
+              )
+            : Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 8),
+                  _buildWelcomeSection(),
+                  const SizedBox(height: 32),
+                  _buildQuickStatsHeader(),
+                  const SizedBox(height: 20),
+                  _buildQuickStats(),
+                  const SizedBox(height: 36),
+                  _buildMyPetsSection(),
+                  const SizedBox(height: 32),
+                  _buildQuickActions(),
+                  const SizedBox(height: 20),
+                ],
               ),
-            );
-          },
-        ),
       ),
     );
   }
@@ -451,14 +537,16 @@ class _PetOwnerDashboardState extends State<PetOwnerDashboard> with TickerProvid
       child: Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: PetCareTheme.cardWhite.withValues(alpha: 0.8),
+          color: PetCareTheme.cardWhite.withOpacity(0.8),
           borderRadius: BorderRadius.circular(20),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation<Color>(PetCareTheme.primaryBrown),
+              valueColor: AlwaysStoppedAnimation<Color>(
+                PetCareTheme.primaryBrown,
+              ),
               strokeWidth: 3,
             ),
             const SizedBox(height: 16),
@@ -514,10 +602,7 @@ class _PetOwnerDashboardState extends State<PetOwnerDashboard> with TickerProvid
             const SizedBox(height: 12),
             Text(
               _errorMessage!,
-              style: TextStyle(
-                fontSize: 16,
-                color: PetCareTheme.textLight,
-              ),
+              style: TextStyle(fontSize: 16, color: PetCareTheme.textLight),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 24),
@@ -528,7 +613,10 @@ class _PetOwnerDashboardState extends State<PetOwnerDashboard> with TickerProvid
               style: ElevatedButton.styleFrom(
                 backgroundColor: PetCareTheme.primaryBrown,
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 14,
+                ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
@@ -556,104 +644,208 @@ class _PetOwnerDashboardState extends State<PetOwnerDashboard> with TickerProvid
     return Consumer<AuthService>(
       builder: (context, authService, child) {
         final user = authService.currentUserModel;
-        return ScaleTransition(
-          scale: _scaleAnimation,
-          child: Container(
-            width: double.infinity,
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: PetCareTheme.accentGradient,
-              ),
-              borderRadius: BorderRadius.circular(24),
-              boxShadow: [
-                BoxShadow(
-                  color: PetCareTheme.shadowColor,
-                  blurRadius: 20,
-                  offset: const Offset(0, 10),
-                  spreadRadius: 2,
-                ),
-              ],
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(28),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(18),
-                    decoration: BoxDecoration(
-                      color: PetCareTheme.primaryBeige.withValues(alpha: 0.25),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                        color: PetCareTheme.primaryBeige.withValues(alpha: 0.4),
-                        width: 2,
+        return _animationsInitialized
+            ? ScaleTransition(
+                scale: _scaleAnimation,
+                child: Container(
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: PetCareTheme.accentGradient,
+                    ),
+                    borderRadius: BorderRadius.circular(24),
+                    boxShadow: [
+                      BoxShadow(
+                        color: PetCareTheme.shadowColor,
+                        blurRadius: 20,
+                        offset: const Offset(0, 10),
+                        spreadRadius: 2,
                       ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.1),
-                          blurRadius: 8,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: Icon(
-                      Icons.pets_rounded,
-                      color: PetCareTheme.primaryBeige,
-                      size: 36,
-                    ),
+                    ],
                   ),
-                  const SizedBox(width: 22),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                  child: Padding(
+                    padding: const EdgeInsets.all(28),
+                    child: Row(
                       children: [
-                        Text(
-                          'Welcome back,',
-                          style: TextStyle(
-                            color: PetCareTheme.primaryBeige.withValues(alpha: 0.9),
-                            fontSize: 15,
-                            fontWeight: FontWeight.w500,
-                            letterSpacing: 0.3,
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          '${user?.fullName ?? 'Pet Parent'}',
-                          style: TextStyle(
-                            color: PetCareTheme.primaryBeige,
-                            fontSize: 22,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: 0.5,
-                          ),
-                        ),
-                        const SizedBox(height: 6),
                         Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 4,
-                          ),
+                          padding: const EdgeInsets.all(18),
                           decoration: BoxDecoration(
-                            color: PetCareTheme.primaryBeige.withValues(alpha: 0.2),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            'Pet Owner',
-                            style: TextStyle(
-                              color: PetCareTheme.primaryBeige,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
+                            color: PetCareTheme.primaryBeige.withOpacity(0.25),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: PetCareTheme.primaryBeige.withOpacity(0.4),
+                              width: 2,
                             ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.1),
+                                blurRadius: 8,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: Icon(
+                            Icons.pets_rounded,
+                            color: PetCareTheme.primaryBeige,
+                            size: 36,
+                          ),
+                        ),
+                        const SizedBox(width: 22),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Welcome back,',
+                                style: TextStyle(
+                                  color: PetCareTheme.primaryBeige.withOpacity(
+                                    0.9,
+                                  ),
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w500,
+                                  letterSpacing: 0.3,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                '${user?.fullName ?? 'Pet Parent'}',
+                                style: TextStyle(
+                                  color: PetCareTheme.primaryBeige,
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: PetCareTheme.primaryBeige.withOpacity(
+                                    0.2,
+                                  ),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Text(
+                                  'Pet Owner',
+                                  style: TextStyle(
+                                    color: PetCareTheme.primaryBeige,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ],
                     ),
                   ),
-                ],
-              ),
-            ),
-          ),
-        );
+                ),
+              )
+            : Container(
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: PetCareTheme.accentGradient,
+                  ),
+                  borderRadius: BorderRadius.circular(24),
+                  boxShadow: [
+                    BoxShadow(
+                      color: PetCareTheme.shadowColor,
+                      blurRadius: 20,
+                      offset: const Offset(0, 10),
+                      spreadRadius: 2,
+                    ),
+                  ],
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(28),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(18),
+                        decoration: BoxDecoration(
+                          color: PetCareTheme.primaryBeige.withOpacity(0.25),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: PetCareTheme.primaryBeige.withOpacity(0.4),
+                            width: 2,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.1),
+                              blurRadius: 8,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Icon(
+                          Icons.pets_rounded,
+                          color: PetCareTheme.primaryBeige,
+                          size: 36,
+                        ),
+                      ),
+                      const SizedBox(width: 22),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Welcome back,',
+                              style: TextStyle(
+                                color: PetCareTheme.primaryBeige.withOpacity(
+                                  0.9,
+                                ),
+                                fontSize: 15,
+                                fontWeight: FontWeight.w500,
+                                letterSpacing: 0.3,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              '${user?.fullName ?? 'Pet Owner'}',
+                              style: TextStyle(
+                                color: PetCareTheme.primaryBeige,
+                                fontSize: 22,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: PetCareTheme.primaryBeige.withOpacity(
+                                  0.2,
+                                ),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                'Pet Owner',
+                                style: TextStyle(
+                                  color: PetCareTheme.primaryBeige,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
       },
     );
   }
@@ -663,11 +855,11 @@ class _PetOwnerDashboardState extends State<PetOwnerDashboard> with TickerProvid
       builder: (context, constraints) {
         final screenWidth = constraints.maxWidth;
         final spacing = 16.0;
-        
+
         // Calculate additional stats
         final totalAppointments = _upcomingAppointments.length;
         final healthRecords = 0; // Health records are managed separately
-        
+
         // Always show 2x2 grid layout
         return Column(
           children: [
@@ -726,129 +918,246 @@ class _PetOwnerDashboardState extends State<PetOwnerDashboard> with TickerProvid
     );
   }
 
-  Widget _buildResponsiveStatCard(String title, String value, IconData icon, Color color, double screenWidth) {
+  Widget _buildResponsiveStatCard(
+    String title,
+    String value,
+    IconData icon,
+    Color color,
+    double screenWidth,
+  ) {
     // Calculate responsive dimensions
     final isSmallScreen = screenWidth < 400;
-    
-    return AnimatedBuilder(
-      animation: _scaleAnimation,
-      builder: (context, child) {
-        return Transform.scale(
-          scale: _scaleAnimation.value,
-          child: Container(
-            decoration: BoxDecoration(
-                color: PetCareTheme.cardWhite,
-                borderRadius: BorderRadius.circular(24),
-                border: Border.all(
-                  color: color.withValues(alpha: 0.2),
-                  width: 1.5,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: PetCareTheme.shadowColor,
-                    blurRadius: 20,
-                    offset: const Offset(0, 10),
-                    spreadRadius: 2,
-                  ),
-                  BoxShadow(
-                    color: color.withValues(alpha: 0.1),
-                    blurRadius: 8,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(24),
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      color.withValues(alpha: 0.05),
-                      color.withValues(alpha: 0.02),
-                      Colors.white.withValues(alpha: 0.8),
+
+    return _animationsInitialized
+        ? AnimatedBuilder(
+            animation: _scaleAnimation,
+            builder: (context, child) {
+              return Transform.scale(
+                scale: _scaleAnimation.value,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: PetCareTheme.cardWhite,
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(
+                      color: color.withOpacity(0.2),
+                      width: 1.5,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: PetCareTheme.shadowColor,
+                        blurRadius: 20,
+                        offset: const Offset(0, 10),
+                        spreadRadius: 2,
+                      ),
+                      BoxShadow(
+                        color: color.withOpacity(0.1),
+                        blurRadius: 8,
+                        offset: const Offset(0, 4),
+                      ),
                     ],
                   ),
-                ),
-                child: Padding(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: isSmallScreen ? 12.0 : 16.0,
-                    vertical: isSmallScreen ? 16.0 : 20.0,
-                  ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // Icon Section
-                      Container(
-                        width: isSmallScreen ? 48.0 : 56.0,
-                        height: isSmallScreen ? 48.0 : 56.0,
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                            colors: [
-                              color.withValues(alpha: 0.2),
-                              color.withValues(alpha: 0.4),
-                            ],
-                          ),
-                          borderRadius: BorderRadius.circular(16),
-                          boxShadow: [
-                            BoxShadow(
-                              color: color.withValues(alpha: 0.3),
-                              blurRadius: 8,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        child: Icon(
-                          icon,
-                          color: Colors.white,
-                          size: isSmallScreen ? 24.0 : 28.0,
-                        ),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(24),
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          color.withOpacity(0.05),
+                          color.withOpacity(0.02),
+                          Colors.white.withOpacity(0.8),
+                        ],
                       ),
-                      
-                      SizedBox(height: isSmallScreen ? 12.0 : 16.0),
-                      
-                      // Value Section
-                      Column(
+                    ),
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: isSmallScreen ? 12.0 : 16.0,
+                        vertical: isSmallScreen ? 16.0 : 20.0,
+                      ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.center,
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Text(
-                            value,
-                            style: TextStyle(
-                              fontSize: isSmallScreen ? 24.0 : 28.0,
-                              fontWeight: FontWeight.w900,
-                              color: PetCareTheme.primaryBrown,
-                              letterSpacing: -0.5,
-                              height: 1.0,
+                          // Icon Section
+                          Container(
+                            width: isSmallScreen ? 48.0 : 56.0,
+                            height: isSmallScreen ? 48.0 : 56.0,
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [
+                                  color.withOpacity(0.2),
+                                  color.withOpacity(0.4),
+                                ],
+                              ),
+                              borderRadius: BorderRadius.circular(16),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: color.withOpacity(0.3),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: Icon(
+                              icon,
+                              color: Colors.white,
+                              size: isSmallScreen ? 24.0 : 28.0,
                             ),
                           ),
-                          SizedBox(height: isSmallScreen ? 4.0 : 6.0),
-                          Text(
-                            title,
-                            style: TextStyle(
-                              fontSize: isSmallScreen ? 11.0 : 12.0,
-                              fontWeight: FontWeight.w600,
-                              color: PetCareTheme.lightBrown.withValues(alpha: 0.9),
-                              letterSpacing: 0.2,
-                              height: 1.1,
-                            ),
-                            textAlign: TextAlign.center,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
+
+                          SizedBox(height: isSmallScreen ? 12.0 : 16.0),
+
+                          // Value Section
+                          Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                value,
+                                style: TextStyle(
+                                  fontSize: isSmallScreen ? 24.0 : 28.0,
+                                  fontWeight: FontWeight.w900,
+                                  color: PetCareTheme.primaryBrown,
+                                  letterSpacing: -0.5,
+                                  height: 1.0,
+                                ),
+                              ),
+                              SizedBox(height: isSmallScreen ? 4.0 : 6.0),
+                              Text(
+                                title,
+                                style: TextStyle(
+                                  fontSize: isSmallScreen ? 11.0 : 12.0,
+                                  fontWeight: FontWeight.w600,
+                                  color: PetCareTheme.lightBrown.withOpacity(
+                                    0.9,
+                                  ),
+                                  letterSpacing: 0.2,
+                                  height: 1.1,
+                                ),
+                                textAlign: TextAlign.center,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
                           ),
                         ],
                       ),
-                    ],
+                    ),
                   ),
                 ),
+              );
+            },
+          )
+        : Container(
+            decoration: BoxDecoration(
+              color: PetCareTheme.cardWhite,
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: color.withOpacity(0.2), width: 1.5),
+              boxShadow: [
+                BoxShadow(
+                  color: PetCareTheme.shadowColor,
+                  blurRadius: 20,
+                  offset: const Offset(0, 10),
+                  spreadRadius: 2,
+                ),
+                BoxShadow(
+                  color: color.withOpacity(0.1),
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(24),
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    color.withOpacity(0.05),
+                    color.withOpacity(0.02),
+                    Colors.white.withOpacity(0.8),
+                  ],
+                ),
               ),
-          ),
-        );
-      },
-    );
+              child: Padding(
+                padding: EdgeInsets.symmetric(
+                  horizontal: isSmallScreen ? 12.0 : 16.0,
+                  vertical: isSmallScreen ? 16.0 : 20.0,
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Icon Section
+                    Container(
+                      width: isSmallScreen ? 48.0 : 56.0,
+                      height: isSmallScreen ? 48.0 : 56.0,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            color.withOpacity(0.2),
+                            color.withOpacity(0.4),
+                          ],
+                        ),
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: color.withOpacity(0.3),
+                            blurRadius: 8,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Icon(
+                        icon,
+                        color: Colors.white,
+                        size: isSmallScreen ? 24.0 : 28.0,
+                      ),
+                    ),
+
+                    SizedBox(height: isSmallScreen ? 12.0 : 16.0),
+
+                    // Value Section
+                    Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          value,
+                          style: TextStyle(
+                            fontSize: isSmallScreen ? 24.0 : 28.0,
+                            fontWeight: FontWeight.w900,
+                            color: PetCareTheme.primaryBrown,
+                            letterSpacing: -0.5,
+                            height: 1.0,
+                          ),
+                        ),
+                        SizedBox(height: isSmallScreen ? 4.0 : 6.0),
+                        Text(
+                          title,
+                          style: TextStyle(
+                            fontSize: isSmallScreen ? 11.0 : 12.0,
+                            fontWeight: FontWeight.w600,
+                            color: PetCareTheme.lightBrown.withOpacity(0.9),
+                            letterSpacing: 0.2,
+                            height: 1.1,
+                          ),
+                          textAlign: TextAlign.center,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
   }
 
   Widget _buildMyPetsSection() {
@@ -873,7 +1182,7 @@ class _PetOwnerDashboardState extends State<PetOwnerDashboard> with TickerProvid
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: [
                   BoxShadow(
-                    color: PetCareTheme.accentGold.withValues(alpha: 0.3),
+                    color: PetCareTheme.accentGold.withOpacity(0.3),
                     blurRadius: 8,
                     offset: const Offset(0, 4),
                   ),
@@ -885,7 +1194,9 @@ class _PetOwnerDashboardState extends State<PetOwnerDashboard> with TickerProvid
                   onTap: () async {
                     final result = await Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => const AddPetScreen()),
+                      MaterialPageRoute(
+                        builder: (context) => const AddPetScreen(),
+                      ),
                     );
                     if (result == true) {
                       _loadDashboardData();
@@ -923,7 +1234,7 @@ class _PetOwnerDashboardState extends State<PetOwnerDashboard> with TickerProvid
 
   Widget _buildPetsList() {
     print('Building pets list with ${_pets.length} pets');
-    
+
     if (_pets.isEmpty) {
       return Container(
         width: double.infinity,
@@ -941,8 +1252,8 @@ class _PetOwnerDashboardState extends State<PetOwnerDashboard> with TickerProvid
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [
-                    PetCareTheme.primaryBrown.withValues(alpha: 0.1),
-                    PetCareTheme.lightBrown.withValues(alpha: 0.1),
+                    PetCareTheme.primaryBrown.withOpacity(0.1),
+                    PetCareTheme.lightBrown.withOpacity(0.1),
                   ],
                 ),
                 shape: BoxShape.circle,
@@ -950,7 +1261,7 @@ class _PetOwnerDashboardState extends State<PetOwnerDashboard> with TickerProvid
               child: Icon(
                 Icons.pets_rounded,
                 size: 50,
-                color: PetCareTheme.primaryBrown.withValues(alpha: 0.6),
+                color: PetCareTheme.primaryBrown.withOpacity(0.6),
               ),
             ),
             const SizedBox(height: 24),
@@ -988,7 +1299,10 @@ class _PetOwnerDashboardState extends State<PetOwnerDashboard> with TickerProvid
               style: ElevatedButton.styleFrom(
                 backgroundColor: PetCareTheme.primaryBrown,
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 28,
+                  vertical: 16,
+                ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
@@ -1005,19 +1319,23 @@ class _PetOwnerDashboardState extends State<PetOwnerDashboard> with TickerProvid
         // Calculate responsive height based on screen size
         final screenWidth = constraints.maxWidth;
         final cardHeight = screenWidth < 400 ? 300.0 : 320.0;
-        
+
         return SizedBox(
           height: cardHeight,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 4), // Add padding to prevent edge clipping
+            padding: const EdgeInsets.symmetric(
+              horizontal: 4,
+            ), // Add padding to prevent edge clipping
             itemCount: _pets.length,
             itemBuilder: (context, index) {
               final pet = _pets[index];
               return Container(
                 width: screenWidth < 400 ? 180 : 200, // Responsive width
                 margin: EdgeInsets.only(
-                  right: index == _pets.length - 1 ? 4 : 16, // Add right margin for last item
+                  right: index == _pets.length - 1
+                      ? 4
+                      : 16, // Add right margin for last item
                   left: index == 0 ? 4 : 0, // Add left margin for first item
                 ),
                 child: _buildPetCard(pet),
@@ -1034,7 +1352,7 @@ class _PetOwnerDashboardState extends State<PetOwnerDashboard> with TickerProvid
       builder: (context, constraints) {
         final isSmallCard = constraints.maxWidth < 200;
         final cardPadding = isSmallCard ? 12.0 : 16.0;
-        
+
         return Container(
           height: double.infinity, // Use all available height
           decoration: BoxDecoration(
@@ -1066,10 +1384,7 @@ class _PetOwnerDashboardState extends State<PetOwnerDashboard> with TickerProvid
                         width: double.infinity,
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
-                            colors: [
-                              Colors.grey.shade100,
-                              Colors.grey.shade50,
-                            ],
+                            colors: [Colors.grey.shade100, Colors.grey.shade50],
                           ),
                           borderRadius: BorderRadius.circular(16),
                         ),
@@ -1079,9 +1394,9 @@ class _PetOwnerDashboardState extends State<PetOwnerDashboard> with TickerProvid
                         ),
                       ),
                     ),
-                    
+
                     SizedBox(height: isSmallCard ? 12 : 16),
-                    
+
                     // Pet Info Section - Fixed height to prevent overflow
                     Expanded(
                       flex: 3,
@@ -1099,9 +1414,9 @@ class _PetOwnerDashboardState extends State<PetOwnerDashboard> with TickerProvid
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
-                          
+
                           SizedBox(height: isSmallCard ? 4 : 6),
-                          
+
                           // Pet Details
                           Text(
                             '${pet.breed.isNotEmpty ? pet.breed : pet.species.toString().split('.').last} • ${pet.ageString}',
@@ -1113,11 +1428,14 @@ class _PetOwnerDashboardState extends State<PetOwnerDashboard> with TickerProvid
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
-                          
+
                           SizedBox(height: isSmallCard ? 6 : 10),
-                          
+
                           // Health Status Chip
-                          _buildHealthStatusChip(pet.healthStatus, isSmall: isSmallCard),
+                          _buildHealthStatusChip(
+                            pet.healthStatus,
+                            isSmall: isSmallCard,
+                          ),
                         ],
                       ),
                     ),
@@ -1133,27 +1451,74 @@ class _PetOwnerDashboardState extends State<PetOwnerDashboard> with TickerProvid
 
   Widget _buildPetImage(PetModel pet) {
     if (pet.photoUrls.isNotEmpty) {
-      return Image.network(
-        pet.photoUrls.first,
-        fit: BoxFit.cover,
-        width: double.infinity,
-        height: double.infinity,
-        loadingBuilder: (context, child, loadingProgress) {
-          if (loadingProgress == null) return child;
-          return Center(
-            child: CircularProgressIndicator(
-              value: loadingProgress.expectedTotalBytes != null
-                  ? loadingProgress.cumulativeBytesLoaded /
-                      loadingProgress.expectedTotalBytes!
-                  : null,
-              color: PetCareTheme.primaryBrown,
-            ),
+      final imageUrl = pet.photoUrls.first;
+
+      // Check if it's a base64 data URL
+      if (imageUrl.startsWith('data:image/')) {
+        try {
+          // Extract base64 data from data URL
+          final base64String = imageUrl.split(',')[1];
+
+          // Check if it's a valid base64 string (not empty or too short)
+          if (base64String.isEmpty || base64String.length < 100) {
+            print(
+              '⚠️ Invalid base64 image for ${pet.name}: too short or empty',
+            );
+            return _buildPetPlaceholder(pet);
+          }
+
+          final bytes = base64Decode(base64String);
+
+          // Check if decoded bytes are valid (not too small)
+          if (bytes.length < 100) {
+            print(
+              '⚠️ Invalid image data for ${pet.name}: decoded bytes too small (${bytes.length} bytes)',
+            );
+            return _buildPetPlaceholder(pet);
+          }
+
+          return Image.memory(
+            bytes,
+            fit: BoxFit.cover,
+            width: double.infinity,
+            height: double.infinity,
+            errorBuilder: (context, error, stackTrace) {
+              print('❌ Error loading base64 image for ${pet.name}: $error');
+              return _buildPetPlaceholder(pet);
+            },
           );
-        },
-        errorBuilder: (context, error, stackTrace) {
+        } catch (e) {
+          print('❌ Error decoding base64 image for ${pet.name}: $e');
           return _buildPetPlaceholder(pet);
-        },
-      );
+        }
+      } else {
+        // Handle as network URL - Optimized for APK builds
+        return Image.network(
+          imageUrl,
+          fit: BoxFit.cover,
+          width: double.infinity,
+          height: double.infinity,
+          // Optimize for APK builds
+          cacheWidth: 300, // Cache at 300px width for better performance
+          cacheHeight: 300, // Cache at 300px height for better performance
+          loadingBuilder: (context, child, loadingProgress) {
+            if (loadingProgress == null) return child;
+            return Center(
+              child: CircularProgressIndicator(
+                value: loadingProgress.expectedTotalBytes != null
+                    ? loadingProgress.cumulativeBytesLoaded /
+                          loadingProgress.expectedTotalBytes!
+                    : null,
+                color: PetCareTheme.primaryBrown,
+              ),
+            );
+          },
+          errorBuilder: (context, error, stackTrace) {
+            print('❌ Error loading network image for ${pet.name}: $error');
+            return _buildPetPlaceholder(pet);
+          },
+        );
+      }
     }
     return _buildPetPlaceholder(pet);
   }
@@ -1161,7 +1526,7 @@ class _PetOwnerDashboardState extends State<PetOwnerDashboard> with TickerProvid
   Widget _buildPetPlaceholder(PetModel pet) {
     IconData icon;
     List<Color> gradientColors;
-    
+
     switch (pet.species) {
       case PetSpecies.dog:
         icon = Icons.pets_rounded;
@@ -1187,28 +1552,22 @@ class _PetOwnerDashboardState extends State<PetOwnerDashboard> with TickerProvid
         icon = Icons.pets_rounded;
         gradientColors = [Colors.grey.shade300, Colors.grey.shade400];
     }
-    
+
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(colors: gradientColors),
       ),
-      child: Center(
-        child: Icon(
-          icon,
-          size: 50,
-          color: Colors.white,
-        ),
-      ),
+      child: Center(child: Icon(icon, size: 50, color: Colors.white)),
     );
   }
 
   Widget _buildHealthStatusChip(HealthStatus status, {bool isSmall = false}) {
     final (color, text, icon) = _getHealthStatusInfo(status);
-    
-    final chipPadding = isSmall 
+
+    final chipPadding = isSmall
         ? const EdgeInsets.symmetric(horizontal: 8, vertical: 4)
         : const EdgeInsets.symmetric(horizontal: 10, vertical: 6);
-    
+
     final iconSize = isSmall ? 10.0 : 12.0;
     final fontSize = isSmall ? 10.0 : 12.0;
     final spacing = isSmall ? 2.0 : 4.0;
@@ -1216,12 +1575,9 @@ class _PetOwnerDashboardState extends State<PetOwnerDashboard> with TickerProvid
     return Container(
       padding: chipPadding,
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
+        color: color.withOpacity(0.1),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: color.withValues(alpha: 0.3),
-          width: 1,
-        ),
+        border: Border.all(color: color.withOpacity(0.3), width: 1),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -1260,7 +1616,6 @@ class _PetOwnerDashboardState extends State<PetOwnerDashboard> with TickerProvid
     }
   }
 
-
   Widget _buildQuickActions() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1289,7 +1644,7 @@ class _PetOwnerDashboardState extends State<PetOwnerDashboard> with TickerProvid
                     _showNoPetsSnackBar();
                     return;
                   }
-                  
+
                   final result = await Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -1310,7 +1665,14 @@ class _PetOwnerDashboardState extends State<PetOwnerDashboard> with TickerProvid
                 gradient: const LinearGradient(
                   colors: [Color(0xFFFF7043), Color(0xFFE64A19)],
                 ),
-                onTap: () => setState(() => _currentIndex = 2),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const HealthTrackingScreen(),
+                    ),
+                  );
+                },
               ),
             ),
           ],
@@ -1365,6 +1727,28 @@ class _PetOwnerDashboardState extends State<PetOwnerDashboard> with TickerProvid
             ),
           ],
         ),
+        const SizedBox(height: 16),
+        Row(
+          children: [
+            Expanded(
+              child: _buildActionCard(
+                title: 'View Appointments',
+                icon: Icons.calendar_month_rounded,
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF2196F3), Color(0xFF1976D2)],
+                ),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const AppointmentsScreen(),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
       ],
     );
   }
@@ -1377,32 +1761,129 @@ class _PetOwnerDashboardState extends State<PetOwnerDashboard> with TickerProvid
   }) {
     // Extract the primary color from gradient for theming
     final primaryColor = gradient.colors.first;
-    
-    return AnimatedBuilder(
-      animation: _scaleAnimation,
-      builder: (context, child) {
-        return Transform.scale(
-          scale: _scaleAnimation.value,
-          child: Container(
+
+    return _animationsInitialized
+        ? AnimatedBuilder(
+            animation: _scaleAnimation,
+            builder: (context, child) {
+              return Transform.scale(
+                scale: _scaleAnimation.value,
+                child: Container(
+                  height: 140,
+                  decoration: BoxDecoration(
+                    color: PetCareTheme.cardWhite,
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(
+                      color: primaryColor.withOpacity(0.2),
+                      width: 1.5,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: PetCareTheme.shadowColor,
+                        blurRadius: 20,
+                        offset: const Offset(0, 10),
+                        spreadRadius: 2,
+                      ),
+                      BoxShadow(
+                        color: primaryColor.withOpacity(0.1),
+                        blurRadius: 8,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: onTap,
+                      borderRadius: BorderRadius.circular(24),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(24),
+                          gradient: LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [
+                              primaryColor.withOpacity(0.05),
+                              primaryColor.withOpacity(0.02),
+                              Colors.white.withOpacity(0.8),
+                            ],
+                          ),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(20),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              // Icon Section
+                              Container(
+                                width: 56,
+                                height: 56,
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                    colors: [
+                                      primaryColor.withOpacity(0.2),
+                                      primaryColor.withOpacity(0.4),
+                                    ],
+                                  ),
+                                  borderRadius: BorderRadius.circular(16),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: primaryColor.withOpacity(0.3),
+                                      blurRadius: 8,
+                                      offset: const Offset(0, 4),
+                                    ),
+                                  ],
+                                ),
+                                child: Icon(
+                                  icon,
+                                  color: Colors.white,
+                                  size: 28,
+                                ),
+                              ),
+
+                              const SizedBox(height: 16),
+
+                              // Title Section
+                              Text(
+                                title,
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700,
+                                  color: PetCareTheme.primaryBrown,
+                                  letterSpacing: 0.3,
+                                  height: 1.2,
+                                ),
+                                textAlign: TextAlign.center,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            },
+          )
+        : Container(
             height: 140,
             decoration: BoxDecoration(
               color: PetCareTheme.cardWhite,
               borderRadius: BorderRadius.circular(24),
               border: Border.all(
-                color: primaryColor.withValues(alpha: 0.2),
+                color: primaryColor.withOpacity(0.2),
                 width: 1.5,
               ),
               boxShadow: [
                 BoxShadow(
                   color: PetCareTheme.shadowColor,
-                  blurRadius: 20,
-                  offset: const Offset(0, 10),
-                  spreadRadius: 2,
-                ),
-                BoxShadow(
-                  color: primaryColor.withValues(alpha: 0.1),
-                  blurRadius: 8,
-                  offset: const Offset(0, 4),
+                  blurRadius: 15,
+                  offset: const Offset(0, 8),
+                  spreadRadius: 1,
                 ),
               ],
             ),
@@ -1411,6 +1892,8 @@ class _PetOwnerDashboardState extends State<PetOwnerDashboard> with TickerProvid
               child: InkWell(
                 onTap: onTap,
                 borderRadius: BorderRadius.circular(24),
+                splashColor: primaryColor.withOpacity(0.1),
+                highlightColor: primaryColor.withOpacity(0.05),
                 child: Container(
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(24),
@@ -1418,9 +1901,8 @@ class _PetOwnerDashboardState extends State<PetOwnerDashboard> with TickerProvid
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                       colors: [
-                        primaryColor.withValues(alpha: 0.05),
-                        primaryColor.withValues(alpha: 0.02),
-                        Colors.white.withValues(alpha: 0.8),
+                        primaryColor.withOpacity(0.03),
+                        Colors.white.withOpacity(0.8),
                       ],
                     ),
                   ),
@@ -1429,46 +1911,36 @@ class _PetOwnerDashboardState extends State<PetOwnerDashboard> with TickerProvid
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        // Icon Section
                         Container(
-                          width: 56,
-                          height: 56,
+                          padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
                               begin: Alignment.topLeft,
                               end: Alignment.bottomRight,
                               colors: [
-                                primaryColor.withValues(alpha: 0.2),
-                                primaryColor.withValues(alpha: 0.4),
+                                primaryColor.withOpacity(0.2),
+                                primaryColor.withOpacity(0.4),
                               ],
                             ),
                             borderRadius: BorderRadius.circular(16),
                             boxShadow: [
                               BoxShadow(
-                                color: primaryColor.withValues(alpha: 0.3),
+                                color: primaryColor.withOpacity(0.3),
                                 blurRadius: 8,
                                 offset: const Offset(0, 4),
                               ),
                             ],
                           ),
-                          child: Icon(
-                            icon,
-                            color: Colors.white,
-                            size: 28,
-                          ),
+                          child: Icon(icon, color: Colors.white, size: 32),
                         ),
-                        
                         const SizedBox(height: 16),
-                        
-                        // Title Section
                         Text(
                           title,
                           style: TextStyle(
-                            fontSize: 14,
+                            fontSize: 16,
                             fontWeight: FontWeight.w700,
-                            color: PetCareTheme.primaryBrown,
+                            color: PetCareTheme.textDark,
                             letterSpacing: 0.3,
-                            height: 1.2,
                           ),
                           textAlign: TextAlign.center,
                           maxLines: 2,
@@ -1480,16 +1952,15 @@ class _PetOwnerDashboardState extends State<PetOwnerDashboard> with TickerProvid
                 ),
               ),
             ),
-          ),
-        );
-      },
-    );
+          );
   }
 
   void _showNoPetsSnackBar() {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: const Text('Please add a pet first before booking an appointment'),
+        content: const Text(
+          'Please add a pet first before booking an appointment',
+        ),
         backgroundColor: PetCareTheme.primaryBrown,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -1624,7 +2095,7 @@ class _PetOwnerDashboardState extends State<PetOwnerDashboard> with TickerProvid
           width: 50,
           height: 50,
           decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.1),
+            color: color.withOpacity(0.1),
             shape: BoxShape.circle,
           ),
           child: Icon(icon, color: color, size: 26),
@@ -1639,10 +2110,7 @@ class _PetOwnerDashboardState extends State<PetOwnerDashboard> with TickerProvid
         ),
         subtitle: Text(
           subtitle,
-          style: TextStyle(
-            color: PetCareTheme.textLight,
-            fontSize: 14,
-          ),
+          style: TextStyle(color: PetCareTheme.textLight, fontSize: 14),
         ),
         trailing: Icon(
           Icons.arrow_forward_ios_rounded,
@@ -1652,5 +2120,4 @@ class _PetOwnerDashboardState extends State<PetOwnerDashboard> with TickerProvid
       ),
     );
   }
-
 }

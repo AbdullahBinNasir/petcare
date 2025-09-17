@@ -5,6 +5,7 @@ import 'dart:io';
 import '../../services/auth_service.dart';
 import '../../services/pet_listing_service.dart';
 import '../../models/pet_listing_model.dart';
+import '../../utils/image_utils.dart';
 
 class AddEditPetListingScreen extends StatefulWidget {
   final PetListingModel? petListing;
@@ -99,9 +100,27 @@ class _AddEditPetListingScreenState extends State<AddEditPetListingScreen> {
     final tempId = widget.petListing?.id ?? 'temp_${DateTime.now().millisecondsSinceEpoch}';
 
     for (final image in _selectedImages) {
-      final photoUrl = await petListingService.uploadPetListingPhoto(image, tempId);
-      if (photoUrl != null) {
-        _photoUrls.add(photoUrl);
+      try {
+        // Convert to base64 using the new method
+        final xFile = XFile(image.path);
+        final base64DataUrl = await petListingService.uploadPetListingPhotoFromXFile(xFile, tempId);
+        if (base64DataUrl != null && base64DataUrl.isNotEmpty) {
+          _photoUrls.add(base64DataUrl);
+          print('✅ Converted pet listing image to base64: ${base64DataUrl.substring(0, 50)}...');
+        } else {
+          // Fallback to Firebase Storage upload
+          final photoUrl = await petListingService.uploadPetListingPhoto(image, tempId);
+          if (photoUrl != null) {
+            _photoUrls.add(photoUrl);
+          }
+        }
+      } catch (e) {
+        print('❌ Error converting image to base64: $e');
+        // Fallback to Firebase Storage upload
+        final photoUrl = await petListingService.uploadPetListingPhoto(image, tempId);
+        if (photoUrl != null) {
+          _photoUrls.add(photoUrl);
+        }
       }
     }
   }

@@ -254,7 +254,7 @@ class _HealthTrackingScreenState extends State<HealthTrackingScreen> with Single
             Container(
               margin: const EdgeInsets.symmetric(horizontal: 20),
               decoration: BoxDecoration(
-                color: PetCareTheme.primaryBeige.withValues(alpha: 0.15),
+                color: PetCareTheme.primaryBeige.withOpacity( 0.15),
                 borderRadius: BorderRadius.circular(16),
               ),
               child: TabBar(
@@ -266,7 +266,7 @@ class _HealthTrackingScreenState extends State<HealthTrackingScreen> with Single
                   borderRadius: BorderRadius.circular(16),
                 ),
                 labelColor: PetCareTheme.primaryBrown,
-                unselectedLabelColor: PetCareTheme.primaryBeige.withValues(alpha: 0.7),
+                unselectedLabelColor: PetCareTheme.primaryBeige.withOpacity( 0.7),
                 labelStyle: const TextStyle(
                   fontWeight: FontWeight.w600,
                   fontSize: 12,
@@ -381,7 +381,7 @@ class _HealthTrackingScreenState extends State<HealthTrackingScreen> with Single
       child: Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: PetCareTheme.cardWhite.withValues(alpha: 0.8),
+          color: PetCareTheme.cardWhite.withOpacity( 0.8),
           borderRadius: BorderRadius.circular(20),
         ),
         child: Column(
@@ -470,8 +470,8 @@ class _HealthTrackingScreenState extends State<HealthTrackingScreen> with Single
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [
-                    PetCareTheme.primaryBrown.withValues(alpha: 0.1),
-                    PetCareTheme.lightBrown.withValues(alpha: 0.1),
+                    PetCareTheme.primaryBrown.withOpacity( 0.1),
+                    PetCareTheme.lightBrown.withOpacity( 0.1),
                   ],
                 ),
                 shape: BoxShape.circle,
@@ -479,7 +479,7 @@ class _HealthTrackingScreenState extends State<HealthTrackingScreen> with Single
               child: Icon(
                 Icons.pets_rounded,
                 size: 50,
-                color: PetCareTheme.primaryBrown.withValues(alpha: 0.6),
+                color: PetCareTheme.primaryBrown.withOpacity( 0.6),
               ),
             ),
             const SizedBox(height: 24),
@@ -516,7 +516,7 @@ class _HealthTrackingScreenState extends State<HealthTrackingScreen> with Single
         borderRadius: BorderRadius.circular(16),
         boxShadow: [PetCareTheme.elevatedShadow],
         border: Border.all(
-          color: PetCareTheme.primaryBrown.withValues(alpha: 0.1),
+          color: PetCareTheme.primaryBrown.withOpacity( 0.1),
           width: 1,
         ),
       ),
@@ -535,13 +535,13 @@ class _HealthTrackingScreenState extends State<HealthTrackingScreen> with Single
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
             borderSide: BorderSide(
-              color: PetCareTheme.primaryBrown.withValues(alpha: 0.3),
+              color: PetCareTheme.primaryBrown.withOpacity( 0.3),
             ),
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
             borderSide: BorderSide(
-              color: PetCareTheme.primaryBrown.withValues(alpha: 0.3),
+              color: PetCareTheme.primaryBrown.withOpacity( 0.3),
             ),
           ),
           focusedBorder: OutlineInputBorder(
@@ -552,7 +552,7 @@ class _HealthTrackingScreenState extends State<HealthTrackingScreen> with Single
             ),
           ),
           filled: true,
-          fillColor: PetCareTheme.primaryBeige.withValues(alpha: 0.05),
+          fillColor: PetCareTheme.primaryBeige.withOpacity( 0.05),
         ),
         dropdownColor: PetCareTheme.cardWhite,
         style: TextStyle(
@@ -660,8 +660,8 @@ class _HealthTrackingScreenState extends State<HealthTrackingScreen> with Single
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                           colors: [
-                            PetCareTheme.primaryBrown.withValues(alpha: 0.1),
-                            PetCareTheme.lightBrown.withValues(alpha: 0.1),
+                            PetCareTheme.primaryBrown.withOpacity( 0.1),
+                            PetCareTheme.lightBrown.withOpacity( 0.1),
                           ],
                         ),
                         shape: BoxShape.circle,
@@ -669,7 +669,7 @@ class _HealthTrackingScreenState extends State<HealthTrackingScreen> with Single
                       child: Icon(
                         Icons.medical_services_rounded,
                         size: 40,
-                        color: PetCareTheme.primaryBrown.withValues(alpha: 0.6),
+                        color: PetCareTheme.primaryBrown.withOpacity( 0.6),
                       ),
                     ),
                     const SizedBox(height: 20),
@@ -709,7 +709,7 @@ class _HealthTrackingScreenState extends State<HealthTrackingScreen> with Single
         color: PetCareTheme.cardWhite,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: color.withValues(alpha: 0.2),
+          color: color.withOpacity( 0.2),
           width: 1.5,
         ),
         boxShadow: [
@@ -720,7 +720,7 @@ class _HealthTrackingScreenState extends State<HealthTrackingScreen> with Single
             spreadRadius: 1,
           ),
           BoxShadow(
-            color: color.withValues(alpha: 0.1),
+            color: color.withOpacity( 0.1),
             blurRadius: 6,
             offset: const Offset(0, 2),
           ),
@@ -773,8 +773,8 @@ class _HealthTrackingScreenState extends State<HealthTrackingScreen> with Single
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [
-                      PetCareTheme.lightBrown.withValues(alpha: 0.1),
-                      PetCareTheme.warmPurple.withValues(alpha: 0.1),
+                      PetCareTheme.lightBrown.withOpacity( 0.1),
+                      PetCareTheme.warmPurple.withOpacity( 0.1),
                     ],
                   ),
                   shape: BoxShape.circle,
@@ -782,7 +782,7 @@ class _HealthTrackingScreenState extends State<HealthTrackingScreen> with Single
                 child: Icon(
                   Icons.medical_services_rounded,
                   size: 40,
-                  color: PetCareTheme.lightBrown.withValues(alpha: 0.6),
+                  color: PetCareTheme.lightBrown.withOpacity( 0.6),
                 ),
               ),
               const SizedBox(height: 20),
@@ -828,7 +828,7 @@ class _HealthTrackingScreenState extends State<HealthTrackingScreen> with Single
         color: PetCareTheme.cardWhite,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: typeColor.withValues(alpha: 0.2),
+          color: typeColor.withOpacity( 0.2),
           width: 1.5,
         ),
         boxShadow: [
@@ -839,7 +839,7 @@ class _HealthTrackingScreenState extends State<HealthTrackingScreen> with Single
             spreadRadius: 1,
           ),
           BoxShadow(
-            color: typeColor.withValues(alpha: 0.1),
+            color: typeColor.withOpacity( 0.1),
             blurRadius: 8,
             offset: const Offset(0, 4),
           ),
@@ -859,8 +859,8 @@ class _HealthTrackingScreenState extends State<HealthTrackingScreen> with Single
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: [
-                        typeColor.withValues(alpha: 0.1),
-                        typeColor.withValues(alpha: 0.05),
+                        typeColor.withOpacity( 0.1),
+                        typeColor.withOpacity( 0.05),
                       ],
                     ),
                     shape: BoxShape.circle,
@@ -900,10 +900,10 @@ class _HealthTrackingScreenState extends State<HealthTrackingScreen> with Single
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    color: typeColor.withValues(alpha: 0.1),
+                    color: typeColor.withOpacity( 0.1),
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                      color: typeColor.withValues(alpha: 0.3),
+                      color: typeColor.withOpacity( 0.3),
                       width: 1,
                     ),
                   ),
@@ -926,10 +926,10 @@ class _HealthTrackingScreenState extends State<HealthTrackingScreen> with Single
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: PetCareTheme.primaryBeige.withValues(alpha: 0.1),
+                  color: PetCareTheme.primaryBeige.withOpacity( 0.1),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: PetCareTheme.primaryBeige.withValues(alpha: 0.2),
+                    color: PetCareTheme.primaryBeige.withOpacity( 0.2),
                     width: 1,
                   ),
                 ),
@@ -962,10 +962,10 @@ class _HealthTrackingScreenState extends State<HealthTrackingScreen> with Single
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: PetCareTheme.lightBrown.withValues(alpha: 0.05),
+                color: PetCareTheme.lightBrown.withOpacity( 0.05),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: PetCareTheme.lightBrown.withValues(alpha: 0.1),
+                  color: PetCareTheme.lightBrown.withOpacity( 0.1),
                   width: 1,
                 ),
               ),
@@ -1020,10 +1020,10 @@ class _HealthTrackingScreenState extends State<HealthTrackingScreen> with Single
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: PetCareTheme.warmPurple.withValues(alpha: 0.05),
+                  color: PetCareTheme.warmPurple.withOpacity( 0.05),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: PetCareTheme.warmPurple.withValues(alpha: 0.1),
+                    color: PetCareTheme.warmPurple.withOpacity( 0.1),
                     width: 1,
                   ),
                 ),
@@ -1063,7 +1063,7 @@ class _HealthTrackingScreenState extends State<HealthTrackingScreen> with Single
       case HealthRecordType.medication:
         return PetCareTheme.warmRed;
       case HealthRecordType.allergy:
-        return PetCareTheme.warmRed.withValues(alpha: 0.8);
+        return PetCareTheme.warmRed.withOpacity( 0.8);
       case HealthRecordType.checkup:
         return PetCareTheme.accentGold;
       case HealthRecordType.surgery:

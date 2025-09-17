@@ -1,15 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/health_record_model.dart';
+import 'notification_service.dart';
 
 class HealthRecordService extends ChangeNotifier {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final NotificationService _notificationService = NotificationService();
 
   // Get health records by pet ID
   Future<List<HealthRecordModel>> getHealthRecordsByPetId(String petId) async {
     try {
-      debugPrint('HealthRecordService: Fetching health records for pet: $petId');
-      
+      debugPrint(
+        'HealthRecordService: Fetching health records for pet: $petId',
+      );
+
       // First try without orderBy to avoid index issues
       QuerySnapshot querySnapshot;
       try {
@@ -28,8 +32,10 @@ class HealthRecordService extends ChangeNotifier {
             .get();
       }
 
-      debugPrint('HealthRecordService: Found ${querySnapshot.docs.length} health records');
-      
+      debugPrint(
+        'HealthRecordService: Found ${querySnapshot.docs.length} health records',
+      );
+
       final records = querySnapshot.docs
           .map((doc) {
             try {
@@ -42,12 +48,14 @@ class HealthRecordService extends ChangeNotifier {
           .where((record) => record != null)
           .cast<HealthRecordModel>()
           .toList();
-          
+
       // Sort manually if orderBy failed
       records.sort((a, b) => b.recordDate.compareTo(a.recordDate));
-          
-      debugPrint('HealthRecordService: Parsed ${records.length} health records successfully');
-      
+
+      debugPrint(
+        'HealthRecordService: Parsed ${records.length} health records successfully',
+      );
+
       return records;
     } catch (e) {
       debugPrint('Error getting health records: $e');
@@ -63,19 +71,23 @@ class HealthRecordService extends ChangeNotifier {
   // Test method to fetch all health records (for debugging)
   Future<List<HealthRecordModel>> getAllHealthRecords() async {
     try {
-      debugPrint('HealthRecordService: Fetching ALL health records for debugging...');
-      
-      final querySnapshot = await _firestore
-          .collection('health_records')
-          .get();
+      debugPrint(
+        'HealthRecordService: Fetching ALL health records for debugging...',
+      );
 
-      debugPrint('HealthRecordService: Found ${querySnapshot.docs.length} total health records');
-      
+      final querySnapshot = await _firestore.collection('health_records').get();
+
+      debugPrint(
+        'HealthRecordService: Found ${querySnapshot.docs.length} total health records',
+      );
+
       final records = querySnapshot.docs
           .map((doc) {
             try {
               final record = HealthRecordModel.fromFirestore(doc);
-              debugPrint('HealthRecordService: Record ${doc.id} - Pet: ${record.petId}, Title: ${record.title}');
+              debugPrint(
+                'HealthRecordService: Record ${doc.id} - Pet: ${record.petId}, Title: ${record.title}',
+              );
               return record;
             } catch (e) {
               debugPrint('Error parsing health record ${doc.id}: $e');
@@ -85,9 +97,11 @@ class HealthRecordService extends ChangeNotifier {
           .where((record) => record != null)
           .cast<HealthRecordModel>()
           .toList();
-          
-      debugPrint('HealthRecordService: Successfully parsed ${records.length} health records');
-      
+
+      debugPrint(
+        'HealthRecordService: Successfully parsed ${records.length} health records',
+      );
+
       return records;
     } catch (e) {
       debugPrint('Error getting all health records: $e');
@@ -98,8 +112,10 @@ class HealthRecordService extends ChangeNotifier {
   // Get health records by veterinarian ID
   Future<List<HealthRecordModel>> getHealthRecordsByVetId(String vetId) async {
     try {
-      print('🔍 HealthRecordService: Fetching health records for vet ID: $vetId');
-      
+      print(
+        '🔍 HealthRecordService: Fetching health records for vet ID: $vetId',
+      );
+
       // First try with orderBy
       QuerySnapshot querySnapshot;
       try {
@@ -111,7 +127,9 @@ class HealthRecordService extends ChangeNotifier {
             .get();
         print('✅ HealthRecordService: Query with orderBy successful');
       } catch (e) {
-        print('⚠️ HealthRecordService: OrderBy failed, trying without orderBy: $e');
+        print(
+          '⚠️ HealthRecordService: OrderBy failed, trying without orderBy: $e',
+        );
         querySnapshot = await _firestore
             .collection('health_records')
             .where('veterinarianId', isEqualTo: vetId)
@@ -120,30 +138,36 @@ class HealthRecordService extends ChangeNotifier {
         print('✅ HealthRecordService: Query without orderBy successful');
       }
 
-      print('📊 HealthRecordService: Found ${querySnapshot.docs.length} health records for vet');
-      
+      print(
+        '📊 HealthRecordService: Found ${querySnapshot.docs.length} health records for vet',
+      );
+
       if (querySnapshot.docs.isNotEmpty) {
         print('📋 HealthRecordService: Sample health record data:');
         final sampleDoc = querySnapshot.docs.first;
         print('  Document ID: ${sampleDoc.id}');
         print('  Data: ${sampleDoc.data()}');
-        
+
         // Check if the vetId field matches
         final data = sampleDoc.data() as Map<String, dynamic>;
         print('  veterinarianId in data: ${data['veterinarianId']}');
         print('  Expected vetId: $vetId');
         print('  IDs match: ${data['veterinarianId'] == vetId}');
       } else {
-        print('⚠️ HealthRecordService: No records found. Let me check what records exist...');
-        
+        print(
+          '⚠️ HealthRecordService: No records found. Let me check what records exist...',
+        );
+
         // Try to get all records to see what's in the database
         final allRecordsSnapshot = await _firestore
             .collection('health_records')
             .limit(5)
             .get();
-            
-        print('📊 HealthRecordService: Found ${allRecordsSnapshot.docs.length} total records in collection');
-        
+
+        print(
+          '📊 HealthRecordService: Found ${allRecordsSnapshot.docs.length} total records in collection',
+        );
+
         if (allRecordsSnapshot.docs.isNotEmpty) {
           print('📋 HealthRecordService: Sample records from collection:');
           for (int i = 0; i < allRecordsSnapshot.docs.length; i++) {
@@ -171,7 +195,9 @@ class HealthRecordService extends ChangeNotifier {
           .cast<HealthRecordModel>()
           .toList();
 
-      print('✅ HealthRecordService: Successfully parsed ${records.length} health records');
+      print(
+        '✅ HealthRecordService: Successfully parsed ${records.length} health records',
+      );
       return records;
     } catch (e) {
       print('❌ Error getting vet health records: $e');
@@ -187,7 +213,60 @@ class HealthRecordService extends ChangeNotifier {
   // Add new health record
   Future<String?> addHealthRecord(HealthRecordModel record) async {
     try {
-      final docRef = await _firestore.collection('health_records').add(record.toFirestore());
+      final docRef = await _firestore
+          .collection('health_records')
+          .add(record.toFirestore());
+
+      // Get pet name for notifications
+      String petName = 'your pet';
+      try {
+        final petDoc = await _firestore
+            .collection('pets')
+            .doc(record.petId)
+            .get();
+        petName = petDoc.exists
+            ? (petDoc.data()?['name'] ?? 'your pet')
+            : 'your pet';
+      } catch (e) {
+        print('Warning: Could not get pet name: $e');
+      }
+
+      // Send notification about new health record
+      try {
+        await _notificationService.notifyHealthRecordAdded(
+          petName,
+          record.type.toString().split('.').last,
+        );
+      } catch (notificationError) {
+        print(
+          'Warning: Could not send health record notification: $notificationError',
+        );
+      }
+
+      // Schedule vaccination reminder if it's a vaccination record
+      final recordTypeString = record.type.toString().split('.').last;
+      if (recordTypeString.toLowerCase().contains('vaccination') ||
+          recordTypeString.toLowerCase().contains('vaccine')) {
+        try {
+          // Schedule reminder for next vaccination (typically 1 year later)
+          final nextVaccinationDate = DateTime(
+            record.recordDate.year + 1,
+            record.recordDate.month,
+            record.recordDate.day,
+          );
+
+          await _notificationService.scheduleVaccinationReminder(
+            petName,
+            recordTypeString,
+            nextVaccinationDate,
+          );
+        } catch (reminderError) {
+          print(
+            'Warning: Could not schedule vaccination reminder: $reminderError',
+          );
+        }
+      }
+
       notifyListeners();
       return docRef.id;
     } catch (e) {
@@ -271,7 +350,10 @@ class HealthRecordService extends ChangeNotifier {
   }
 
   // Get health records by type
-  Future<List<HealthRecordModel>> getHealthRecordsByType(String petId, HealthRecordType type) async {
+  Future<List<HealthRecordModel>> getHealthRecordsByType(
+    String petId,
+    HealthRecordType type,
+  ) async {
     try {
       final querySnapshot = await _firestore
           .collection('health_records')
@@ -298,12 +380,15 @@ class HealthRecordService extends ChangeNotifier {
   }) async {
     try {
       Query baseQuery = _firestore.collection('health_records');
-      
+
       baseQuery = baseQuery.where('petId', isEqualTo: petId);
       baseQuery = baseQuery.where('isActive', isEqualTo: true);
-      
+
       if (type != null) {
-        baseQuery = baseQuery.where('type', isEqualTo: type.toString().split('.').last);
+        baseQuery = baseQuery.where(
+          'type',
+          isEqualTo: type.toString().split('.').last,
+        );
       }
 
       final querySnapshot = await baseQuery.get();
@@ -317,9 +402,10 @@ class HealthRecordService extends ChangeNotifier {
         final searchText = query.toLowerCase();
         records = records.where((record) {
           return record.title.toLowerCase().contains(searchText) ||
-                 record.description.toLowerCase().contains(searchText) ||
-                 (record.medication?.toLowerCase().contains(searchText) ?? false) ||
-                 (record.notes?.toLowerCase().contains(searchText) ?? false);
+              record.description.toLowerCase().contains(searchText) ||
+              (record.medication?.toLowerCase().contains(searchText) ??
+                  false) ||
+              (record.notes?.toLowerCase().contains(searchText) ?? false);
         }).toList();
       }
 

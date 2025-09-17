@@ -3,6 +3,9 @@ import 'package:provider/provider.dart';
 import '../../services/auth_service.dart';
 import '../../services/pet_listing_service.dart';
 import '../../models/pet_listing_model.dart';
+import '../../widgets/universal_image_widget.dart';
+import '../../utils/pet_listing_image_helper.dart';
+import '../../utils/fix_pet_listing_images.dart';
 import 'add_edit_pet_listing_screen.dart';
 
 class PetListingManagementScreen extends StatefulWidget {
@@ -46,6 +49,74 @@ class _PetListingManagementScreenState extends State<PetListingManagementScreen>
     } catch (e) {
       setState(() => _isLoading = false);
       _showErrorSnackBar('Error loading pet listings: $e');
+    }
+  }
+
+  Future<void> _addTestImagesToPetListings() async {
+    try {
+      setState(() => _isLoading = true);
+      
+      for (final petListing in _petListings) {
+        final base64Image = PetListingImageHelper.createColoredBase64Image('pet_${petListing.name}');
+        await PetListingImageHelper.addBase64ImageToPetListing(petListing.id, base64Image);
+        print('Added base64 image to pet listing: ${petListing.name}');
+      }
+      
+      // Reload the pet listings to show the new images
+      await _loadPetListings();
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Added test images to ${_petListings.length} pet listings'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      print('Error adding test images: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error adding test images: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _fixAllPetListingImages() async {
+    try {
+      setState(() => _isLoading = true);
+      
+      await FixPetListingImages.addImagesToAllPetListings();
+      
+      // Reload the pet listings to show the new images
+      await _loadPetListings();
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Fixed images for all pet listings'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      print('Error fixing pet listing images: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error fixing images: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      setState(() => _isLoading = false);
     }
   }
 
@@ -119,6 +190,20 @@ class _PetListingManagementScreenState extends State<PetListingManagementScreen>
         foregroundColor: lightBeige,
         elevation: 0,
         actions: [
+          // Debug button for fixing images
+          Container(
+            margin: const EdgeInsets.only(right: 8),
+            decoration: BoxDecoration(
+              color: Colors.orange,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: IconButton(
+              icon: const Icon(Icons.bug_report_rounded),
+              onPressed: _fixAllPetListingImages,
+              color: Colors.white,
+            ),
+          ),
+          // Refresh button
           Container(
             margin: const EdgeInsets.only(right: 8),
             decoration: BoxDecoration(
@@ -357,38 +442,69 @@ class _PetListingManagementScreenState extends State<PetListingManagementScreen>
           ),
         ],
       ),
-      floatingActionButton: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [primaryBrown, darkBrown],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: primaryBrown.withOpacity(0.3),
-              blurRadius: 8,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: FloatingActionButton(
-          onPressed: () async {
-            final result = await Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => const AddEditPetListingScreen(),
+      floatingActionButton: Column(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          // Add Test Images Button
+          Container(
+            margin: const EdgeInsets.only(bottom: 16),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Colors.orange, Colors.deepOrange],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
-            );
-            if (result == true) {
-              _loadPetListings();
-            }
-          },
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          child: const Icon(Icons.add_rounded, color: lightBeige, size: 28),
-        ),
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.orange.withOpacity(0.3),
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: FloatingActionButton(
+              onPressed: _addTestImagesToPetListings,
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              child: const Icon(Icons.image_rounded, color: Colors.white, size: 24),
+            ),
+          ),
+          // Add New Pet Listing Button
+          Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [primaryBrown, darkBrown],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: primaryBrown.withOpacity(0.3),
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: FloatingActionButton(
+              onPressed: () async {
+                final result = await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const AddEditPetListingScreen(),
+                  ),
+                );
+                if (result == true) {
+                  _loadPetListings();
+                }
+              },
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              child: const Icon(Icons.add_rounded, color: lightBeige, size: 28),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -426,14 +542,10 @@ class _PetListingManagementScreenState extends State<PetListingManagementScreen>
                   child: petListing.photoUrls.isNotEmpty
                       ? ClipRRect(
                           borderRadius: BorderRadius.circular(12),
-                          child: Image.network(
-                            petListing.photoUrls.first,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) => Icon(
-                              Icons.pets_rounded,
-                              size: 45,
-                              color: primaryBrown.withOpacity(0.6),
-                            ),
+                          child: PetImageWidget(
+                            imageUrl: petListing.photoUrls.first,
+                            width: 85,
+                            height: 85,
                           ),
                         )
                       : Icon(

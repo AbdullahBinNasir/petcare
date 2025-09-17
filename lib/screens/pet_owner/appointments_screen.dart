@@ -166,7 +166,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> with SingleTick
             Container(
               margin: const EdgeInsets.symmetric(horizontal: 20),
               decoration: BoxDecoration(
-                color: PetCareTheme.primaryBeige.withValues(alpha: 0.15),
+                color: PetCareTheme.primaryBeige.withOpacity( 0.15),
                 borderRadius: BorderRadius.circular(16),
               ),
               child: TabBar(
@@ -176,7 +176,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> with SingleTick
                   borderRadius: BorderRadius.circular(16),
                 ),
                 labelColor: PetCareTheme.primaryBrown,
-                unselectedLabelColor: PetCareTheme.primaryBeige.withValues(alpha: 0.7),
+                unselectedLabelColor: PetCareTheme.primaryBeige.withOpacity( 0.7),
                 labelStyle: const TextStyle(
                   fontWeight: FontWeight.w600,
                   fontSize: 16,
@@ -203,7 +203,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> with SingleTick
       child: Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: PetCareTheme.cardWhite.withValues(alpha: 0.8),
+          color: PetCareTheme.cardWhite.withOpacity( 0.8),
           borderRadius: BorderRadius.circular(20),
         ),
         child: Column(
@@ -293,8 +293,8 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> with SingleTick
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [
-                      PetCareTheme.primaryBrown.withValues(alpha: 0.1),
-                      PetCareTheme.lightBrown.withValues(alpha: 0.1),
+                      PetCareTheme.primaryBrown.withOpacity( 0.1),
+                      PetCareTheme.lightBrown.withOpacity( 0.1),
                     ],
                   ),
                   shape: BoxShape.circle,
@@ -302,7 +302,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> with SingleTick
                 child: Icon(
                   Icons.calendar_today_rounded,
                   size: 50,
-                  color: PetCareTheme.primaryBrown.withValues(alpha: 0.6),
+                  color: PetCareTheme.primaryBrown.withOpacity( 0.6),
                 ),
               ),
               const SizedBox(height: 24),
@@ -391,8 +391,8 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> with SingleTick
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [
-                      PetCareTheme.lightBrown.withValues(alpha: 0.1),
-                      PetCareTheme.warmPurple.withValues(alpha: 0.1),
+                      PetCareTheme.lightBrown.withOpacity( 0.1),
+                      PetCareTheme.warmPurple.withOpacity( 0.1),
                     ],
                   ),
                   shape: BoxShape.circle,
@@ -400,7 +400,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> with SingleTick
                 child: Icon(
                   Icons.history_rounded,
                   size: 50,
-                  color: PetCareTheme.lightBrown.withValues(alpha: 0.6),
+                  color: PetCareTheme.lightBrown.withOpacity( 0.6),
                 ),
               ),
               const SizedBox(height: 24),
@@ -454,7 +454,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> with SingleTick
         color: PetCareTheme.cardWhite,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: statusColor.withValues(alpha: 0.2),
+          color: statusColor.withOpacity( 0.2),
           width: 1.5,
         ),
         boxShadow: [
@@ -465,7 +465,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> with SingleTick
             spreadRadius: 1,
           ),
           BoxShadow(
-            color: statusColor.withValues(alpha: 0.1),
+            color: statusColor.withOpacity( 0.1),
             blurRadius: 8,
             offset: const Offset(0, 4),
           ),
@@ -485,8 +485,8 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> with SingleTick
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: [
-                        statusColor.withValues(alpha: 0.1),
-                        statusColor.withValues(alpha: 0.05),
+                        statusColor.withOpacity( 0.1),
+                        statusColor.withOpacity( 0.05),
                       ],
                     ),
                     shape: BoxShape.circle,
@@ -526,10 +526,10 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> with SingleTick
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    color: statusColor.withValues(alpha: 0.1),
+                    color: statusColor.withOpacity( 0.1),
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                      color: statusColor.withValues(alpha: 0.3),
+                      color: statusColor.withOpacity( 0.3),
                       width: 1,
                     ),
                   ),
@@ -551,10 +551,10 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> with SingleTick
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: PetCareTheme.primaryBeige.withValues(alpha: 0.1),
+                color: PetCareTheme.primaryBeige.withOpacity( 0.1),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: PetCareTheme.primaryBeige.withValues(alpha: 0.2),
+                  color: PetCareTheme.primaryBeige.withOpacity( 0.2),
                   width: 1,
                 ),
               ),
@@ -599,10 +599,10 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> with SingleTick
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: PetCareTheme.lightBrown.withValues(alpha: 0.05),
+                  color: PetCareTheme.lightBrown.withOpacity( 0.05),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: PetCareTheme.lightBrown.withValues(alpha: 0.1),
+                    color: PetCareTheme.lightBrown.withOpacity( 0.1),
                     width: 1,
                   ),
                 ),
@@ -643,7 +643,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> with SingleTick
                       style: OutlinedButton.styleFrom(
                         foregroundColor: PetCareTheme.primaryBrown,
                         side: BorderSide(
-                          color: PetCareTheme.primaryBrown.withValues(alpha: 0.3),
+                          color: PetCareTheme.primaryBrown.withOpacity( 0.3),
                           width: 1.5,
                         ),
                         padding: const EdgeInsets.symmetric(vertical: 12),
@@ -690,9 +690,9 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> with SingleTick
       case AppointmentStatus.inProgress:
         return PetCareTheme.warmRed;
       case AppointmentStatus.completed:
-        return PetCareTheme.softGreen.withValues(alpha: 0.8);
+        return PetCareTheme.softGreen.withOpacity( 0.8);
       case AppointmentStatus.cancelled:
-        return PetCareTheme.warmRed.withValues(alpha: 0.7);
+        return PetCareTheme.warmRed.withOpacity( 0.7);
       case AppointmentStatus.noShow:
         return PetCareTheme.darkBrown;
     }

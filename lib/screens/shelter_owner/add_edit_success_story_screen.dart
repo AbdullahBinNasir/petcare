@@ -5,6 +5,8 @@ import 'dart:io';
 import '../../services/auth_service.dart';
 import '../../services/success_story_service.dart';
 import '../../models/success_story_model.dart';
+import '../../utils/image_utils.dart';
+import '../../widgets/universal_image_widget.dart';
 
 class AddEditSuccessStoryScreen extends StatefulWidget {
   final SuccessStoryModel? successStory;
@@ -86,9 +88,27 @@ class _AddEditSuccessStoryScreenState extends State<AddEditSuccessStoryScreen> {
     final tempId = widget.successStory?.id ?? 'temp_${DateTime.now().millisecondsSinceEpoch}';
 
     for (final image in _selectedImages) {
-      final photoUrl = await successStoryService.uploadSuccessStoryPhoto(image, tempId);
-      if (photoUrl != null) {
-        _photoUrls.add(photoUrl);
+      try {
+        // Convert to base64 first
+        final xFile = XFile(image.path);
+        final base64DataUrl = await ImageUtils.fileToBase64DataUrl(xFile);
+        if (base64DataUrl.isNotEmpty) {
+          _photoUrls.add(base64DataUrl);
+          print('✅ Converted success story image to base64: ${base64DataUrl.substring(0, 50)}...');
+        } else {
+          // Fallback to Firebase Storage upload
+          final photoUrl = await successStoryService.uploadSuccessStoryPhoto(image, tempId);
+          if (photoUrl != null) {
+            _photoUrls.add(photoUrl);
+          }
+        }
+      } catch (e) {
+        print('❌ Error converting image to base64: $e');
+        // Fallback to Firebase Storage upload
+        final photoUrl = await successStoryService.uploadSuccessStoryPhoto(image, tempId);
+        if (photoUrl != null) {
+          _photoUrls.add(photoUrl);
+        }
       }
     }
   }
@@ -99,8 +119,14 @@ class _AddEditSuccessStoryScreenState extends State<AddEditSuccessStoryScreen> {
     setState(() => _isLoading = true);
 
     try {
+      print('📸 Selected images count: ${_selectedImages.length}');
+      print('📸 Photo URLs before upload: ${_photoUrls.length}');
+      
       // Upload images first
       await _uploadImages();
+      
+      print('📸 Photo URLs after upload: ${_photoUrls.length}');
+      print('📸 Photo URLs: $_photoUrls');
 
       final authService = Provider.of<AuthService>(context, listen: false);
       final shelterOwnerId = authService.currentUserModel?.id ?? '';
@@ -120,6 +146,8 @@ class _AddEditSuccessStoryScreenState extends State<AddEditSuccessStoryScreen> {
         updatedAt: DateTime.now(),
         isFeatured: _isFeatured,
       );
+      
+      print('🐕 Creating success story: ${successStory.storyTitle} with ${successStory.photoUrls.length} photos');
 
       final successStoryService = Provider.of<SuccessStoryService>(context, listen: false);
       
@@ -303,12 +331,12 @@ class _AddEditSuccessStoryScreenState extends State<AddEditSuccessStoryScreen> {
                               borderRadius: BorderRadius.circular(12),
                               border: Border.all(color: primaryColor.withOpacity(0.2)),
                             ),
-                            child: Image.network(
-                              _photoUrls[index],
+                            child: UniversalImageWidget(
+                              imageUrl: _photoUrls[index],
                               width: 120,
                               height: 120,
                               fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) => Container(
+                              errorWidget: Container(
                                 width: 120,
                                 height: 120,
                                 decoration: BoxDecoration(
