@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../services/order_service.dart';
 import '../../models/order_model.dart';
-import '../../theme/pet_care_theme.dart';
 
 class OrderManagementScreen extends StatefulWidget {
   const OrderManagementScreen({super.key});
@@ -31,132 +30,53 @@ class _OrderManagementScreenState extends State<OrderManagementScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.transparent,
-      appBar: _buildModernAppBar(context),
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: PetCareTheme.backgroundGradient,
-          ),
-        ),
-        child: Column(
-          children: [
-            _buildSearchAndFilters(),
-            _buildStatsCards(),
-            Expanded(child: _buildOrdersList()),
-          ],
-        ),
-      ),
-    );
-  }
-
-  PreferredSizeWidget _buildModernAppBar(BuildContext context) {
-    return AppBar(
-      elevation: 0,
-      flexibleSpace: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: PetCareTheme.primaryGradient,
-          ),
-        ),
-      ),
-      backgroundColor: Colors.transparent,
-      foregroundColor: PetCareTheme.primaryBeige,
-      title: Text(
-        'Order Management',
-        style: TextStyle(
-          fontSize: 22,
-          fontWeight: FontWeight.w700,
-          color: PetCareTheme.primaryBeige,
-          letterSpacing: 0.5,
-        ),
-      ),
-      actions: [
-        Container(
-          margin: const EdgeInsets.only(right: 12),
-          decoration: BoxDecoration(
-            color: PetCareTheme.primaryBeige.withOpacity(0.2),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: PetCareTheme.primaryBeige.withOpacity(0.3),
-              width: 1,
-            ),
-          ),
-          child: IconButton(
-            icon: Icon(
-              Icons.refresh_rounded,
-              color: PetCareTheme.primaryBeige,
-              size: 20,
-            ),
+      appBar: AppBar(
+        title: const Text('Order Management'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
             onPressed: () {
               Provider.of<OrderService>(context, listen: false).loadOrders();
             },
-            tooltip: 'Refresh Orders',
           ),
-        ),
-      ],
+        ],
+      ),
+      body: Column(
+        children: [
+          _buildSearchAndFilters(),
+          _buildStatsCards(),
+          Expanded(child: _buildOrdersList()),
+        ],
+      ),
     );
   }
 
   Widget _buildSearchAndFilters() {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(16),
       child: Column(
         children: [
-          Container(
-            decoration: BoxDecoration(
-              color: PetCareTheme.cardWhite,
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [PetCareTheme.cardShadow],
-            ),
-            child: TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                hintText: 'Search orders...',
-                hintStyle: TextStyle(
-                  color: PetCareTheme.textLight,
-                  fontSize: 16,
-                ),
-                prefixIcon: Icon(
-                  Icons.search_rounded,
-                  color: PetCareTheme.primaryBrown,
-                  size: 24,
-                ),
-                suffixIcon: _searchController.text.isNotEmpty
-                    ? IconButton(
-                        icon: Icon(
-                          Icons.clear_rounded,
-                          color: PetCareTheme.textLight,
-                        ),
-                        onPressed: () {
-                          _searchController.clear();
-                          Provider.of<OrderService>(context, listen: false).searchOrders('');
-                          setState(() {});
-                        },
-                      )
-                    : null,
-                border: InputBorder.none,
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 16,
-                ),
+          TextField(
+            controller: _searchController,
+            decoration: InputDecoration(
+              hintText: 'Search orders...',
+              prefixIcon: const Icon(Icons.search),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
               ),
-              style: TextStyle(
-                color: PetCareTheme.textDark,
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
+              suffixIcon: IconButton(
+                icon: const Icon(Icons.clear),
+                onPressed: () {
+                  _searchController.clear();
+                  Provider.of<OrderService>(context, listen: false).searchOrders('');
+                },
               ),
-              onChanged: (value) {
-                Provider.of<OrderService>(context, listen: false).searchOrders(value);
-                setState(() {});
-              },
             ),
+            onChanged: (value) {
+              Provider.of<OrderService>(context, listen: false).searchOrders(value);
+            },
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
           _buildStatusFilters(),
         ],
       ),
@@ -190,106 +110,54 @@ class _OrderManagementScreenState extends State<OrderManagementScreen> {
   Widget _buildFilterChip(String label, OrderStatus? status, OrderStatus? selectedStatus) {
     final isSelected = status == selectedStatus;
     
-    return Container(
-      decoration: BoxDecoration(
-        gradient: isSelected 
-            ? LinearGradient(colors: PetCareTheme.accentGradient)
-            : null,
-        color: isSelected ? null : PetCareTheme.cardWhite,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(
-          color: isSelected 
-              ? PetCareTheme.accentGold.withOpacity(0.3)
-              : PetCareTheme.lightBrown.withOpacity(0.2),
-          width: 1,
-        ),
-        boxShadow: isSelected 
-            ? [
-                BoxShadow(
-                  color: PetCareTheme.accentGold.withOpacity(0.3),
-                  blurRadius: 8,
-                  offset: const Offset(0, 4),
-                ),
-              ]
-            : [PetCareTheme.cardShadow],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: () {
-            Provider.of<OrderService>(context, listen: false).filterByStatus(
-              isSelected ? null : status,
-            );
-          },
-          borderRadius: BorderRadius.circular(24),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (isSelected)
-                  Icon(
-                    Icons.check_rounded,
-                    size: 16,
-                    color: Colors.white,
-                  ),
-                if (isSelected) const SizedBox(width: 4),
-                Text(
-                  label,
-                  style: TextStyle(
-                    color: isSelected ? Colors.white : PetCareTheme.textDark,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 12,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
+    return FilterChip(
+      label: Text(label),
+      selected: isSelected,
+      onSelected: (selected) {
+        Provider.of<OrderService>(context, listen: false).filterByStatus(
+          selected ? status : null,
+        );
+      },
+      selectedColor: Colors.blue.withOpacity(0.2),
+      checkmarkColor: Colors.blue,
     );
   }
 
   Widget _buildStatsCards() {
     return Consumer<OrderService>(
       builder: (context, orderService, child) {
-        // Calculate total revenue safely
-        final totalRevenue = orderService.orders.fold<double>(0.0, (sum, order) => sum + order.total);
-        
-        // Calculate monthly revenue (current month)
-        final now = DateTime.now();
-        final monthlyRevenue = orderService.orders.where((order) {
-          return order.createdAt.year == now.year && order.createdAt.month == now.month;
-        }).fold<double>(0.0, (sum, order) => sum + order.total);
+        final stats = orderService.getOrderStatistics();
+        final totalRevenue = orderService.getTotalRevenue();
+        final monthlyRevenue = orderService.getMonthlyRevenue();
         
         return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
+          padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Row(
             children: [
               Expanded(
                 child: _buildStatCard(
                   'Total Orders',
                   '${orderService.orders.length}',
-                  Icons.shopping_cart_checkout_rounded,
-                  PetCareTheme.accentGold,
+                  Icons.shopping_bag,
+                  Colors.blue,
                 ),
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: 12),
               Expanded(
                 child: _buildStatCard(
                   'Total Revenue',
                   '\$${totalRevenue.toStringAsFixed(2)}',
-                  Icons.payments_rounded,
-                  PetCareTheme.softGreen,
+                  Icons.attach_money,
+                  Colors.green,
                 ),
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: 12),
               Expanded(
                 child: _buildStatCard(
                   'This Month',
                   '\$${monthlyRevenue.toStringAsFixed(2)}',
-                  Icons.trending_up_rounded,
-                  PetCareTheme.warmPurple,
+                  Icons.trending_up,
+                  Colors.orange,
                 ),
               ),
             ],
@@ -300,111 +168,27 @@ class _OrderManagementScreenState extends State<OrderManagementScreen> {
   }
 
   Widget _buildStatCard(String title, String value, IconData icon, Color color) {
-    return Container(
-      decoration: BoxDecoration(
-        color: PetCareTheme.cardWhite,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: color.withOpacity(0.2),
-          width: 1.5,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: PetCareTheme.shadowColor,
-            blurRadius: 15,
-            offset: const Offset(0, 8),
-            spreadRadius: 1,
-          ),
-          BoxShadow(
-            color: color.withOpacity(0.1),
-            blurRadius: 6,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              color.withOpacity(0.05),
-              color.withOpacity(0.02),
-              Colors.white.withOpacity(0.8),
-            ],
-          ),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Icon Section
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      color.withOpacity(0.2),
-                      color.withOpacity(0.4),
-                    ],
-                  ),
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: [
-                    BoxShadow(
-                      color: color.withOpacity(0.3),
-                      blurRadius: 6,
-                      offset: const Offset(0, 3),
-                    ),
-                  ],
-                ),
-                child: Icon(
-                  icon,
-                  color: Colors.white,
-                  size: 20,
-                ),
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          children: [
+            Icon(icon, color: color, size: 24),
+            const SizedBox(height: 8),
+            Text(
+              value,
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: color,
               ),
-              
-              const SizedBox(height: 12),
-              
-              // Value Section
-              Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    value,
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w900,
-                      color: PetCareTheme.primaryBrown,
-                      letterSpacing: -0.5,
-                      height: 1.0,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    title,
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w600,
-                      color: PetCareTheme.lightBrown.withOpacity(0.9),
-                      letterSpacing: 0.2,
-                      height: 1.1,
-                    ),
-                    textAlign: TextAlign.center,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            ],
-          ),
+            ),
+            Text(
+              title,
+              style: const TextStyle(fontSize: 12),
+              textAlign: TextAlign.center,
+            ),
+          ],
         ),
       ),
     );

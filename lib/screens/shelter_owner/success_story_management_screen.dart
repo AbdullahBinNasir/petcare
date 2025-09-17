@@ -3,9 +3,6 @@ import 'package:provider/provider.dart';
 import '../../services/auth_service.dart';
 import '../../services/success_story_service.dart';
 import '../../models/success_story_model.dart';
-import '../../widgets/universal_image_widget.dart';
-import '../../utils/success_story_image_helper.dart';
-import '../../utils/fix_success_story_images.dart';
 import 'add_edit_success_story_screen.dart';
 
 class SuccessStoryManagementScreen extends StatefulWidget {
@@ -94,30 +91,95 @@ class _SuccessStoryManagementScreenState extends State<SuccessStoryManagementScr
 
   void _showErrorSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message, style: const TextStyle(color: Color(0xFFFAFAF0))),
-        backgroundColor: const Color(0xFFDC143C),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      ),
+      SnackBar(content: Text(message), backgroundColor: Colors.red),
     );
   }
 
   void _showSuccessSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message, style: const TextStyle(color: Color(0xFFFAFAF0))),
-        backgroundColor: const Color(0xFF228B22),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      ),
+      SnackBar(content: Text(message), backgroundColor: Colors.green),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFAFAF0),
+      appBar: AppBar(
+        title: const Text('Success Stories Management'),
+        backgroundColor: Colors.teal,
+        foregroundColor: Colors.white,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _loadSuccessStories,
+          ),
+        ],
+      ),
+      body: Column(
+        children: [
+          // Search Section
+          Container(
+            padding: const EdgeInsets.all(16.0),
+            color: Colors.grey[100],
+            child: TextField(
+              decoration: InputDecoration(
+                hintText: 'Search success stories...',
+                prefixIcon: const Icon(Icons.search),
+                suffixIcon: _searchQuery.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear),
+                        onPressed: () {
+                          setState(() => _searchQuery = '');
+                          _loadSuccessStories();
+                        },
+                      )
+                    : null,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              onChanged: (value) {
+                setState(() => _searchQuery = value);
+                if (value.isEmpty) {
+                  _loadSuccessStories();
+                } else {
+                  _searchSuccessStories();
+                }
+              },
+            ),
+          ),
+          // Success Stories List
+          Expanded(
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : _successStories.isEmpty
+                    ? const Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.celebration, size: 64, color: Colors.grey),
+                            SizedBox(height: 16),
+                            Text(
+                              'No success stories found',
+                              style: TextStyle(fontSize: 18, color: Colors.grey),
+                            ),
+                            Text(
+                              'Add your first success story to inspire others',
+                              style: TextStyle(color: Colors.grey),
+                            ),
+                          ],
+                        ),
+                      )
+                    : ListView.builder(
+                        itemCount: _successStories.length,
+                        itemBuilder: (context, index) {
+                          final story = _successStories[index];
+                          return _buildSuccessStoryCard(story);
+                        },
+                      ),
+          ),
+        ],
+      ),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
           final result = await Navigator.push(
@@ -130,205 +192,17 @@ class _SuccessStoryManagementScreenState extends State<SuccessStoryManagementScr
             _loadSuccessStories();
           }
         },
-        backgroundColor: const Color(0xFF7D4D20),
+        backgroundColor: Colors.teal,
         child: const Icon(Icons.add, color: Colors.white),
-        tooltip: 'Add New Success Story',
-      ),
-      appBar: AppBar(
-        title: const Text(
-          'Success Stories Management',
-          style: TextStyle(
-            fontWeight: FontWeight.w600,
-            letterSpacing: 0.5,
-          ),
-        ),
-        backgroundColor: const Color(0xFF7D4D20),
-        foregroundColor: const Color(0xFFFAFAF0),
-        elevation: 0,
-        centerTitle: true,
-        iconTheme: const IconThemeData(color: Color(0xFFFAFAF0)),
-        actions: [
-          Container(
-            margin: const EdgeInsets.only(right: 8),
-            decoration: BoxDecoration(
-              color: const Color(0xFFFAFAF0).withOpacity(0.15),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: IconButton(
-              icon: const Icon(Icons.bug_report_rounded),
-              onPressed: _fixSpecificStory,
-              tooltip: 'Fix Specific Story',
-            ),
-          ),
-          Container(
-            margin: const EdgeInsets.only(right: 8),
-            decoration: BoxDecoration(
-              color: const Color(0xFFFAFAF0).withOpacity(0.15),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: IconButton(
-              icon: const Icon(Icons.image_rounded),
-              onPressed: _addTestImagesToStories,
-              tooltip: 'Add Test Images',
-            ),
-          ),
-          Container(
-            margin: const EdgeInsets.only(right: 12),
-            decoration: BoxDecoration(
-              color: const Color(0xFFFAFAF0).withOpacity(0.15),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: IconButton(
-              icon: const Icon(Icons.refresh_rounded),
-              onPressed: _loadSuccessStories,
-              tooltip: 'Refresh',
-            ),
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
-          // Search Section
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0xFF7D4D20).withOpacity(0.08),
-                  offset: const Offset(0, 2),
-                  blurRadius: 8,
-                ),
-              ],
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFAFAF0),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: const Color(0xFF7D4D20).withOpacity(0.2),
-                  ),
-                ),
-                child: TextField(
-                  decoration: InputDecoration(
-                    hintText: 'Search success stories...',
-                    hintStyle: TextStyle(color: const Color(0xFF7D4D20).withOpacity(0.6)),
-                    prefixIcon: Icon(
-                      Icons.search_rounded,
-                      color: const Color(0xFF7D4D20).withOpacity(0.7),
-                    ),
-                    suffixIcon: _searchQuery.isNotEmpty
-                        ? Container(
-                            margin: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF7D4D20).withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: IconButton(
-                              icon: const Icon(Icons.clear_rounded, size: 20),
-                              color: const Color(0xFF7D4D20),
-                              onPressed: () {
-                                setState(() => _searchQuery = '');
-                                _loadSuccessStories();
-                              },
-                            ),
-                          )
-                        : null,
-                    border: InputBorder.none,
-                    contentPadding: const EdgeInsets.all(16),
-                  ),
-                  style: const TextStyle(color: Color(0xFF7D4D20)),
-                  onChanged: (value) {
-                    setState(() => _searchQuery = value);
-                    if (value.isEmpty) {
-                      _loadSuccessStories();
-                    } else {
-                      _searchSuccessStories();
-                    }
-                  },
-                ),
-              ),
-            ),
-          ),
-          // Success Stories List
-          Expanded(
-            child: _isLoading
-                ? const Center(
-                    child: CircularProgressIndicator(
-                      color: Color(0xFF7D4D20),
-                      strokeWidth: 3,
-                    ),
-                  )
-                : _successStories.isEmpty
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(24),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF7D4D20).withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(24),
-                              ),
-                              child: Icon(
-                                Icons.celebration_outlined,
-                                size: 64,
-                                color: const Color(0xFF7D4D20).withOpacity(0.6),
-                              ),
-                            ),
-                            const SizedBox(height: 24),
-                            const Text(
-                              'No success stories found',
-                              style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.w600,
-                                color: Color(0xFF7D4D20),
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Add your first success story to inspire others',
-                              style: TextStyle(
-                                color: const Color(0xFF7D4D20).withOpacity(0.7),
-                                fontSize: 14,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                          ],
-                        ),
-                      )
-                    : ListView.separated(
-                        padding: const EdgeInsets.all(16),
-                        itemCount: _successStories.length,
-                        separatorBuilder: (context, index) => const SizedBox(height: 12),
-                        itemBuilder: (context, index) {
-                          final story = _successStories[index];
-                          return _buildSuccessStoryCard(story);
-                        },
-                      ),
-          ),
-        ],
       ),
     );
   }
 
   Widget _buildSuccessStoryCard(SuccessStoryModel story) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF7D4D20).withOpacity(0.08),
-            offset: const Offset(0, 4),
-            blurRadius: 12,
-            spreadRadius: 0,
-          ),
-        ],
-      ),
+    return Card(
+      margin: const EdgeInsets.all(8.0),
       child: Padding(
-        padding: const EdgeInsets.all(20.0),
+        padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -336,35 +210,29 @@ class _SuccessStoryManagementScreenState extends State<SuccessStoryManagementScr
               children: [
                 // Story Image
                 Container(
-                  width: 90,
-                  height: 90,
+                  width: 80,
+                  height: 80,
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(16),
-                    color: const Color(0xFF7D4D20).withOpacity(0.1),
-                    border: Border.all(
-                      color: const Color(0xFF7D4D20).withOpacity(0.2),
-                      width: 1,
-                    ),
+                    borderRadius: BorderRadius.circular(8),
+                    color: Colors.grey[200],
                   ),
                   child: story.photoUrls.isNotEmpty
                       ? ClipRRect(
-                          borderRadius: BorderRadius.circular(16),
-                          child: UniversalImageWidget(
-                            imageUrl: story.photoUrls.first,
-                            width: 90,
-                            height: 90,
+                          borderRadius: BorderRadius.circular(8),
+                          child: Image.network(
+                            story.photoUrls.first,
                             fit: BoxFit.cover,
-                            errorWidget: Icon(
-                              Icons.celebration_rounded,
+                            errorBuilder: (context, error, stackTrace) => const Icon(
+                              Icons.celebration,
                               size: 40,
-                              color: const Color(0xFF7D4D20).withOpacity(0.6),
+                              color: Colors.grey,
                             ),
                           ),
                         )
-                      : Icon(
-                          Icons.celebration_rounded,
+                      : const Icon(
+                          Icons.celebration,
                           size: 40,
-                          color: const Color(0xFF7D4D20).withOpacity(0.6),
+                          color: Colors.grey,
                         ),
                 ),
                 const SizedBox(width: 16),
@@ -381,198 +249,100 @@ class _SuccessStoryManagementScreenState extends State<SuccessStoryManagementScr
                               style: const TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
-                                color: Color(0xFF7D4D20),
                               ),
                             ),
                           ),
                           if (story.isFeatured)
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                               decoration: BoxDecoration(
-                                color: const Color(0xFFFFD700),
-                                borderRadius: BorderRadius.circular(16),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.1),
-                                    offset: const Offset(0, 2),
-                                    blurRadius: 4,
-                                  ),
-                                ],
+                                color: Colors.amber.withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(12),
                               ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    Icons.star_rounded,
-                                    size: 14,
-                                    color: const Color(0xFF7D4D20),
-                                  ),
-                                  const SizedBox(width: 4),
-                                  const Text(
-                                    'Featured',
-                                    style: TextStyle(
-                                      color: Color(0xFF7D4D20),
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                ],
+                              child: const Text(
+                                'Featured',
+                                style: TextStyle(
+                                  color: Colors.amber,
+                                  fontWeight: FontWeight.w500,
+                                  fontSize: 12,
+                                ),
                               ),
                             ),
                         ],
                       ),
-                      const SizedBox(height: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFFAFAF0).withOpacity(0.7),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          '${story.petName} adopted by ${story.adopterName}',
-                          style: TextStyle(
-                            color: const Color(0xFF7D4D20).withOpacity(0.8),
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '${story.petName} adopted by ${story.adopterName}',
+                        style: TextStyle(color: Colors.grey[600]),
                       ),
-                      const SizedBox(height: 6),
+                      const SizedBox(height: 4),
                       Text(
                         'Adopted ${story.timeSinceAdoption}',
-                        style: TextStyle(
-                          color: const Color(0xFF7D4D20).withOpacity(0.6),
-                          fontSize: 12,
-                        ),
+                        style: TextStyle(color: Colors.grey[600], fontSize: 12),
                       ),
                     ],
                   ),
                 ),
-                // Action Menu Button
-                Container(
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF7D4D20).withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: PopupMenuButton<String>(
-                    icon: Icon(
-                      Icons.more_vert_rounded,
-                      color: const Color(0xFF7D4D20),
+                // Action Buttons
+                PopupMenuButton<String>(
+                  onSelected: (value) {
+                    switch (value) {
+                      case 'edit':
+                        _editSuccessStory(story);
+                        break;
+                      case 'feature':
+                        _toggleFeaturedStatus(story.id, !story.isFeatured);
+                        break;
+                      case 'delete':
+                        _showDeleteDialog(story);
+                        break;
+                    }
+                  },
+                  itemBuilder: (context) => [
+                    const PopupMenuItem(
+                      value: 'edit',
+                      child: Row(
+                        children: [
+                          Icon(Icons.edit, size: 20),
+                          SizedBox(width: 8),
+                          Text('Edit'),
+                        ],
+                      ),
                     ),
-                    color: const Color(0xFFFAFAF0),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    onSelected: (value) {
-                      switch (value) {
-                        case 'edit':
-                          _editSuccessStory(story);
-                          break;
-                        case 'feature':
-                          _toggleFeaturedStatus(story.id, !story.isFeatured);
-                          break;
-                        case 'delete':
-                          _showDeleteDialog(story);
-                          break;
-                      }
-                    },
-                    itemBuilder: (context) => [
-                      PopupMenuItem(
-                        value: 'edit',
-                        child: Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(6),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF4169E1).withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: const Icon(
-                                Icons.edit_rounded,
-                                size: 16,
-                                color: Color(0xFF4169E1),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            const Text(
-                              'Edit',
-                              style: TextStyle(color: Color(0xFF7D4D20)),
-                            ),
-                          ],
-                        ),
+                    PopupMenuItem(
+                      value: 'feature',
+                      child: Row(
+                        children: [
+                          Icon(
+                            story.isFeatured ? Icons.star_border : Icons.star,
+                            size: 20,
+                            color: Colors.amber,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(story.isFeatured ? 'Remove from Featured' : 'Mark as Featured'),
+                        ],
                       ),
-                      PopupMenuItem(
-                        value: 'feature',
-                        child: Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(6),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFFFD700).withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Icon(
-                                story.isFeatured ? Icons.star_border_rounded : Icons.star_rounded,
-                                size: 16,
-                                color: const Color(0xFFFFD700),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Text(
-                              story.isFeatured ? 'Remove Featured' : 'Mark Featured',
-                              style: const TextStyle(color: Color(0xFF7D4D20)),
-                            ),
-                          ],
-                        ),
+                    ),
+                    const PopupMenuItem(
+                      value: 'delete',
+                      child: Row(
+                        children: [
+                          Icon(Icons.delete, size: 20, color: Colors.red),
+                          SizedBox(width: 8),
+                          Text('Delete', style: TextStyle(color: Colors.red)),
+                        ],
                       ),
-                      PopupMenuItem(
-                        value: 'delete',
-                        child: Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(6),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFDC143C).withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: const Icon(
-                                Icons.delete_rounded,
-                                size: 16,
-                                color: Color(0xFFDC143C),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            const Text(
-                              'Delete',
-                              style: TextStyle(color: Color(0xFFDC143C)),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ],
             ),
-            const SizedBox(height: 16),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: const Color(0xFFFAFAF0).withOpacity(0.5),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: const Color(0xFF7D4D20).withOpacity(0.1),
-                ),
-              ),
-              child: Text(
-                story.storyDescription,
-                style: TextStyle(
-                  color: const Color(0xFF7D4D20).withOpacity(0.8),
-                  fontSize: 14,
-                  height: 1.5,
-                ),
-                maxLines: 3,
-                overflow: TextOverflow.ellipsis,
-              ),
+            const SizedBox(height: 12),
+            Text(
+              story.storyDescription,
+              style: TextStyle(color: Colors.grey[700]),
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
             ),
           ],
         ),
@@ -597,127 +367,23 @@ class _SuccessStoryManagementScreenState extends State<SuccessStoryManagementScr
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          backgroundColor: const Color(0xFFFAFAF0),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFDC143C).withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Icon(
-                  Icons.delete_outline_rounded,
-                  color: Color(0xFFDC143C),
-                  size: 24,
-                ),
-              ),
-              const SizedBox(width: 12),
-              const Text(
-                'Delete Success Story',
-                style: TextStyle(
-                  color: Color(0xFF7D4D20),
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ),
-          content: RichText(
-            text: TextSpan(
-              style: TextStyle(
-                color: const Color(0xFF7D4D20).withOpacity(0.8),
-                fontSize: 16,
-              ),
-              children: [
-                const TextSpan(text: 'Are you sure you want to delete "'),
-                TextSpan(
-                  text: story.storyTitle,
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-                const TextSpan(text: '"?'),
-              ],
-            ),
-          ),
+          title: const Text('Delete Success Story'),
+          content: Text('Are you sure you want to delete "${story.storyTitle}"?'),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              style: TextButton.styleFrom(
-                foregroundColor: const Color(0xFF7D4D20).withOpacity(0.7),
-              ),
               child: const Text('Cancel'),
             ),
-            ElevatedButton(
+            TextButton(
               onPressed: () {
                 Navigator.of(context).pop();
                 _deleteSuccessStory(story.id);
               },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFDC143C),
-                foregroundColor: const Color(0xFFFAFAF0),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-              child: const Text('Delete'),
+              child: const Text('Delete', style: TextStyle(color: Colors.red)),
             ),
           ],
         );
       },
     );
-  }
-
-  Future<void> _addTestImagesToStories() async {
-    try {
-      if (_successStories.isNotEmpty) {
-        for (int i = 0; i < _successStories.length; i++) {
-          final story = _successStories[i];
-          final base64Image = SuccessStoryImageHelper.createColoredBase64Image('story_$i');
-          
-          await SuccessStoryImageHelper.addBase64ImageToSuccessStory(story.id, base64Image);
-          print('✅ Added base64 image to story ${i + 1}: ${story.storyTitle}');
-        }
-        
-        // Reload data to show the new images
-        _loadSuccessStories();
-        
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Base64 images added to all success stories!'),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
-    } catch (e) {
-      print('❌ Error adding base64 images to stories: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error adding images: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
-  }
-
-  Future<void> _fixSpecificStory() async {
-    try {
-      await FixSuccessStoryImages.addImageToSpecificStory();
-      
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Fixed specific success story image!'),
-          backgroundColor: Colors.green,
-        ),
-      );
-      
-      // Reload data to show the new image
-      _loadSuccessStories();
-    } catch (e) {
-      print('❌ Error fixing specific story: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error fixing story: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
   }
 }

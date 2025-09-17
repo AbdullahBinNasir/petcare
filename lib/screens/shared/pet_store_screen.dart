@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'dart:convert';
 import '../../models/store_item_model.dart';
 import '../../services/store_service.dart';
@@ -9,8 +10,6 @@ import '../../services/auth_service.dart';
 import '../../services/cart_service.dart';
 import '../../services/order_service.dart';
 import '../../models/order_model.dart';
-import '../../theme/pet_care_theme.dart';
-import '../../widgets/universal_image_widget.dart';
 import 'store_item_details_screen.dart';
 import 'shopping_cart_screen.dart';
 
@@ -50,239 +49,167 @@ class _PetStoreScreenState extends State<PetStoreScreen> {
   }
 
   Widget _buildImageWidget(String imageUrl) {
-    return StoreItemImageWidget(
+    try {
+      if (imageUrl.startsWith('data:image')) {
+        final base64Part = imageUrl.split(',').last;
+        final bytes = base64Part.isNotEmpty ? base64Decode(base64Part) : null;
+        if (bytes != null) {
+          return Image.memory(
+            bytes,
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) => Container(
+              color: Colors.grey[200],
+              child: const Icon(Icons.shopping_bag, size: 48),
+            ),
+          );
+        }
+      }
+    } catch (_) {}
+
+    return CachedNetworkImage(
       imageUrl: imageUrl,
-      width: double.infinity,
-      height: double.infinity,
+      fit: BoxFit.cover,
+      placeholder: (context, url) => Container(
+        color: Colors.grey[200],
+        child: const Center(
+          child: CircularProgressIndicator(),
+        ),
+      ),
+      errorWidget: (context, url, error) => Container(
+        color: Colors.grey[200],
+        child: const Icon(Icons.image_not_supported),
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: PetCareTheme.backgroundGradient,
-          ),
-        ),
-        child: Column(
-          children: [
-            _buildModernAppBar(),
-            Expanded(
-              child: Column(
+      appBar: AppBar(
+        title: const Text('Pet Store'),
+        actions: [
+          Consumer<CartService>(
+            builder: (context, cartService, child) {
+              return Stack(
                 children: [
-                  _buildSearchSection(),
-                  if (_showFilters) _buildFiltersSection(),
-                  Expanded(child: _buildStoreGrid()),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildModernAppBar() {
-    return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: PetCareTheme.primaryGradient,
-        ),
-        borderRadius: BorderRadius.only(
-          bottomLeft: Radius.circular(24),
-          bottomRight: Radius.circular(24),
-        ),
-      ),
-      child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
-          child: Row(
-            children: [
-              Expanded(
-                child: Text(
-                  'Pet Store',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.w700,
-                    color: PetCareTheme.primaryBeige,
-                    letterSpacing: 0.5,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ),
-              Row(
-                children: [
-                  Consumer<CartService>(
-                    builder: (context, cartService, child) {
-                      return Stack(
-                        children: [
-                          IconButton(
-                            icon: Icon(
-                              Icons.shopping_cart_rounded,
-                              color: PetCareTheme.primaryBeige,
-                              size: 24,
-                            ),
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => const ShoppingCartScreen(),
-                                ),
-                              );
-                            },
-                          ),
-                          if (cartService.itemCount > 0)
-                            Positioned(
-                              right: 8,
-                              top: 8,
-                              child: Container(
-                                padding: const EdgeInsets.all(4),
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(colors: PetCareTheme.accentGradient),
-                                  borderRadius: BorderRadius.circular(12),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: PetCareTheme.shadowColor,
-                                      blurRadius: 4,
-                                      offset: const Offset(0, 2),
-                                    ),
-                                  ],
-                                ),
-                                constraints: const BoxConstraints(
-                                  minWidth: 20,
-                                  minHeight: 20,
-                                ),
-                                child: Text(
-                                  '${cartService.itemCount}',
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                  textAlign: TextAlign.center,
-                                ),
-                              ),
-                            ),
-                        ],
-                      );
-                    },
-                  ),
                   IconButton(
-                    icon: Icon(
-                      _showFilters ? Icons.filter_list_off_rounded : Icons.filter_list_rounded,
-                      color: PetCareTheme.primaryBeige,
-                      size: 24,
-                    ),
+                    icon: const Icon(Icons.shopping_cart),
                     onPressed: () {
-                      setState(() {
-                        _showFilters = !_showFilters;
-                      });
-                    },
-                  ),
-                  Consumer2<StoreService, AuthService>(
-                    builder: (context, storeService, authService, child) {
-                      final userId = authService.currentUserModel?.id ?? '';
-                      final wishlistCount = storeService.getFavoriteItemsCount(userId);
-                      
-                      return Stack(
-                        children: [
-                          IconButton(
-                            icon: Icon(
-                              Icons.favorite_rounded,
-                              color: PetCareTheme.primaryBeige,
-                              size: 24,
-                            ),
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => const FavoritesScreen(),
-                                ),
-                              );
-                            },
-                          ),
-                          if (wishlistCount > 0)
-                            Positioned(
-                              right: 8,
-                              top: 8,
-                              child: Container(
-                                padding: const EdgeInsets.all(4),
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(colors: PetCareTheme.accentGradient),
-                                  borderRadius: BorderRadius.circular(12),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: PetCareTheme.shadowColor,
-                                      blurRadius: 4,
-                                      offset: const Offset(0, 2),
-                                    ),
-                                  ],
-                                ),
-                                constraints: const BoxConstraints(
-                                  minWidth: 20,
-                                  minHeight: 20,
-                                ),
-                                child: Text(
-                                  '$wishlistCount',
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                  textAlign: TextAlign.center,
-                                ),
-                              ),
-                            ),
-                        ],
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const ShoppingCartScreen(),
+                        ),
                       );
                     },
                   ),
+                  if (cartService.itemCount > 0)
+                    Positioned(
+                      right: 8,
+                      top: 8,
+                      child: Container(
+                        padding: const EdgeInsets.all(2),
+                        decoration: BoxDecoration(
+                          color: Colors.red,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        constraints: const BoxConstraints(
+                          minWidth: 16,
+                          minHeight: 16,
+                        ),
+                        child: Text(
+                          '${cartService.itemCount}',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ),
                 ],
-              ),
-            ],
+              );
+            },
           ),
-        ),
+          IconButton(
+            icon: Icon(_showFilters ? Icons.filter_list_off : Icons.filter_list),
+            onPressed: () {
+              setState(() {
+                _showFilters = !_showFilters;
+              });
+            },
+          ),
+          Consumer2<StoreService, AuthService>(
+            builder: (context, storeService, authService, child) {
+              final userId = authService.currentUserModel?.id ?? '';
+              final wishlistCount = storeService.getFavoriteItemsCount(userId);
+              
+              return Stack(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.favorite),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const FavoritesScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                  if (wishlistCount > 0)
+                    Positioned(
+                      right: 8,
+                      top: 8,
+                      child: Container(
+                        padding: const EdgeInsets.all(2),
+                        decoration: BoxDecoration(
+                          color: Colors.red,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        constraints: const BoxConstraints(
+                          minWidth: 16,
+                          minHeight: 16,
+                        ),
+                        child: Text(
+                          '$wishlistCount',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ),
+                ],
+              );
+            },
+          ),
+        ],
+      ),
+      body: Column(
+        children: [
+          _buildSearchBar(),
+          if (_showFilters) _buildFiltersSection(),
+          Expanded(child: _buildStoreGrid()),
+        ],
       ),
     );
   }
 
-  Widget _buildSearchSection() {
+  Widget _buildSearchBar() {
     return Container(
-      margin: const EdgeInsets.all(20),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: PetCareTheme.cardWhite,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [PetCareTheme.elevatedShadow],
-        border: Border.all(
-          color: PetCareTheme.primaryBrown.withOpacity( 0.1),
-          width: 1,
-        ),
-      ),
+      padding: const EdgeInsets.all(16),
       child: TextField(
         controller: _searchController,
         decoration: InputDecoration(
           hintText: 'Search products...',
-          hintStyle: TextStyle(
-            color: PetCareTheme.textLight,
-            fontWeight: FontWeight.w500,
-          ),
-          prefixIcon: Icon(
-            Icons.search_rounded,
-            color: PetCareTheme.primaryBrown,
-          ),
+          prefixIcon: const Icon(Icons.search),
           suffixIcon: _searchController.text.isNotEmpty
               ? IconButton(
-                  icon: Icon(
-                    Icons.clear_rounded,
-                    color: PetCareTheme.primaryBrown,
-                  ),
+                  icon: const Icon(Icons.clear),
                   onPressed: () {
                     _searchController.clear();
                     Provider.of<StoreService>(context, listen: false).searchItems('');
@@ -290,26 +217,8 @@ class _PetStoreScreenState extends State<PetStoreScreen> {
                 )
               : null,
           border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide(
-              color: PetCareTheme.primaryBrown.withOpacity( 0.3),
-            ),
+            borderRadius: BorderRadius.circular(12),
           ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide(
-              color: PetCareTheme.primaryBrown.withOpacity( 0.3),
-            ),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide(
-              color: PetCareTheme.primaryBrown,
-              width: 2,
-            ),
-          ),
-          filled: true,
-          fillColor: PetCareTheme.primaryBeige.withOpacity( 0.05),
         ),
         onChanged: (value) {
           Provider.of<StoreService>(context, listen: false).searchItems(value);
@@ -318,22 +227,11 @@ class _PetStoreScreenState extends State<PetStoreScreen> {
     );
   }
 
-
   Widget _buildFiltersSection() {
     return Consumer<StoreService>(
       builder: (context, storeService, child) {
         return Container(
-          margin: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: PetCareTheme.cardWhite,
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [PetCareTheme.elevatedShadow],
-            border: Border.all(
-              color: PetCareTheme.primaryBrown.withOpacity( 0.1),
-              width: 1,
-            ),
-          ),
+          padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Column(
             children: [
               Row(
@@ -341,54 +239,19 @@ class _PetStoreScreenState extends State<PetStoreScreen> {
                   Expanded(
                     child: DropdownButtonFormField<StoreCategory?>(
                       value: storeService.selectedCategory,
-                      decoration: InputDecoration(
+                      decoration: const InputDecoration(
                         labelText: 'Category',
-                        labelStyle: TextStyle(
-                          color: PetCareTheme.primaryBrown,
-                          fontWeight: FontWeight.w600,
-                        ),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(16),
-                          borderSide: BorderSide(
-                            color: PetCareTheme.primaryBrown.withOpacity( 0.3),
-                          ),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(16),
-                          borderSide: BorderSide(
-                            color: PetCareTheme.primaryBrown.withOpacity( 0.3),
-                          ),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(16),
-                          borderSide: BorderSide(
-                            color: PetCareTheme.primaryBrown,
-                            width: 2,
-                          ),
-                        ),
-                        filled: true,
-                        fillColor: PetCareTheme.primaryBeige.withOpacity( 0.05),
-                      ),
-                      dropdownColor: PetCareTheme.cardWhite,
-                      style: TextStyle(
-                        color: PetCareTheme.textDark,
-                        fontWeight: FontWeight.w500,
+                        border: OutlineInputBorder(),
                       ),
                       items: [
-                        DropdownMenuItem(
+                        const DropdownMenuItem(
                           value: null,
-                          child: Text(
-                            'All Categories',
-                            style: TextStyle(color: PetCareTheme.textDark),
-                          ),
+                          child: Text('All Categories'),
                         ),
                         ...StoreCategory.values.map((category) {
                           return DropdownMenuItem(
                             value: category,
-                            child: Text(
-                              _getCategoryName(category),
-                              style: TextStyle(color: PetCareTheme.textDark),
-                            ),
+                            child: Text(_getCategoryName(category)),
                           );
                         }),
                       ],
@@ -401,38 +264,9 @@ class _PetStoreScreenState extends State<PetStoreScreen> {
                   Expanded(
                     child: DropdownButtonFormField<String>(
                       value: storeService.sortBy,
-                      decoration: InputDecoration(
+                      decoration: const InputDecoration(
                         labelText: 'Sort By',
-                        labelStyle: TextStyle(
-                          color: PetCareTheme.primaryBrown,
-                          fontWeight: FontWeight.w600,
-                        ),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(16),
-                          borderSide: BorderSide(
-                            color: PetCareTheme.primaryBrown.withOpacity( 0.3),
-                          ),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(16),
-                          borderSide: BorderSide(
-                            color: PetCareTheme.primaryBrown.withOpacity( 0.3),
-                          ),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(16),
-                          borderSide: BorderSide(
-                            color: PetCareTheme.primaryBrown,
-                            width: 2,
-                          ),
-                        ),
-                        filled: true,
-                        fillColor: PetCareTheme.primaryBeige.withOpacity( 0.05),
-                      ),
-                      dropdownColor: PetCareTheme.cardWhite,
-                      style: TextStyle(
-                        color: PetCareTheme.textDark,
-                        fontWeight: FontWeight.w500,
+                        border: OutlineInputBorder(),
                       ),
                       items: const [
                         DropdownMenuItem(value: 'name', child: Text('Name')),
@@ -450,36 +284,16 @@ class _PetStoreScreenState extends State<PetStoreScreen> {
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 8),
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(colors: PetCareTheme.accentGradient),
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: PetCareTheme.shadowColor,
-                          blurRadius: 8,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: TextButton(
-                      onPressed: () {
-                        storeService.clearFilters();
-                        _searchController.clear();
-                      },
-                      style: TextButton.styleFrom(
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: const Text('Clear Filters'),
-                    ),
+                  TextButton(
+                    onPressed: () {
+                      storeService.clearFilters();
+                      _searchController.clear();
+                    },
+                    child: const Text('Clear Filters'),
                   ),
                 ],
               ),
@@ -494,96 +308,30 @@ class _PetStoreScreenState extends State<PetStoreScreen> {
     return Consumer<StoreService>(
       builder: (context, storeService, child) {
         if (storeService.isLoading) {
-          return Center(
-            child: Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: PetCareTheme.cardWhite.withOpacity( 0.8),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  CircularProgressIndicator(
-                    valueColor: AlwaysStoppedAnimation<Color>(PetCareTheme.primaryBrown),
-                    strokeWidth: 3,
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Loading Products...',
-                    style: TextStyle(
-                      color: PetCareTheme.primaryBrown,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
+          return const Center(child: CircularProgressIndicator());
         }
 
         if (storeService.storeItems.isEmpty) {
-          return Center(
-            child: Container(
-              margin: const EdgeInsets.all(32),
-              padding: const EdgeInsets.all(40),
-              decoration: BoxDecoration(
-                color: PetCareTheme.cardWhite,
-                borderRadius: BorderRadius.circular(24),
-                boxShadow: [PetCareTheme.elevatedShadow],
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 100,
-                    height: 100,
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          PetCareTheme.primaryBrown.withOpacity( 0.1),
-                          PetCareTheme.lightBrown.withOpacity( 0.1),
-                        ],
-                      ),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      Icons.shopping_bag_outlined,
-                      size: 50,
-                      color: PetCareTheme.primaryBrown.withOpacity( 0.6),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  Text(
-                    'No Products Found',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w600,
-                      color: PetCareTheme.textDark,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    'Try adjusting your search or filters',
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: PetCareTheme.textLight,
-                      height: 1.4,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ],
-              ),
+          return const Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.shopping_bag_outlined, size: 64, color: Colors.grey),
+                SizedBox(height: 16),
+                Text(
+                  'No products found',
+                  style: TextStyle(fontSize: 18, color: Colors.grey),
+                ),
+              ],
             ),
           );
         }
 
         return MasonryGridView.count(
-          crossAxisCount: 2,
-          padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-          mainAxisSpacing: 16,
-          crossAxisSpacing: 16,
+          crossAxisCount: 3,
+          padding: const EdgeInsets.all(12),
+          mainAxisSpacing: 12,
+          crossAxisSpacing: 12,
           itemCount: storeService.storeItems.length,
           itemBuilder: (context, index) {
             final item = storeService.storeItems[index];
@@ -600,23 +348,9 @@ class _PetStoreScreenState extends State<PetStoreScreen> {
     final userId = authService.currentUserModel?.id ?? '';
     final isFavorite = storeService.isItemFavorite(item.id, userId);
 
-    return Container(
-      decoration: BoxDecoration(
-        color: PetCareTheme.cardWhite,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: PetCareTheme.primaryBrown.withOpacity( 0.1),
-          width: 1.5,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: PetCareTheme.shadowColor,
-            blurRadius: 15,
-            offset: const Offset(0, 8),
-            spreadRadius: 1,
-          ),
-        ],
-      ),
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       child: InkWell(
         onTap: () {
           if (userId.isNotEmpty) {
@@ -629,55 +363,43 @@ class _PetStoreScreenState extends State<PetStoreScreen> {
             ),
           );
         },
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(8),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Stack(
               children: [
                 ClipRRect(
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
                   child: AspectRatio(
                     aspectRatio: 1.2,
                     child: item.imageUrls.isNotEmpty
                         ? _buildImageWidget(item.imageUrls.first)
                         : Container(
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [
-                                  PetCareTheme.primaryBeige.withOpacity( 0.1),
-                                  PetCareTheme.lightBrown.withOpacity( 0.1),
-                                ],
-                              ),
-                            ),
-                            child: Icon(
-                              Icons.shopping_bag_rounded,
-                              size: 32,
-                              color: PetCareTheme.primaryBrown.withOpacity( 0.6),
-                            ),
+                            color: Colors.grey[200],
+                            child: const Icon(Icons.shopping_bag, size: 32),
                           ),
                   ),
                 ),
                 Positioned(
-                  top: 8,
-                  right: 8,
+                  top: 6,
+                  right: 6,
                   child: Container(
                     decoration: BoxDecoration(
-                      color: PetCareTheme.cardWhite,
+                      color: Colors.white,
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
-                          color: PetCareTheme.shadowColor,
-                          blurRadius: 4,
-                          offset: const Offset(0, 2),
+                          color: Colors.black.withOpacity(0.1),
+                          blurRadius: 2,
                         ),
                       ],
                     ),
                     child: IconButton(
                       icon: Icon(
-                        isFavorite ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-                        color: isFavorite ? PetCareTheme.warmRed : PetCareTheme.textLight,
-                        size: 18,
+                        isFavorite ? Icons.favorite : Icons.favorite_border,
+                        color: isFavorite ? Colors.red : Colors.grey,
+                        size: 16,
                       ),
                       onPressed: () async {
                         if (userId.isNotEmpty) {
@@ -691,14 +413,8 @@ class _PetStoreScreenState extends State<PetStoreScreen> {
                                     : '${item.name} added to wishlist',
                                 ),
                                 duration: const Duration(seconds: 2),
-                                backgroundColor: PetCareTheme.softGreen,
-                                behavior: SnackBarBehavior.floating,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
                                 action: SnackBarAction(
                                   label: 'View Wishlist',
-                                  textColor: Colors.white,
                                   onPressed: () {
                                     Navigator.push(
                                       context,
@@ -714,23 +430,15 @@ class _PetStoreScreenState extends State<PetStoreScreen> {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: Text('Error updating wishlist: ${e.toString()}'),
-                                backgroundColor: PetCareTheme.warmRed,
-                                behavior: SnackBarBehavior.floating,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
+                                backgroundColor: Colors.red,
                               ),
                             );
                           }
                         } else {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: const Text('Please log in to add items to wishlist'),
-                              backgroundColor: PetCareTheme.accentGold,
-                              behavior: SnackBarBehavior.floating,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
+                            const SnackBar(
+                              content: Text('Please log in to add items to wishlist'),
+                              backgroundColor: Colors.orange,
                             ),
                           );
                         }
@@ -740,26 +448,19 @@ class _PetStoreScreenState extends State<PetStoreScreen> {
                 ),
                 if (!item.isInStock)
                   Positioned(
-                    top: 8,
-                    left: 8,
+                    top: 6,
+                    left: 6,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
-                        gradient: LinearGradient(colors: PetCareTheme.accentGradient),
-                        borderRadius: BorderRadius.circular(12),
-                        boxShadow: [
-                          BoxShadow(
-                            color: PetCareTheme.shadowColor,
-                            blurRadius: 4,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
+                        color: Colors.red,
+                        borderRadius: BorderRadius.circular(8),
                       ),
-                      child: Text(
+                      child: const Text(
                         'Out of Stock',
                         style: TextStyle(
                           color: Colors.white,
-                          fontSize: 10,
+                          fontSize: 8,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -768,101 +469,72 @@ class _PetStoreScreenState extends State<PetStoreScreen> {
               ],
             ),
             Padding(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.all(8),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     item.name,
-                    style: TextStyle(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 13,
-                      color: PetCareTheme.textDark,
-                      letterSpacing: 0.2,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
                     ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 2),
                   Text(
                     item.brand,
                     style: TextStyle(
-                      color: PetCareTheme.textLight,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w500,
+                      color: Colors.grey[600],
+                      fontSize: 10,
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 4),
                   Row(
                     children: [
                       Text(
                         item.formattedPrice,
-                        style: TextStyle(
-                          fontWeight: FontWeight.w700,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
                           fontSize: 14,
-                          color: PetCareTheme.softGreen,
+                          color: Colors.green,
                         ),
                       ),
                       const Spacer(),
                       if (item.rating != null) ...[
-                        Icon(
-                          Icons.star_rounded,
-                          size: 14,
-                          color: PetCareTheme.accentGold,
-                        ),
+                        Icon(Icons.star, size: 12, color: Colors.amber[600]),
                         const SizedBox(width: 2),
                         Text(
                           item.rating!.toStringAsFixed(1),
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: PetCareTheme.textDark,
-                          ),
+                          style: const TextStyle(fontSize: 10),
                         ),
                       ],
                     ],
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 4),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                     decoration: BoxDecoration(
-                      color: PetCareTheme.primaryBrown.withOpacity( 0.1),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: PetCareTheme.primaryBrown.withOpacity( 0.2),
-                        width: 1,
-                      ),
+                      color: Theme.of(context).primaryColor.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text(
                       _getCategoryName(item.category),
                       style: TextStyle(
-                        color: PetCareTheme.primaryBrown,
-                        fontSize: 9,
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: 0.2,
+                        color: Theme.of(context).primaryColor,
+                        fontSize: 8,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 6),
                   if (item.isInStock)
                     Consumer<CartService>(
                       builder: (context, cartService, child) {
                         final isInCart = cartService.isInCart(item.id);
-                        return Container(
+                        return SizedBox(
                           width: double.infinity,
-                          decoration: BoxDecoration(
-                            gradient: isInCart 
-                                ? LinearGradient(colors: [PetCareTheme.softGreen, PetCareTheme.softGreen])
-                                : LinearGradient(colors: PetCareTheme.accentGradient),
-                            borderRadius: BorderRadius.circular(12),
-                            boxShadow: [
-                              BoxShadow(
-                                color: PetCareTheme.shadowColor,
-                                blurRadius: 8,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
-                          ),
                           child: ElevatedButton.icon(
                             onPressed: () {
                               cartService.addToCart(item);
@@ -870,14 +542,8 @@ class _PetStoreScreenState extends State<PetStoreScreen> {
                                 SnackBar(
                                   content: Text('${item.name} added to cart'),
                                   duration: const Duration(seconds: 2),
-                                  backgroundColor: PetCareTheme.softGreen,
-                                  behavior: SnackBarBehavior.floating,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
                                   action: SnackBarAction(
                                     label: 'Go to Cart',
-                                    textColor: Colors.white,
                                     onPressed: () {
                                       Navigator.push(
                                         context,
@@ -891,23 +557,22 @@ class _PetStoreScreenState extends State<PetStoreScreen> {
                               );
                             },
                             icon: Icon(
-                              isInCart ? Icons.check_rounded : Icons.add_shopping_cart_rounded,
+                              isInCart ? Icons.check : Icons.add_shopping_cart,
                               size: 14,
                             ),
                             label: Text(
                               isInCart ? 'Added' : 'Add to Cart',
                               style: const TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
                               ),
                             ),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.transparent,
+                              backgroundColor: isInCart ? Colors.green : Colors.blue,
                               foregroundColor: Colors.white,
-                              elevation: 0,
-                              padding: const EdgeInsets.symmetric(vertical: 8),
+                              padding: const EdgeInsets.symmetric(vertical: 6),
                               shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
+                                borderRadius: BorderRadius.circular(6),
                               ),
                             ),
                           ),
@@ -945,249 +610,157 @@ class FavoritesScreen extends StatelessWidget {
   const FavoritesScreen({super.key});
 
   Widget _buildImageWidget(String imageUrl) {
-    return StoreItemImageWidget(
+    try {
+      if (imageUrl.startsWith('data:image')) {
+        final base64Part = imageUrl.split(',').last;
+        final bytes = base64Part.isNotEmpty ? base64Decode(base64Part) : null;
+        if (bytes != null) {
+          return Image.memory(
+            bytes,
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) => Container(
+              color: Colors.grey[200],
+              child: const Icon(Icons.shopping_bag, size: 48),
+            ),
+          );
+        }
+      }
+    } catch (_) {}
+
+    return CachedNetworkImage(
       imageUrl: imageUrl,
-      width: double.infinity,
-      height: double.infinity,
+      fit: BoxFit.cover,
+      placeholder: (context, url) => Container(
+        color: Colors.grey[200],
+        child: const Center(
+          child: CircularProgressIndicator(),
+        ),
+      ),
+      errorWidget: (context, url, error) => Container(
+        color: Colors.grey[200],
+        child: const Icon(Icons.image_not_supported),
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: PetCareTheme.backgroundGradient,
-          ),
-        ),
-        child: Column(
-          children: [
-            _buildModernAppBar(context),
-            Expanded(child: _buildFavoritesContent()),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildModernAppBar(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: PetCareTheme.primaryGradient,
-        ),
-        borderRadius: BorderRadius.only(
-          bottomLeft: Radius.circular(24),
-          bottomRight: Radius.circular(24),
-        ),
-      ),
-      child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
-          child: Row(
-            children: [
-              IconButton(
-                onPressed: () => Navigator.pop(context),
-                icon: Icon(
-                  Icons.arrow_back_ios_rounded,
-                  color: PetCareTheme.primaryBeige,
-                  size: 24,
-                ),
-              ),
-              Expanded(
-                child: Text(
-                  'My Wishlist',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.w700,
-                    color: PetCareTheme.primaryBeige,
-                    letterSpacing: 0.5,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ),
-              Consumer2<StoreService, AuthService>(
-                builder: (context, storeService, authService, child) {
-                  final userId = authService.currentUserModel?.id ?? '';
-                  final hasFavorites = storeService.hasFavorites(userId);
-                  
-                  if (!hasFavorites) return const SizedBox.shrink();
-                  
-                  return PopupMenuButton<String>(
-                    icon: Icon(
-                      Icons.more_vert_rounded,
-                      color: PetCareTheme.primaryBeige,
-                      size: 24,
-                    ),
-                    onSelected: (value) async {
-                      if (value == 'add_all_to_cart') {
-                        await _addAllToCart(context, storeService, userId);
-                      } else if (value == 'order_all') {
-                        await _orderAllItems(context, storeService, userId);
-                      } else if (value == 'clear_all') {
-                        final confirmed = await showDialog<bool>(
-                          context: context,
-                          builder: (context) => AlertDialog(
-                            backgroundColor: PetCareTheme.cardWhite,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            title: Text(
-                              'Clear Wishlist',
-                              style: TextStyle(
-                                color: PetCareTheme.textDark,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            content: Text(
-                              'Are you sure you want to remove all items from your wishlist?',
-                              style: TextStyle(color: PetCareTheme.textLight),
-                            ),
-                            actions: [
-                              TextButton(
-                                onPressed: () => Navigator.pop(context, false),
-                                child: Text(
-                                  'Cancel',
-                                  style: TextStyle(color: PetCareTheme.textLight),
-                                ),
-                              ),
-                              Container(
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(colors: PetCareTheme.accentGradient),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: TextButton(
-                                  onPressed: () => Navigator.pop(context, true),
-                                  child: const Text(
-                                    'Clear All',
-                                    style: TextStyle(color: Colors.white),
-                                  ),
-                                ),
-                              ),
-                            ],
+      appBar: AppBar(
+        title: const Text('My Wishlist'),
+        actions: [
+          Consumer2<StoreService, AuthService>(
+            builder: (context, storeService, authService, child) {
+              final userId = authService.currentUserModel?.id ?? '';
+              final hasFavorites = storeService.hasFavorites(userId);
+              
+              if (!hasFavorites) return const SizedBox.shrink();
+              
+              return PopupMenuButton<String>(
+                onSelected: (value) async {
+                  if (value == 'add_all_to_cart') {
+                    await _addAllToCart(context, storeService, userId);
+                  } else if (value == 'order_all') {
+                    await _orderAllItems(context, storeService, userId);
+                  } else if (value == 'clear_all') {
+                    final confirmed = await showDialog<bool>(
+                      context: context,
+                      builder: (context) => AlertDialog(
+                        title: const Text('Clear Wishlist'),
+                        content: const Text('Are you sure you want to remove all items from your wishlist?'),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context, false),
+                            child: const Text('Cancel'),
                           ),
-                        );
-                        
-                        if (confirmed == true) {
-                          try {
-                            await storeService.clearAllFavorites(userId);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: const Text('Wishlist cleared successfully'),
-                                backgroundColor: PetCareTheme.softGreen,
-                                behavior: SnackBarBehavior.floating,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
-                            );
-                          } catch (e) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('Error clearing wishlist: ${e.toString()}'),
-                                backgroundColor: PetCareTheme.warmRed,
-                                behavior: SnackBarBehavior.floating,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
-                            );
-                          }
-                        }
-                      }
-                    },
-                    itemBuilder: (context) => [
-                      PopupMenuItem(
-                        value: 'add_all_to_cart',
-                        child: Row(
-                          children: [
-                            Icon(Icons.add_shopping_cart_rounded, color: PetCareTheme.softGreen),
-                            const SizedBox(width: 8),
-                            Text('Add All to Cart', style: TextStyle(color: PetCareTheme.textDark)),
-                          ],
-                        ),
-                      ),
-                      PopupMenuItem(
-                        value: 'order_all',
-                        child: Row(
-                          children: [
-                            Icon(Icons.shopping_bag_rounded, color: PetCareTheme.accentGold),
-                            const SizedBox(width: 8),
-                            Text('Order All', style: TextStyle(color: PetCareTheme.textDark)),
-                          ],
-                        ),
-                      ),
-                      const PopupMenuDivider(),
-                      PopupMenuItem(
-                        value: 'clear_all',
-                        child: Row(
-                          children: [
-                            Icon(Icons.clear_all_rounded, color: PetCareTheme.warmRed),
-                            const SizedBox(width: 8),
-                            Text('Clear All', style: TextStyle(color: PetCareTheme.warmRed)),
-                          ],
-                        ),
-                      ),
-                    ],
-                  );
-                },
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildFavoritesContent() {
-    return Consumer2<StoreService, AuthService>(
-      builder: (context, storeService, authService, child) {
-        final userId = authService.currentUserModel?.id ?? '';
-        final favoriteItems = storeService.getFavoriteItems(userId);
-
-        if (favoriteItems.isEmpty) {
-          return Center(
-            child: Container(
-              margin: const EdgeInsets.all(32),
-              padding: const EdgeInsets.all(40),
-              decoration: BoxDecoration(
-                color: PetCareTheme.cardWhite,
-                borderRadius: BorderRadius.circular(24),
-                boxShadow: [PetCareTheme.elevatedShadow],
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 100,
-                    height: 100,
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          PetCareTheme.primaryBrown.withOpacity( 0.1),
-                          PetCareTheme.lightBrown.withOpacity( 0.1),
+                          TextButton(
+                            onPressed: () => Navigator.pop(context, true),
+                            child: const Text('Clear All'),
+                          ),
                         ],
                       ),
-                      shape: BoxShape.circle,
+                    );
+                    
+                    if (confirmed == true) {
+                      try {
+                        await storeService.clearAllFavorites(userId);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Wishlist cleared successfully'),
+                            backgroundColor: Colors.green,
+                          ),
+                        );
+                      } catch (e) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Error clearing wishlist: ${e.toString()}'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                      }
+                    }
+                  }
+                },
+                itemBuilder: (context) => [
+                  const PopupMenuItem(
+                    value: 'add_all_to_cart',
+                    child: Row(
+                      children: [
+                        Icon(Icons.add_shopping_cart, color: Colors.blue),
+                        SizedBox(width: 8),
+                        Text('Add All to Cart'),
+                      ],
                     ),
-                    child: Icon(
-                      Icons.favorite_border_rounded,
-                      size: 50,
-                      color: PetCareTheme.primaryBrown.withOpacity( 0.6),
+                  ),
+                  const PopupMenuItem(
+                    value: 'order_all',
+                    child: Row(
+                      children: [
+                        Icon(Icons.shopping_bag, color: Colors.orange),
+                        SizedBox(width: 8),
+                        Text('Order All'),
+                      ],
                     ),
+                  ),
+                  const PopupMenuDivider(),
+                  const PopupMenuItem(
+                    value: 'clear_all',
+                    child: Row(
+                      children: [
+                        Icon(Icons.clear_all, color: Colors.red),
+                        SizedBox(width: 8),
+                        Text('Clear All'),
+                      ],
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+        ],
+      ),
+      body: Consumer2<StoreService, AuthService>(
+        builder: (context, storeService, authService, child) {
+          final userId = authService.currentUserModel?.id ?? '';
+          final favoriteItems = storeService.getFavoriteItems(userId);
+
+          if (favoriteItems.isEmpty) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.favorite_border, 
+                    size: 80, 
+                    color: Colors.grey[400],
                   ),
                   const SizedBox(height: 24),
                   Text(
                     'Your Wishlist is Empty',
                     style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w600,
-                      color: PetCareTheme.textDark,
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.grey[600],
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -1195,81 +768,47 @@ class FavoritesScreen extends StatelessWidget {
                     'Start adding items to your wishlist by tapping the heart icon on any product',
                     style: TextStyle(
                       fontSize: 16,
-                      color: PetCareTheme.textLight,
-                      height: 1.4,
+                      color: Colors.grey[500],
                     ),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 32),
-                  Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(colors: PetCareTheme.accentGradient),
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: PetCareTheme.shadowColor,
-                          blurRadius: 8,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: ElevatedButton.icon(
-                      onPressed: () {
-                        Navigator.pop(context);
-                      },
-                      icon: const Icon(Icons.shopping_bag_rounded),
-                      label: const Text('Browse Products'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.transparent,
-                        foregroundColor: Colors.white,
-                        elevation: 0,
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.pop(context);
+                    },
+                    icon: const Icon(Icons.shopping_bag),
+                    label: const Text('Browse Products'),
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                     ),
                   ),
                 ],
               ),
-            ),
-          );
-        }
-
-        return ListView.builder(
-          padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-          itemCount: favoriteItems.length,
-          itemBuilder: (context, index) {
-            final item = favoriteItems[index];
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 20),
-              child: _buildFavoriteItemCard(context, item, storeService, userId),
             );
-          },
-        );
-      },
+          }
+
+          return MasonryGridView.count(
+            crossAxisCount: 3,
+            padding: const EdgeInsets.all(12),
+            mainAxisSpacing: 12,
+            crossAxisSpacing: 12,
+            itemCount: favoriteItems.length,
+            itemBuilder: (context, index) {
+              final item = favoriteItems[index];
+              return _buildFavoriteItemCard(context, item, storeService, userId);
+            },
+          );
+        },
+      ),
     );
   }
 
   Widget _buildFavoriteItemCard(BuildContext context, StoreItemModel item, 
       StoreService storeService, String userId) {
-    return Container(
-      decoration: BoxDecoration(
-        color: PetCareTheme.cardWhite,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: PetCareTheme.primaryBrown.withOpacity( 0.1),
-          width: 1.5,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: PetCareTheme.shadowColor,
-            blurRadius: 15,
-            offset: const Offset(0, 8),
-            spreadRadius: 1,
-          ),
-        ],
-      ),
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: InkWell(
         onTap: () {
           storeService.trackItemClick(item.id, userId);
@@ -1280,32 +819,21 @@ class FavoritesScreen extends StatelessWidget {
             ),
           );
         },
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Stack(
               children: [
                 ClipRRect(
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
                   child: AspectRatio(
-                    aspectRatio: 1.2,
+                    aspectRatio: 1,
                     child: item.imageUrls.isNotEmpty
                         ? _buildImageWidget(item.imageUrls.first)
                         : Container(
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [
-                                  PetCareTheme.primaryBeige.withOpacity( 0.1),
-                                  PetCareTheme.lightBrown.withOpacity( 0.1),
-                                ],
-                              ),
-                            ),
-                            child: Icon(
-                              Icons.shopping_bag_rounded,
-                              size: 32,
-                              color: PetCareTheme.primaryBrown.withOpacity( 0.6),
-                            ),
+                            color: Colors.grey[200],
+                            child: const Icon(Icons.shopping_bag, size: 48),
                           ),
                   ),
                 ),
@@ -1355,38 +883,28 @@ class FavoritesScreen extends StatelessWidget {
               ],
             ),
             Padding(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.all(12),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     item.name,
-                    style: TextStyle(
-                      fontWeight: FontWeight.w800, 
-                      fontSize: 20,
-                      color: PetCareTheme.textDark,
-                      letterSpacing: 0.3,
-                    ),
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 4),
                   Text(
                     item.brand,
-                    style: TextStyle(
-                      color: PetCareTheme.textLight, 
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
+                    style: TextStyle(color: Colors.grey[600], fontSize: 12),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 8),
                   Text(
                     item.formattedPrice,
-                    style: TextStyle(
-                      fontWeight: FontWeight.w900,
-                      fontSize: 22,
-                      color: PetCareTheme.softGreen,
-                      letterSpacing: 0.2,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      color: Colors.green,
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -1420,18 +938,18 @@ class FavoritesScreen extends StatelessWidget {
                               },
                               icon: Icon(
                                 isInCart ? Icons.check : Icons.add_shopping_cart,
-                                size: 22,
+                                size: 16,
                               ),
                               label: Text(
                                 isInCart ? 'Added' : 'Add to Cart',
-                                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                                style: const TextStyle(fontSize: 12),
                               ),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: isInCart ? Colors.green : Colors.blue,
                                 foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+                                padding: const EdgeInsets.symmetric(vertical: 8),
                                 shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
+                                  borderRadius: BorderRadius.circular(8),
                                 ),
                               ),
                             );
@@ -1442,17 +960,17 @@ class FavoritesScreen extends StatelessWidget {
                       Expanded(
                         child: ElevatedButton.icon(
                           onPressed: () => _showOrderDialog(context, item),
-                          icon: const Icon(Icons.shopping_bag, size: 22),
+                          icon: const Icon(Icons.shopping_bag, size: 16),
                           label: const Text(
                             'Order Now',
-                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                            style: TextStyle(fontSize: 12),
                           ),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.orange,
                             foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+                            padding: const EdgeInsets.symmetric(vertical: 8),
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(8),
                             ),
                           ),
                         ),

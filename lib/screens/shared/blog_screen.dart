@@ -598,171 +598,166 @@ https://petcare.app/blog/${post.id}
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 12),
-                  Column(
+                  Row(
                     children: [
-                      // Author row
+                      CircleAvatar(
+                        radius: 12,
+                        child: Text(
+                          post.authorName.isNotEmpty ? post.authorName[0].toUpperCase() : 'A',
+                          style: const TextStyle(fontSize: 12),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        post.authorName,
+                        style: TextStyle(
+                          fontWeight: FontWeight.w500,
+                          color: Colors.grey[700],
+                        ),
+                      ),
+                      const Spacer(),
                       Row(
                         children: [
-                          CircleAvatar(
-                            radius: 12,
-                            child: Text(
-                              post.authorName.isNotEmpty ? post.authorName[0].toUpperCase() : 'A',
-                              style: const TextStyle(fontSize: 12),
+                          Icon(Icons.access_time, size: 14, color: Colors.grey[600]),
+                          const SizedBox(width: 4),
+                          Text(
+                            '${post.readTime} min read',
+                            style: TextStyle(
+                              color: Colors.grey[600],
+                              fontSize: 12,
                             ),
-                          ),
-                          const SizedBox(width: 8),
-                          Flexible(
-                            child: Text(
-                              post.authorName,
-                              style: TextStyle(
-                                fontWeight: FontWeight.w500,
-                                color: Colors.grey[700],
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          const Spacer(),
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.access_time, size: 14, color: Colors.grey[600]),
-                              const SizedBox(width: 4),
-                              Text(
-                                '${post.readTime} min',
-                                style: TextStyle(
-                                  color: Colors.grey[600],
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ],
                           ),
                         ],
                       ),
-                      const SizedBox(height: 8),
-                      // Stats and actions row
+                      const SizedBox(width: 16),
                       Row(
                         children: [
-                          // Views
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.visibility, size: 14, color: Colors.grey[600]),
-                              const SizedBox(width: 4),
-                              Text(
-                                post.viewCount.toString(),
-                                style: TextStyle(
-                                  color: Colors.grey[600],
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(width: 12),
-                          // Likes
-                          GestureDetector(
-                            onTap: () async {
-                              final auth = Provider.of<AuthService>(context, listen: false);
-                              final blogService = Provider.of<BlogService>(context, listen: false);
-                              final userId = auth.currentUserModel?.id;
-                              if (userId == null) {
-                                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please log in to like posts')));
-                                return;
-                              }
-                              try {
-                                await blogService.toggleLike(post.id, userId);
-                              } catch (_) {}
-                            },
-                            child: FutureBuilder<bool>(
-                              future: Provider.of<AuthService>(context, listen: false).currentUserModel == null
-                                  ? Future.value(false)
-                                  : Provider.of<BlogService>(context, listen: false)
-                                      .isPostLiked(post.id, Provider.of<AuthService>(context, listen: false).currentUserModel!.id),
-                              builder: (context, snapshot) {
-                                final isLiked = snapshot.data == true;
-                                return Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(
-                                      isLiked ? Icons.favorite : Icons.favorite_border,
-                                      size: 14,
-                                      color: isLiked ? Colors.red : Colors.grey[600],
-                                    ),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      post.likeCount.toString(),
-                                      style: TextStyle(
-                                        color: Colors.grey[600],
-                                        fontSize: 12,
-                                      ),
-                                    ),
-                                  ],
-                                );
-                              },
+                          Icon(Icons.visibility, size: 14, color: Colors.grey[600]),
+                          const SizedBox(width: 4),
+                          Text(
+                            post.viewCount.toString(),
+                            style: TextStyle(
+                              color: Colors.grey[600],
+                              fontSize: 12,
                             ),
                           ),
-                          const Spacer(),
-                          // Action buttons
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              // Bookmark
-                              Consumer2<BookmarkService, AuthService>(
-                                builder: (context, bookmarkService, authService, child) {
-                                  final userId = authService.currentUserModel?.id;
-                                  final isBookmarked = userId != null ? bookmarkService.isBookmarked(userId, post.id) : false;
-                                  
-                                  return GestureDetector(
-                                    onTap: () async {
-                                      if (userId == null) {
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          const SnackBar(content: Text('Please log in to bookmark articles')),
-                                        );
-                                        return;
-                                      }
-                                      
-                                      try {
-                                        if (isBookmarked) {
-                                          final success = await bookmarkService.removeBookmark(userId, post.id);
-                                          if (success) {
-                                            ScaffoldMessenger.of(context).showSnackBar(
-                                              const SnackBar(content: Text('Removed from bookmarks')),
-                                            );
-                                          }
-                                        } else {
-                                          final success = await bookmarkService.addBookmark(userId, post);
-                                          if (success) {
-                                            ScaffoldMessenger.of(context).showSnackBar(
-                                              const SnackBar(content: Text('Added to bookmarks')),
-                                            );
-                                          }
-                                        }
-                                      } catch (e) {
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          SnackBar(content: Text('Error: ${e.toString()}')),
-                                        );
-                                      }
-                                    },
-                                    child: Icon(
-                                      isBookmarked ? Icons.bookmark : Icons.bookmark_border,
-                                      size: 16,
-                                      color: isBookmarked ? Colors.red : Colors.grey[600],
-                                    ),
-                                  );
-                                },
-                              ),
-                              const SizedBox(width: 12),
-                              // Share
-                              GestureDetector(
-                                onTap: () => _showShareOptions(context, post),
-                                child: Icon(
-                                  Icons.share,
-                                  size: 16,
-                                  color: Colors.grey[600],
-                                ),
-                              ),
-                            ],
-                          ),
                         ],
+                      ),
+                      const SizedBox(width: 16),
+                      GestureDetector(
+                        onTap: () async {
+                          final auth = Provider.of<AuthService>(context, listen: false);
+                          final blogService = Provider.of<BlogService>(context, listen: false);
+                          final userId = auth.currentUserModel?.id;
+                          if (userId == null) {
+                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please log in to like posts')));
+                            return;
+                          }
+                          try {
+                            await blogService.toggleLike(post.id, userId);
+                          } catch (_) {}
+                        },
+                        child: FutureBuilder<bool>(
+                          future: Provider.of<AuthService>(context, listen: false).currentUserModel == null
+                              ? Future.value(false)
+                              : Provider.of<BlogService>(context, listen: false)
+                                  .isPostLiked(post.id, Provider.of<AuthService>(context, listen: false).currentUserModel!.id),
+                          builder: (context, snapshot) {
+                            final isLiked = snapshot.data == true;
+                            return Row(
+                              children: [
+                                Icon(
+                                  isLiked ? Icons.favorite : Icons.favorite_border,
+                                  size: 14,
+                                  color: isLiked ? Colors.red : Colors.grey[600],
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  post.likeCount.toString(),
+                                  style: TextStyle(
+                                    color: Colors.grey[600],
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
+                            );
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Consumer2<BookmarkService, AuthService>(
+                        builder: (context, bookmarkService, authService, child) {
+                          final userId = authService.currentUserModel?.id;
+                          final isBookmarked = userId != null ? bookmarkService.isBookmarked(userId, post.id) : false;
+                          
+                          debugPrint('Building bookmark icon for post ${post.id}, userId: $userId, isBookmarked: $isBookmarked');
+                          
+                          return GestureDetector(
+                            onTap: () async {
+                              debugPrint('Bookmark icon tapped for post ${post.id}');
+                              if (userId == null) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Please log in to bookmark articles')),
+                                );
+                                return;
+                              }
+                              
+                              try {
+                                if (isBookmarked) {
+                                  debugPrint('Removing bookmark for post ${post.id}');
+                                  final success = await bookmarkService.removeBookmark(userId, post.id);
+                                  if (success) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(content: Text('Removed from bookmarks')),
+                                    );
+                                  } else {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(content: Text('Failed to remove bookmark')),
+                                    );
+                                  }
+                                } else {
+                                  if (userId == null) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(content: Text('Please log in to bookmark posts')),
+                                    );
+                                    return;
+                                  }
+                                  
+                                  debugPrint('Adding bookmark for post ${post.id}');
+                                  final success = await bookmarkService.addBookmark(userId, post);
+                                  if (success) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(content: Text('Added to bookmarks')),
+                                    );
+                                  } else {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(content: Text('Failed to add bookmark')),
+                                    );
+                                  }
+                                }
+                              } catch (e) {
+                                debugPrint('Error in bookmark operation: $e');
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('Error: ${e.toString()}')),
+                                );
+                              }
+                            },
+                            child: Icon(
+                              isBookmarked ? Icons.bookmark : Icons.bookmark_border,
+                              size: 14,
+                              color: isBookmarked ? Colors.red : Colors.grey[600],
+                            ),
+                          );
+                        },
+                      ),
+                      const SizedBox(width: 16),
+                      GestureDetector(
+                        onTap: () => _showShareOptions(context, post),
+                        child: Icon(
+                          Icons.share,
+                          size: 14,
+                          color: Colors.grey[600],
+                        ),
                       ),
                     ],
                   ),

@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
@@ -7,7 +6,6 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import '../../models/pet_model.dart';
 import '../../services/auth_service.dart';
 import '../../services/pet_service.dart';
-import '../../utils/image_utils.dart';
 
 class AddPetScreen extends StatefulWidget {
   const AddPetScreen({super.key});
@@ -431,28 +429,14 @@ class _AddPetScreenState extends State<AddPetScreen> {
         final authService = Provider.of<AuthService>(context, listen: false);
         final petService = Provider.of<PetService>(context, listen: false);
 
-        // Convert images to base64 using the new method
+        // Upload images first
         List<String> photoUrls = [];
         for (File image in _selectedImages) {
-          try {
-            // Convert File to XFile for base64 conversion
-            final xFile = XFile(image.path);
-            final base64DataUrl = await petService.uploadPetPhotoFromXFile(xFile, DateTime.now().millisecondsSinceEpoch.toString());
-            if (base64DataUrl != null && base64DataUrl.isNotEmpty) {
-              photoUrls.add(base64DataUrl);
-              print('✅ Converted image to base64: ${base64DataUrl.substring(0, 50)}...');
-            }
-          } catch (e) {
-            print('❌ Error converting image to base64: $e');
-            // Fallback to Firebase Storage upload
-            final url = await petService.uploadPetPhoto(image, DateTime.now().millisecondsSinceEpoch.toString());
-            if (url != null) {
-              photoUrls.add(url);
-            }
+          final url = await petService.uploadPetPhoto(image, DateTime.now().millisecondsSinceEpoch.toString());
+          if (url != null) {
+            photoUrls.add(url);
           }
         }
-
-        print('📸 Total photo URLs prepared: ${photoUrls.length}');
 
         // Create pet model
         final pet = PetModel(
@@ -473,12 +457,9 @@ class _AddPetScreenState extends State<AddPetScreen> {
           updatedAt: DateTime.now(),
         );
 
-        print('🐕 Creating pet: ${pet.name} with ${pet.photoUrls.length} photos');
-
         final petId = await petService.addPet(pet);
 
         if (petId != null) {
-          print('✅ Pet created successfully with ID: $petId');
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Pet added successfully!'),
@@ -490,7 +471,6 @@ class _AddPetScreenState extends State<AddPetScreen> {
           throw Exception('Failed to add pet');
         }
       } catch (e) {
-        print('❌ Error saving pet: $e');
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error adding pet: $e'),

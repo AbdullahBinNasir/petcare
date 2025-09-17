@@ -5,7 +5,6 @@ import '../../models/pet_model.dart';
 import '../../services/auth_service.dart';
 import '../../services/appointment_service.dart';
 import '../../services/pet_service.dart';
-import '../../theme/pet_care_theme.dart';
 import 'book_appointment_screen.dart';
 
 class AppointmentsScreen extends StatefulWidget {
@@ -83,166 +82,26 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> with SingleTick
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: PetCareTheme.backgroundGradient,
-          ),
-        ),
-        child: Column(
-          children: [
-            _buildModernAppBar(),
-            Expanded(
-              child: _isLoading
-                  ? _buildLoadingState()
-                  : TabBarView(
-                      controller: _tabController,
-                      children: [
-                        _buildUpcomingTab(),
-                        _buildPastTab(),
-                      ],
-                    ),
-            ),
+      appBar: AppBar(
+        title: const Text('Appointments'),
+        bottom: TabBar(
+          controller: _tabController,
+          tabs: const [
+            Tab(text: 'Upcoming'),
+            Tab(text: 'Past'),
           ],
         ),
       ),
-      floatingActionButton: _buildModernFAB(),
-    );
-  }
-
-  Widget _buildModernAppBar() {
-    return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: PetCareTheme.primaryGradient,
-        ),
-        borderRadius: BorderRadius.only(
-          bottomLeft: Radius.circular(24),
-          bottomRight: Radius.circular(24),
-        ),
-      ),
-      child: SafeArea(
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-              child: Row(
-                children: [
-                  IconButton(
-                    onPressed: () => Navigator.pop(context),
-                    icon: Icon(
-                      Icons.arrow_back_ios_rounded,
-                      color: PetCareTheme.primaryBeige,
-                      size: 24,
-                    ),
-                  ),
-                  Expanded(
-                    child: Text(
-                      'Appointments',
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.w700,
-                        color: PetCareTheme.primaryBeige,
-                        letterSpacing: 0.5,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                  IconButton(
-                    onPressed: () => _loadAppointments(),
-                    icon: Icon(
-                      Icons.refresh_rounded,
-                      color: PetCareTheme.primaryBeige,
-                      size: 24,
-                    ),
-                  ),
-                ],
-              ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : TabBarView(
+              controller: _tabController,
+              children: [
+                _buildUpcomingTab(),
+                _buildPastTab(),
+              ],
             ),
-            Container(
-              margin: const EdgeInsets.symmetric(horizontal: 20),
-              decoration: BoxDecoration(
-                color: PetCareTheme.primaryBeige.withOpacity( 0.15),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: TabBar(
-                controller: _tabController,
-                indicator: BoxDecoration(
-                  color: PetCareTheme.primaryBeige,
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                labelColor: PetCareTheme.primaryBrown,
-                unselectedLabelColor: PetCareTheme.primaryBeige.withOpacity( 0.7),
-                labelStyle: const TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 16,
-                ),
-                unselectedLabelStyle: const TextStyle(
-                  fontWeight: FontWeight.w500,
-                  fontSize: 16,
-                ),
-                tabs: const [
-                  Tab(text: 'Upcoming'),
-                  Tab(text: 'Past'),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildLoadingState() {
-    return Center(
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: PetCareTheme.cardWhite.withOpacity( 0.8),
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation<Color>(PetCareTheme.primaryBrown),
-              strokeWidth: 3,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Loading Appointments...',
-              style: TextStyle(
-                color: PetCareTheme.primaryBrown,
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildModernFAB() {
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(colors: PetCareTheme.accentGradient),
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: PetCareTheme.shadowColor,
-            blurRadius: 20,
-            offset: const Offset(0, 10),
-            spreadRadius: 2,
-          ),
-        ],
-      ),
-      child: FloatingActionButton.extended(
+      floatingActionButton: FloatingActionButton.extended(
         onPressed: () async {
           final result = await Navigator.push(
             context,
@@ -254,21 +113,8 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> with SingleTick
             _loadAppointments();
           }
         },
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        icon: const Icon(
-          Icons.add_rounded,
-          color: Colors.white,
-          size: 24,
-        ),
-        label: const Text(
-          'Book Appointment',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.w600,
-            fontSize: 16,
-          ),
-        ),
+        icon: const Icon(Icons.add),
+        label: const Text('Book Appointment'),
       ),
     );
   }
@@ -276,91 +122,53 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> with SingleTick
   Widget _buildUpcomingTab() {
     if (_upcomingAppointments.isEmpty) {
       return Center(
-        child: Container(
-          margin: const EdgeInsets.all(32),
-          padding: const EdgeInsets.all(40),
-          decoration: BoxDecoration(
-            color: PetCareTheme.cardWhite,
-            borderRadius: BorderRadius.circular(24),
-            boxShadow: [PetCareTheme.elevatedShadow],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 100,
-                height: 100,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      PetCareTheme.primaryBrown.withOpacity( 0.1),
-                      PetCareTheme.lightBrown.withOpacity( 0.1),
-                    ],
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.calendar_today,
+              size: 64,
+              color: Colors.grey[400],
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'No Upcoming Appointments',
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                color: Colors.grey[600],
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Book your first appointment to get started',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Colors.grey[600],
+              ),
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              onPressed: () async {
+                final result = await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const BookAppointmentScreen(),
                   ),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  Icons.calendar_today_rounded,
-                  size: 50,
-                  color: PetCareTheme.primaryBrown.withOpacity( 0.6),
-                ),
-              ),
-              const SizedBox(height: 24),
-              Text(
-                'No Upcoming Appointments',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w600,
-                  color: PetCareTheme.textDark,
-                ),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                'Book your first appointment to get started with your pet\'s health care',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: PetCareTheme.textLight,
-                  height: 1.4,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 28),
-              ElevatedButton.icon(
-                onPressed: () async {
-                  final result = await Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const BookAppointmentScreen(),
-                    ),
-                  );
-                  if (result == true) {
-                    _loadAppointments();
-                  }
-                },
-                icon: const Icon(Icons.add_rounded),
-                label: const Text('Book Appointment'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: PetCareTheme.primaryBrown,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  elevation: 3,
-                ),
-              ),
-            ],
-          ),
+                );
+                if (result == true) {
+                  _loadAppointments();
+                }
+              },
+              icon: const Icon(Icons.add),
+              label: const Text('Book Appointment'),
+            ),
+          ],
         ),
       );
     }
 
     return RefreshIndicator(
       onRefresh: _loadAppointments,
-      color: PetCareTheme.primaryBrown,
-      backgroundColor: PetCareTheme.cardWhite,
       child: ListView.builder(
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 100),
+        padding: const EdgeInsets.all(16),
         itemCount: _upcomingAppointments.length,
         itemBuilder: (context, index) {
           final appointment = _upcomingAppointments[index];
@@ -374,66 +182,37 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> with SingleTick
   Widget _buildPastTab() {
     if (_pastAppointments.isEmpty) {
       return Center(
-        child: Container(
-          margin: const EdgeInsets.all(32),
-          padding: const EdgeInsets.all(40),
-          decoration: BoxDecoration(
-            color: PetCareTheme.cardWhite,
-            borderRadius: BorderRadius.circular(24),
-            boxShadow: [PetCareTheme.elevatedShadow],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 100,
-                height: 100,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      PetCareTheme.lightBrown.withOpacity( 0.1),
-                      PetCareTheme.warmPurple.withOpacity( 0.1),
-                    ],
-                  ),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  Icons.history_rounded,
-                  size: 50,
-                  color: PetCareTheme.lightBrown.withOpacity( 0.6),
-                ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.history,
+              size: 64,
+              color: Colors.grey[400],
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'No Past Appointments',
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                color: Colors.grey[600],
               ),
-              const SizedBox(height: 24),
-              Text(
-                'No Past Appointments',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w600,
-                  color: PetCareTheme.textDark,
-                ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Your appointment history will appear here',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Colors.grey[600],
               ),
-              const SizedBox(height: 12),
-              Text(
-                'Your appointment history will appear here once you have completed appointments',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: PetCareTheme.textLight,
-                  height: 1.4,
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       );
     }
 
     return RefreshIndicator(
       onRefresh: _loadAppointments,
-      color: PetCareTheme.primaryBrown,
-      backgroundColor: PetCareTheme.cardWhite,
       child: ListView.builder(
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 100),
+        padding: const EdgeInsets.all(16),
         itemCount: _pastAppointments.length,
         itemBuilder: (context, index) {
           final appointment = _pastAppointments[index];
@@ -445,230 +224,112 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> with SingleTick
   }
 
   Widget _buildAppointmentCard(AppointmentModel appointment, PetModel? pet, bool isUpcoming) {
-    final statusColor = _getStatusColor(appointment.status);
-    final statusIcon = _getStatusIcon(appointment.status);
-    
-    return Container(
-      margin: const EdgeInsets.only(bottom: 20),
-      decoration: BoxDecoration(
-        color: PetCareTheme.cardWhite,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: statusColor.withOpacity( 0.2),
-          width: 1.5,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: PetCareTheme.shadowColor,
-            blurRadius: 15,
-            offset: const Offset(0, 8),
-            spreadRadius: 1,
-          ),
-          BoxShadow(
-            color: statusColor.withOpacity( 0.1),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
+    return Card(
+      margin: const EdgeInsets.only(bottom: 16),
       child: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header with pet info and status
             Row(
               children: [
-                Container(
-                  width: 50,
-                  height: 50,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        statusColor.withOpacity( 0.1),
-                        statusColor.withOpacity( 0.05),
-                      ],
-                    ),
-                    shape: BoxShape.circle,
-                  ),
+                CircleAvatar(
+                  backgroundColor: _getStatusColor(appointment.status).withOpacity(0.1),
                   child: Icon(
-                    statusIcon,
-                    color: statusColor,
-                    size: 24,
+                    Icons.pets,
+                    color: _getStatusColor(appointment.status),
                   ),
                 ),
-                const SizedBox(width: 16),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         pet?.name ?? 'Unknown Pet',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                          color: PetCareTheme.textDark,
-                          letterSpacing: 0.3,
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
-                      const SizedBox(height: 4),
                       Text(
                         _getAppointmentTypeName(appointment.type),
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: PetCareTheme.textLight,
-                          fontWeight: FontWeight.w500,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Colors.grey[600],
                         ),
                       ),
                     ],
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: statusColor.withOpacity( 0.1),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: statusColor.withOpacity( 0.3),
-                      width: 1,
-                    ),
+                    color: _getStatusColor(appointment.status).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
                     _getStatusName(appointment.status),
                     style: TextStyle(
-                      color: statusColor,
+                      color: _getStatusColor(appointment.status),
                       fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 0.2,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 20),
-            
-            // Date and time info
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: PetCareTheme.primaryBeige.withOpacity( 0.1),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: PetCareTheme.primaryBeige.withOpacity( 0.2),
-                  width: 1,
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Icon(Icons.calendar_today, size: 16, color: Colors.grey[600]),
+                const SizedBox(width: 8),
+                Text(
+                  _formatDate(appointment.appointmentDate),
+                  style: Theme.of(context).textTheme.bodyMedium,
                 ),
-              ),
-              child: Row(
+                const SizedBox(width: 16),
+                Icon(Icons.access_time, size: 16, color: Colors.grey[600]),
+                const SizedBox(width: 8),
+                Text(
+                  appointment.timeSlot,
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+              ],
+            ),
+            if (appointment.reason.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(
-                    Icons.calendar_today_rounded,
-                    size: 18,
-                    color: PetCareTheme.primaryBrown,
-                  ),
-                  const SizedBox(width: 12),
-                  Text(
-                    _formatDate(appointment.appointmentDate),
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: PetCareTheme.textDark,
-                    ),
-                  ),
-                  const SizedBox(width: 24),
-                  Icon(
-                    Icons.access_time_rounded,
-                    size: 18,
-                    color: PetCareTheme.primaryBrown,
-                  ),
-                  const SizedBox(width: 12),
-                  Text(
-                    appointment.timeSlot,
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: PetCareTheme.textDark,
+                  Icon(Icons.description, size: 16, color: Colors.grey[600]),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      appointment.reason,
+                      style: Theme.of(context).textTheme.bodyMedium,
                     ),
                   ),
                 ],
               ),
-            ),
-            
-            // Reason if available
-            if (appointment.reason.isNotEmpty) ...[
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: PetCareTheme.lightBrown.withOpacity( 0.05),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: PetCareTheme.lightBrown.withOpacity( 0.1),
-                    width: 1,
-                  ),
-                ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Icon(
-                      Icons.description_rounded,
-                      size: 18,
-                      color: PetCareTheme.lightBrown,
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        appointment.reason,
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: PetCareTheme.textLight,
-                          height: 1.4,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
             ],
-            
-            // Action buttons for upcoming appointments
             if (isUpcoming && appointment.status == AppointmentStatus.scheduled) ...[
-              const SizedBox(height: 20),
+              const SizedBox(height: 16),
               Row(
                 children: [
                   Expanded(
                     child: OutlinedButton.icon(
                       onPressed: () => _rescheduleAppointment(appointment),
-                      icon: const Icon(Icons.edit_calendar_rounded, size: 18),
+                      icon: const Icon(Icons.edit_calendar),
                       label: const Text('Reschedule'),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: PetCareTheme.primaryBrown,
-                        side: BorderSide(
-                          color: PetCareTheme.primaryBrown.withOpacity( 0.3),
-                          width: 1.5,
-                        ),
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
                     ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: OutlinedButton.icon(
                       onPressed: () => _cancelAppointment(appointment),
-                      icon: const Icon(Icons.cancel_rounded, size: 18),
+                      icon: const Icon(Icons.cancel),
                       label: const Text('Cancel'),
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: Colors.red[600],
-                        side: BorderSide(
-                          color: Colors.red[300]!,
-                          width: 1.5,
-                        ),
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
+                        foregroundColor: Colors.red,
                       ),
                     ),
                   ),
@@ -684,34 +345,17 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> with SingleTick
   Color _getStatusColor(AppointmentStatus status) {
     switch (status) {
       case AppointmentStatus.scheduled:
-        return PetCareTheme.accentGold;
+        return Colors.blue;
       case AppointmentStatus.confirmed:
-        return PetCareTheme.softGreen;
+        return Colors.green;
       case AppointmentStatus.inProgress:
-        return PetCareTheme.warmRed;
+        return Colors.orange;
       case AppointmentStatus.completed:
-        return PetCareTheme.softGreen.withOpacity( 0.8);
+        return Colors.teal;
       case AppointmentStatus.cancelled:
-        return PetCareTheme.warmRed.withOpacity( 0.7);
+        return Colors.red;
       case AppointmentStatus.noShow:
-        return PetCareTheme.darkBrown;
-    }
-  }
-
-  IconData _getStatusIcon(AppointmentStatus status) {
-    switch (status) {
-      case AppointmentStatus.scheduled:
-        return Icons.schedule_rounded;
-      case AppointmentStatus.confirmed:
-        return Icons.check_circle_rounded;
-      case AppointmentStatus.inProgress:
-        return Icons.hourglass_bottom_rounded;
-      case AppointmentStatus.completed:
-        return Icons.task_alt_rounded;
-      case AppointmentStatus.cancelled:
-        return Icons.cancel_rounded;
-      case AppointmentStatus.noShow:
-        return Icons.person_off_rounded;
+        return Colors.grey;
     }
   }
 
@@ -768,13 +412,8 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> with SingleTick
   Future<void> _rescheduleAppointment(AppointmentModel appointment) async {
     // TODO: Implement reschedule functionality
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text('Reschedule feature coming soon!'),
-        backgroundColor: PetCareTheme.primaryBrown,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
+      const SnackBar(
+        content: Text('Reschedule feature coming soon!'),
       ),
     );
   }
@@ -804,25 +443,17 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> with SingleTick
 
       if (success) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Appointment cancelled successfully'),
-            backgroundColor: PetCareTheme.softGreen,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
+          const SnackBar(
+            content: Text('Appointment cancelled successfully'),
+            backgroundColor: Colors.green,
           ),
         );
         _loadAppointments();
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Failed to cancel appointment'),
-            backgroundColor: PetCareTheme.warmRed,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
+          const SnackBar(
+            content: Text('Failed to cancel appointment'),
+            backgroundColor: Colors.red,
           ),
         );
       }

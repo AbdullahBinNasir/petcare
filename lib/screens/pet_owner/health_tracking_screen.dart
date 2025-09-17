@@ -5,7 +5,6 @@ import '../../models/pet_model.dart';
 import '../../services/auth_service.dart';
 import '../../services/health_record_service.dart';
 import '../../services/pet_service.dart';
-import '../../theme/pet_care_theme.dart';
 import 'add_health_record_screen.dart';
 
 class HealthTrackingScreen extends StatefulWidget {
@@ -25,6 +24,8 @@ class _HealthTrackingScreenState extends State<HealthTrackingScreen> with Single
   Map<String, PetModel> _pets = {};
   PetModel? _selectedPet;
   bool _isLoading = true;
+  String _searchQuery = '';
+  String _debugInfo = '';
 
   @override
   void initState() {
@@ -42,6 +43,7 @@ class _HealthTrackingScreenState extends State<HealthTrackingScreen> with Single
   Future<void> _loadData() async {
     setState(() {
       _isLoading = true;
+      _debugInfo = 'Starting data load...';
     });
 
     try {
@@ -52,18 +54,28 @@ class _HealthTrackingScreenState extends State<HealthTrackingScreen> with Single
       
       if (authService.currentUserModel == null) {
         setState(() {
+          _debugInfo = 'No authenticated user found';
           _isLoading = false;
         });
         return;
       }
 
+      setState(() {
+        _debugInfo = 'Loading pets for user: ${authService.currentUserModel!.id}';
+      });
+
       final pets = await petService.getPetsByOwnerId(authService.currentUserModel!.id);
       debugPrint('HealthTrackingScreen: Found ${pets.length} pets');
+      
+      setState(() {
+        _debugInfo = 'Found ${pets.length} pets';
+      });
 
       if (pets.isEmpty) {
         setState(() {
           _pets = {};
           _selectedPet = null;
+          _debugInfo = 'No pets found for this user';
           _isLoading = false;
         });
         return;
@@ -78,6 +90,7 @@ class _HealthTrackingScreenState extends State<HealthTrackingScreen> with Single
       setState(() {
         _pets = petsMap;
         _selectedPet = pets.first;
+        _debugInfo = 'Selected pet: ${pets.first.name} (${pets.first.id})';
       });
 
       // Load records for the selected pet
@@ -86,6 +99,7 @@ class _HealthTrackingScreenState extends State<HealthTrackingScreen> with Single
     } catch (e) {
       debugPrint('HealthTrackingScreen: Error in _loadData: $e');
       setState(() {
+        _debugInfo = 'Error loading data: $e';
         _isLoading = false;
       });
     }
@@ -94,6 +108,7 @@ class _HealthTrackingScreenState extends State<HealthTrackingScreen> with Single
   Future<void> _loadRecordsForPet(String petId) async {
     setState(() {
       _isLoading = true;
+      _debugInfo = 'Loading records for pet: $petId';
     });
 
     try {
@@ -103,10 +118,17 @@ class _HealthTrackingScreenState extends State<HealthTrackingScreen> with Single
       final allRecords = await healthService.getHealthRecordsByPetId(petId);
       debugPrint('HealthTrackingScreen: Retrieved ${allRecords.length} records');
 
+      // Log each record
+      for (int i = 0; i < allRecords.length; i++) {
+        final record = allRecords[i];
+        debugPrint('Record $i: ${record.title} - Type: ${record.type} - Pet: ${record.petId}');
+      }
+
       // Filter records
       final vaccinationRecords = allRecords.where((r) => r.type == HealthRecordType.vaccination).toList();
       final medicationRecords = allRecords.where((r) => r.type == HealthRecordType.medication).toList();
       final allergyRecords = allRecords.where((r) => r.type == HealthRecordType.allergy).toList();
+      final checkupRecords = allRecords.where((r) => r.type == HealthRecordType.checkup).toList();
 
       // Calculate upcoming reminders
       final now = DateTime.now();
@@ -123,6 +145,7 @@ class _HealthTrackingScreenState extends State<HealthTrackingScreen> with Single
         _allergyRecords = allergyRecords;
         _upcomingReminders = upcomingReminders;
         _isLoading = false;
+        _debugInfo = 'Loaded ${allRecords.length} records (${vaccinationRecords.length} vaccinations, ${medicationRecords.length} medications, ${allergyRecords.length} allergies, ${checkupRecords.length} checkups)';
       });
 
       debugPrint('HealthTrackingScreen: State updated with ${_allRecords.length} records');
@@ -130,6 +153,7 @@ class _HealthTrackingScreenState extends State<HealthTrackingScreen> with Single
     } catch (e) {
       debugPrint('HealthTrackingScreen: Error loading records: $e');
       setState(() {
+        _debugInfo = 'Error loading records: $e';
         _isLoading = false;
       });
 
@@ -137,11 +161,7 @@ class _HealthTrackingScreenState extends State<HealthTrackingScreen> with Single
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Failed to load health records: $e'),
-            backgroundColor: PetCareTheme.warmRed,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
+            backgroundColor: Colors.red,
             action: SnackBarAction(
               label: 'Retry',
               textColor: Colors.white,
@@ -156,419 +176,150 @@ class _HealthTrackingScreenState extends State<HealthTrackingScreen> with Single
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: PetCareTheme.backgroundGradient,
-          ),
-        ),
-        child: Column(
-          children: [
-            _buildModernAppBar(),
-            Expanded(
-              child: _isLoading
-                  ? _buildLoadingState()
-                  : Column(
-                      children: [
-                        // Pet Selector
-                        if (_pets.isNotEmpty) _buildPetSelector(),
-                        
-                        // Content
-                        Expanded(
-                          child: _pets.isEmpty
-                              ? _buildNoPetsView()
-                              : TabBarView(
-                                  controller: _tabController,
-                                  children: [
-                                    _buildOverviewTab(),
-                                    _buildRecordsList(_vaccinationRecords, 'No vaccination records'),
-                                    _buildRecordsList(_dewormingRecords, 'No medication records'),
-                                    _buildRecordsList(_allergyRecords, 'No allergy records'),
-                                    _buildRecordsList(_upcomingReminders, 'No upcoming reminders'),
-                                  ],
-                                ),
-                        ),
-                      ],
-                    ),
-            ),
-          ],
-        ),
-      ),
-      floatingActionButton: _selectedPet != null ? _buildModernFAB() : null,
-    );
-  }
-
-  Widget _buildModernAppBar() {
-    return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: PetCareTheme.primaryGradient,
-        ),
-        borderRadius: BorderRadius.only(
-          bottomLeft: Radius.circular(24),
-          bottomRight: Radius.circular(24),
-        ),
-      ),
-      child: SafeArea(
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-              child: Row(
-                children: [
-                  IconButton(
-                    onPressed: () => Navigator.pop(context),
-                    icon: Icon(
-                      Icons.arrow_back_ios_rounded,
-                      color: PetCareTheme.primaryBeige,
-                      size: 24,
-                    ),
-                  ),
-                  Expanded(
-                    child: Text(
-                      'Health Tracking',
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.w700,
-                        color: PetCareTheme.primaryBeige,
-                        letterSpacing: 0.5,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                  IconButton(
-                    onPressed: () => _loadData(),
-                    icon: Icon(
-                      Icons.refresh_rounded,
-                      color: PetCareTheme.primaryBeige,
-                      size: 24,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Container(
-              margin: const EdgeInsets.symmetric(horizontal: 20),
-              decoration: BoxDecoration(
-                color: PetCareTheme.primaryBeige.withOpacity( 0.15),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: TabBar(
-                controller: _tabController,
-                isScrollable: true,
-                tabAlignment: TabAlignment.start,
-                indicator: BoxDecoration(
-                  color: PetCareTheme.primaryBeige,
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                labelColor: PetCareTheme.primaryBrown,
-                unselectedLabelColor: PetCareTheme.primaryBeige.withOpacity( 0.7),
-                labelStyle: const TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 12,
-                ),
-                unselectedLabelStyle: const TextStyle(
-                  fontWeight: FontWeight.w500,
-                  fontSize: 12,
-                ),
-                tabs: [
-                  Tab(
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(Icons.dashboard_rounded, size: 16),
-                          const SizedBox(width: 4),
-                          Flexible(
-                            child: Text(
-                              'Overview (${_allRecords.length})',
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  Tab(
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(Icons.vaccines_rounded, size: 16),
-                          const SizedBox(width: 4),
-                          Flexible(
-                            child: Text(
-                              'Vaccines (${_vaccinationRecords.length})',
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  Tab(
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(Icons.medication_rounded, size: 16),
-                          const SizedBox(width: 4),
-                          Flexible(
-                            child: Text(
-                              'Medications (${_dewormingRecords.length})',
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  Tab(
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(Icons.warning_rounded, size: 16),
-                          const SizedBox(width: 4),
-                          Flexible(
-                            child: Text(
-                              'Allergies (${_allergyRecords.length})',
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  Tab(
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(Icons.notifications_rounded, size: 16),
-                          const SizedBox(width: 4),
-                          Flexible(
-                            child: Text(
-                              'Reminders (${_upcomingReminders.length})',
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildLoadingState() {
-    return Center(
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: PetCareTheme.cardWhite.withOpacity( 0.8),
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation<Color>(PetCareTheme.primaryBrown),
-              strokeWidth: 3,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Loading Health Records...',
-              style: TextStyle(
-                color: PetCareTheme.primaryBrown,
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildModernFAB() {
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(colors: PetCareTheme.accentGradient),
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: PetCareTheme.shadowColor,
-            blurRadius: 20,
-            offset: const Offset(0, 10),
-            spreadRadius: 2,
+      appBar: AppBar(
+        title: const Text('Health Tracking'),
+        backgroundColor: Theme.of(context).colorScheme.primary,
+        foregroundColor: Colors.white,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _loadData,
+            tooltip: 'Refresh',
           ),
         ],
+        bottom: TabBar(
+          controller: _tabController,
+          isScrollable: true,
+          tabs: [
+            Tab(text: 'Overview (${_allRecords.length})', icon: const Icon(Icons.dashboard)),
+            Tab(text: 'Vaccinations (${_vaccinationRecords.length})', icon: const Icon(Icons.vaccines)),
+            Tab(text: 'Medications (${_dewormingRecords.length})', icon: const Icon(Icons.medication)),
+            Tab(text: 'Allergies (${_allergyRecords.length})', icon: const Icon(Icons.warning)),
+            Tab(text: 'Reminders (${_upcomingReminders.length})', icon: const Icon(Icons.notifications)),
+          ],
+        ),
       ),
-      child: FloatingActionButton.extended(
-        onPressed: () async {
-          final result = await Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => AddHealthRecordScreen(petId: _selectedPet!.id),
+      body: _isLoading
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const CircularProgressIndicator(),
+                  const SizedBox(height: 16),
+                  Text('Loading...'),
+                  const SizedBox(height: 8),
+                  Text(
+                    _debugInfo,
+                    style: const TextStyle(fontSize: 12, color: Colors.grey),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            )
+          : Column(
+              children: [
+                // Debug Info Panel
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  color: Colors.blue.withOpacity(0.1),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'DEBUG INFO',
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                      ),
+                      const SizedBox(height: 8),
+                      Text('Status: $_debugInfo'),
+                      Text('Pets Available: ${_pets.length}'),
+                      if (_selectedPet != null)
+                        Text('Selected Pet: ${_selectedPet!.name} (ID: ${_selectedPet!.id})'),
+                      Text('Total Records: ${_allRecords.length}'),
+                      Text('Vaccinations: ${_vaccinationRecords.length}'),
+                      Text('Medications: ${_dewormingRecords.length}'),
+                      Text('Allergies: ${_allergyRecords.length}'),
+                      Text('Reminders: ${_upcomingReminders.length}'),
+                    ],
+                  ),
+                ),
+                
+                // Pet Selector
+                if (_pets.isNotEmpty) _buildPetSelector(),
+                
+                // Content
+                Expanded(
+                  child: _pets.isEmpty
+                      ? _buildNoPetsView()
+                      : TabBarView(
+                          controller: _tabController,
+                          children: [
+                            _buildOverviewTab(),
+                            _buildRecordsList(_vaccinationRecords, 'No vaccination records'),
+                            _buildRecordsList(_dewormingRecords, 'No medication records'),
+                            _buildRecordsList(_allergyRecords, 'No allergy records'),
+                            _buildRecordsList(_upcomingReminders, 'No upcoming reminders'),
+                          ],
+                        ),
+                ),
+              ],
             ),
-          );
-          if (result == true && _selectedPet != null) {
-            await _loadRecordsForPet(_selectedPet!.id);
-          }
-        },
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        icon: const Icon(
-          Icons.add_rounded,
-          color: Colors.white,
-          size: 24,
-        ),
-        label: const Text(
-          'Add Record',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.w600,
-            fontSize: 16,
-          ),
-        ),
-      ),
+      floatingActionButton: _selectedPet != null
+          ? FloatingActionButton.extended(
+              onPressed: () async {
+                final result = await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => AddHealthRecordScreen(petId: _selectedPet!.id),
+                  ),
+                );
+                if (result == true && _selectedPet != null) {
+                  await _loadRecordsForPet(_selectedPet!.id);
+                }
+              },
+              icon: const Icon(Icons.add),
+              label: const Text('Add Record'),
+            )
+          : null,
     );
   }
 
   Widget _buildNoPetsView() {
     return Center(
-      child: Container(
-        margin: const EdgeInsets.all(32),
-        padding: const EdgeInsets.all(40),
-        decoration: BoxDecoration(
-          color: PetCareTheme.cardWhite,
-          borderRadius: BorderRadius.circular(24),
-          boxShadow: [PetCareTheme.elevatedShadow],
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 100,
-              height: 100,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    PetCareTheme.primaryBrown.withOpacity( 0.1),
-                    PetCareTheme.lightBrown.withOpacity( 0.1),
-                  ],
-                ),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                Icons.pets_rounded,
-                size: 50,
-                color: PetCareTheme.primaryBrown.withOpacity( 0.6),
-              ),
-            ),
-            const SizedBox(height: 24),
-            Text(
-              'No Pets Found',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w600,
-                color: PetCareTheme.textDark,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              'Please add a pet first to start tracking health records',
-              style: TextStyle(
-                fontSize: 16,
-                color: PetCareTheme.textLight,
-                height: 1.4,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.pets, size: 64, color: Colors.grey[400]),
+          const SizedBox(height: 16),
+          const Text(
+            'No Pets Found',
+            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Please add a pet first to start tracking health records',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 16, color: Colors.grey),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildPetSelector() {
     return Container(
-      margin: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-      decoration: BoxDecoration(
-        color: PetCareTheme.cardWhite,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [PetCareTheme.elevatedShadow],
-        border: Border.all(
-          color: PetCareTheme.primaryBrown.withOpacity( 0.1),
-          width: 1,
-        ),
-      ),
+      padding: const EdgeInsets.all(16),
       child: DropdownButtonFormField<PetModel>(
         value: _selectedPet,
-        decoration: InputDecoration(
+        decoration: const InputDecoration(
           labelText: 'Select Pet',
-          labelStyle: TextStyle(
-            color: PetCareTheme.primaryBrown,
-            fontWeight: FontWeight.w600,
-          ),
-          prefixIcon: Icon(
-            Icons.pets_rounded,
-            color: PetCareTheme.primaryBrown,
-          ),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(
-              color: PetCareTheme.primaryBrown.withOpacity( 0.3),
-            ),
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(
-              color: PetCareTheme.primaryBrown.withOpacity( 0.3),
-            ),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(
-              color: PetCareTheme.primaryBrown,
-              width: 2,
-            ),
-          ),
-          filled: true,
-          fillColor: PetCareTheme.primaryBeige.withOpacity( 0.05),
-        ),
-        dropdownColor: PetCareTheme.cardWhite,
-        style: TextStyle(
-          color: PetCareTheme.textDark,
-          fontWeight: FontWeight.w500,
+          prefixIcon: Icon(Icons.pets),
+          border: OutlineInputBorder(),
         ),
         items: _pets.values.map((pet) {
           return DropdownMenuItem(
             value: pet,
-            child: Text(
-              '${pet.name} - ${pet.breed}',
-              style: TextStyle(
-                color: PetCareTheme.textDark,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
+            child: Text('${pet.name} - ${pet.breed}'),
           );
         }).toList(),
         onChanged: (pet) async {
@@ -590,107 +341,53 @@ class _HealthTrackingScreenState extends State<HealthTrackingScreen> with Single
 
   Widget _buildOverviewTab() {
     return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 100),
+      padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
+          const Text(
             'Health Summary',
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.w700,
-              color: PetCareTheme.textDark,
-              letterSpacing: 0.5,
-            ),
+            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 16),
           
           // Stats Cards
           Row(
             children: [
               Expanded(
-                child: _buildStatCard('Total Records', _allRecords.length.toString(), PetCareTheme.accentGold),
+                child: _buildStatCard('Total Records', _allRecords.length.toString(), Colors.blue),
               ),
               const SizedBox(width: 16),
               Expanded(
-                child: _buildStatCard('Vaccinations', _vaccinationRecords.length.toString(), PetCareTheme.softGreen),
+                child: _buildStatCard('Vaccinations', _vaccinationRecords.length.toString(), Colors.green),
               ),
             ],
           ),
           const SizedBox(height: 16),
           
-          Row(
-            children: [
-              Expanded(
-                child: _buildStatCard('Medications', _dewormingRecords.length.toString(), PetCareTheme.warmRed),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: _buildStatCard('Allergies', _allergyRecords.length.toString(), PetCareTheme.warmPurple),
-              ),
-            ],
-          ),
-          const SizedBox(height: 24),
-          
-          Text(
+          const Text(
             'All Records',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w700,
-              color: PetCareTheme.textDark,
-              letterSpacing: 0.3,
-            ),
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 16),
           
           if (_allRecords.isEmpty) ...[
-            Container(
-              padding: const EdgeInsets.all(40),
-              decoration: BoxDecoration(
-                color: PetCareTheme.cardWhite,
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [PetCareTheme.elevatedShadow],
-              ),
-              child: Center(
-                child: Column(
-                  children: [
-                    Container(
-                      width: 80,
-                      height: 80,
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            PetCareTheme.primaryBrown.withOpacity( 0.1),
-                            PetCareTheme.lightBrown.withOpacity( 0.1),
-                          ],
-                        ),
-                        shape: BoxShape.circle,
+            const Card(
+              child: Padding(
+                padding: EdgeInsets.all(32),
+                child: Center(
+                  child: Column(
+                    children: [
+                      Icon(Icons.medical_services, size: 48, color: Colors.grey),
+                      SizedBox(height: 16),
+                      Text(
+                        'No Health Records Found',
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                       ),
-                      child: Icon(
-                        Icons.medical_services_rounded,
-                        size: 40,
-                        color: PetCareTheme.primaryBrown.withOpacity( 0.6),
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    Text(
-                      'No Health Records Found',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                        color: PetCareTheme.textDark,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Add your first health record to get started',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: PetCareTheme.textLight,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
+                      SizedBox(height: 8),
+                      Text('Add your first health record to get started'),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -703,52 +400,27 @@ class _HealthTrackingScreenState extends State<HealthTrackingScreen> with Single
   }
 
   Widget _buildStatCard(String title, String value, Color color) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: PetCareTheme.cardWhite,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: color.withOpacity( 0.2),
-          width: 1.5,
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            Text(
+              value,
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: color,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              title,
+              style: const TextStyle(fontSize: 14),
+              textAlign: TextAlign.center,
+            ),
+          ],
         ),
-        boxShadow: [
-          BoxShadow(
-            color: PetCareTheme.shadowColor,
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-            spreadRadius: 1,
-          ),
-          BoxShadow(
-            color: color.withOpacity( 0.1),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.w900,
-              color: color,
-              letterSpacing: -0.5,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: PetCareTheme.textLight,
-              letterSpacing: 0.2,
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ],
       ),
     );
   }
@@ -756,61 +428,24 @@ class _HealthTrackingScreenState extends State<HealthTrackingScreen> with Single
   Widget _buildRecordsList(List<HealthRecordModel> records, String emptyMessage) {
     if (records.isEmpty) {
       return Center(
-        child: Container(
-          margin: const EdgeInsets.all(32),
-          padding: const EdgeInsets.all(40),
-          decoration: BoxDecoration(
-            color: PetCareTheme.cardWhite,
-            borderRadius: BorderRadius.circular(24),
-            boxShadow: [PetCareTheme.elevatedShadow],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 80,
-                height: 80,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      PetCareTheme.lightBrown.withOpacity( 0.1),
-                      PetCareTheme.warmPurple.withOpacity( 0.1),
-                    ],
-                  ),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  Icons.medical_services_rounded,
-                  size: 40,
-                  color: PetCareTheme.lightBrown.withOpacity( 0.6),
-                ),
-              ),
-              const SizedBox(height: 20),
-              Text(
-                emptyMessage,
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: PetCareTheme.textDark,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'No records found in this category',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: PetCareTheme.textLight,
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.medical_services, size: 48, color: Colors.grey[400]),
+            const SizedBox(height: 16),
+            Text(
+              emptyMessage,
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            const Text('No records found in this category'),
+          ],
         ),
       );
     }
 
     return ListView.builder(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 100),
+      padding: const EdgeInsets.all(16),
       itemCount: records.length,
       itemBuilder: (context, index) {
         return _buildRecordCard(records[index]);
@@ -819,235 +454,67 @@ class _HealthTrackingScreenState extends State<HealthTrackingScreen> with Single
   }
 
   Widget _buildRecordCard(HealthRecordModel record) {
-    final typeColor = _getRecordTypeColor(record.type);
-    final typeIcon = _getRecordTypeIcon(record.type);
-    
-    return Container(
-      margin: const EdgeInsets.only(bottom: 20),
-      decoration: BoxDecoration(
-        color: PetCareTheme.cardWhite,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: typeColor.withOpacity( 0.2),
-          width: 1.5,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: PetCareTheme.shadowColor,
-            blurRadius: 15,
-            offset: const Offset(0, 8),
-            spreadRadius: 1,
-          ),
-          BoxShadow(
-            color: typeColor.withOpacity( 0.1),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
+    return Card(
+      margin: const EdgeInsets.only(bottom: 16),
       child: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header with icon, title and type
             Row(
               children: [
-                Container(
-                  width: 50,
-                  height: 50,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        typeColor.withOpacity( 0.1),
-                        typeColor.withOpacity( 0.05),
-                      ],
-                    ),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    typeIcon,
-                    color: typeColor,
-                    size: 24,
-                  ),
+                Icon(
+                  _getRecordTypeIcon(record.type),
+                  color: _getRecordTypeColor(record.type),
+                  size: 24,
                 ),
-                const SizedBox(width: 16),
+                const SizedBox(width: 12),
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        record.title,
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                          color: PetCareTheme.textDark,
-                          letterSpacing: 0.3,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        _getRecordTypeName(record.type),
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: PetCareTheme.textLight,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
+                  child: Text(
+                    record.title,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: typeColor.withOpacity( 0.1),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: typeColor.withOpacity( 0.3),
-                      width: 1,
-                    ),
+                    color: _getRecordTypeColor(record.type).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
                     _getRecordTypeName(record.type),
                     style: TextStyle(
-                      color: typeColor,
+                      color: _getRecordTypeColor(record.type),
                       fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 0.2,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 12),
             
-            // Description if available
             if (record.description.isNotEmpty) ...[
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: PetCareTheme.primaryBeige.withOpacity( 0.1),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: PetCareTheme.primaryBeige.withOpacity( 0.2),
-                    width: 1,
-                  ),
-                ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Icon(
-                      Icons.description_rounded,
-                      size: 18,
-                      color: PetCareTheme.primaryBrown,
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        record.description,
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: PetCareTheme.textLight,
-                          height: 1.4,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+              Text(
+                record.description,
+                style: const TextStyle(fontSize: 14, color: Colors.grey),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 8),
             ],
             
-            // Date and time info
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: PetCareTheme.lightBrown.withOpacity( 0.05),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: PetCareTheme.lightBrown.withOpacity( 0.1),
-                  width: 1,
-                ),
-              ),
-              child: Column(
-                children: [
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.calendar_today_rounded,
-                        size: 18,
-                        color: PetCareTheme.primaryBrown,
-                      ),
-                      const SizedBox(width: 12),
-                      Text(
-                        'Date: ${_formatDate(record.recordDate)}',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: PetCareTheme.textDark,
-                        ),
-                      ),
-                    ],
-                  ),
-                  if (record.nextDueDate != null) ...[
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.schedule_rounded,
-                          size: 18,
-                          color: PetCareTheme.primaryBrown,
-                        ),
-                        const SizedBox(width: 12),
-                        Text(
-                          'Next Due: ${_formatDate(record.nextDueDate!)}',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: PetCareTheme.textDark,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ],
-              ),
-            ),
+            Text('Date: ${_formatDate(record.recordDate)}'),
             
-            // Notes if available
+            if (record.nextDueDate != null)
+              Text('Next Due: ${_formatDate(record.nextDueDate!)}'),
+            
             if (record.notes != null && record.notes!.isNotEmpty) ...[
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: PetCareTheme.warmPurple.withOpacity( 0.05),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: PetCareTheme.warmPurple.withOpacity( 0.1),
-                    width: 1,
-                  ),
-                ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Icon(
-                      Icons.note_rounded,
-                      size: 18,
-                      color: PetCareTheme.warmPurple,
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        'Notes: ${record.notes!}',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: PetCareTheme.textLight,
-                          height: 1.4,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+              const SizedBox(height: 8),
+              Text(
+                'Notes: ${record.notes!}',
+                style: const TextStyle(fontSize: 12, color: Colors.grey),
               ),
             ],
           ],
@@ -1059,38 +526,38 @@ class _HealthTrackingScreenState extends State<HealthTrackingScreen> with Single
   Color _getRecordTypeColor(HealthRecordType type) {
     switch (type) {
       case HealthRecordType.vaccination:
-        return PetCareTheme.softGreen;
+        return Colors.green;
       case HealthRecordType.medication:
-        return PetCareTheme.warmRed;
+        return Colors.orange;
       case HealthRecordType.allergy:
-        return PetCareTheme.warmRed.withOpacity( 0.8);
+        return Colors.red;
       case HealthRecordType.checkup:
-        return PetCareTheme.accentGold;
+        return Colors.blue;
       case HealthRecordType.surgery:
-        return PetCareTheme.warmPurple;
+        return Colors.purple;
       case HealthRecordType.injury:
-        return PetCareTheme.darkBrown;
+        return Colors.red;
       case HealthRecordType.other:
-        return PetCareTheme.lightBrown;
+        return Colors.grey;
     }
   }
 
   IconData _getRecordTypeIcon(HealthRecordType type) {
     switch (type) {
       case HealthRecordType.vaccination:
-        return Icons.vaccines_rounded;
+        return Icons.vaccines;
       case HealthRecordType.medication:
-        return Icons.medication_rounded;
+        return Icons.medication;
       case HealthRecordType.allergy:
-        return Icons.warning_rounded;
+        return Icons.warning;
       case HealthRecordType.checkup:
-        return Icons.medical_services_rounded;
+        return Icons.medical_services;
       case HealthRecordType.surgery:
-        return Icons.healing_rounded;
+        return Icons.healing;
       case HealthRecordType.injury:
-        return Icons.emergency_rounded;
+        return Icons.emergency;
       case HealthRecordType.other:
-        return Icons.medical_information_rounded;
+        return Icons.medical_information;
     }
   }
 

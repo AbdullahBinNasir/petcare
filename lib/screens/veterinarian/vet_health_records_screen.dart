@@ -12,37 +12,6 @@ import '../../services/auth_service.dart';
 import '../../services/appointment_service.dart';
 import '../shared/add_health_record_screen.dart';
 
-class VetHealthRecordsTheme {
-  // Enhanced color scheme with your specified colors
-  static const Color primaryBeige = Color.fromARGB(255, 255, 255, 255);
-  static const Color primaryBrown = Color(0xFF7D4D20); // Your brown color #7d4d20
-  static const Color lightBrown = Color(0xFF9B6B3A); // Lighter shade of your brown
-  static const Color darkBrown = Color(0xFF5A3417); // Darker shade for depth
-  static const Color accentGold = Color(0xFFD4AF37); // Gold accent
-  static const Color softGreen = Color(0xFF8FBC8F); // Soft green
-  static const Color warmRed = Color(0xFFCD853F); // Warm red-brown
-  static const Color warmPurple = Color(0xFFBC9A6A); // Warm taupe
-  static const Color cardWhite = Color(0xFFFFFDF7); // Warm white for cards
-  static const Color shadowColor = Color(0x1A7D4D20); // Subtle shadow
-  
-  // Gradients
-  static const List<Color> primaryGradient = [
-    primaryBrown,
-    lightBrown,
-  ];
-  
-  static const List<Color> accentGradient = [
-    accentGold,
-    lightBrown,
-  ];
-  
-  // Background gradient
-  static const List<Color> backgroundGradient = [
-    Color(0xFFFFFDF7),
-    Color(0xFFF8F6F0),
-  ];
-}
-
 class VetHealthRecordsScreen extends StatefulWidget {
   const VetHealthRecordsScreen({super.key});
 
@@ -50,16 +19,8 @@ class VetHealthRecordsScreen extends StatefulWidget {
   State<VetHealthRecordsScreen> createState() => _VetHealthRecordsScreenState();
 }
 
-class _VetHealthRecordsScreenState extends State<VetHealthRecordsScreen> with TickerProviderStateMixin {
+class _VetHealthRecordsScreenState extends State<VetHealthRecordsScreen> with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  late AnimationController _fadeAnimationController;
-  late AnimationController _slideAnimationController;
-  late AnimationController _scaleAnimationController;
-  late Animation<double> _fadeAnimation;
-  late Animation<Offset> _slideAnimation;
-  late Animation<double> _scaleAnimation;
-  bool _animationsInitialized = false;
-  
   List<HealthRecordModel> _allRecords = [];
   List<HealthRecordModel> _recentRecords = [];
   List<HealthRecordModel> _dueRecords = [];
@@ -75,60 +36,12 @@ class _VetHealthRecordsScreenState extends State<VetHealthRecordsScreen> with Ti
   void initState() {
     super.initState();
     _tabController = TabController(length: 4, vsync: this);
-    
-    // Initialize animation controllers
-    _fadeAnimationController = AnimationController(
-      duration: const Duration(milliseconds: 600),
-      vsync: this,
-    );
-    
-    _slideAnimationController = AnimationController(
-      duration: const Duration(milliseconds: 800),
-      vsync: this,
-    );
-    
-    _scaleAnimationController = AnimationController(
-      duration: const Duration(milliseconds: 400),
-      vsync: this,
-    );
-    
-    // Initialize animations
-    _fadeAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _fadeAnimationController,
-      curve: Curves.easeInOut,
-    ));
-    
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 0.1),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(
-      parent: _slideAnimationController,
-      curve: Curves.easeOutCubic,
-    ));
-    
-    _scaleAnimation = Tween<double>(
-      begin: 0.8,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _scaleAnimationController,
-      curve: Curves.elasticOut,
-    ));
-    
-    // Mark animations as initialized
-    _animationsInitialized = true;
-    
     _loadData();
   }
 
   @override
   void dispose() {
     _tabController.dispose();
-    _fadeAnimationController.dispose();
-    _slideAnimationController.dispose();
-    _scaleAnimationController.dispose();
     super.dispose();
   }
 
@@ -148,79 +61,28 @@ class _VetHealthRecordsScreenState extends State<VetHealthRecordsScreen> with Ti
       }
 
       print('👤 VetHealthRecordsScreen: Current user: ${authService.currentUser!.uid}');
-      print('👤 VetHealthRecordsScreen: User email: ${authService.currentUser!.email}');
-      
-      // First, let's try to get ALL health records to see what's in the database
-      print('🔍 VetHealthRecordsScreen: Fetching ALL health records for debugging...');
-      final allRecords = await healthService.getAllHealthRecords();
-      print('📊 VetHealthRecordsScreen: Found ${allRecords.length} total health records in database');
-      
-      if (allRecords.isNotEmpty) {
-        print('📋 VetHealthRecordsScreen: Sample records:');
-        for (int i = 0; i < allRecords.take(3).length; i++) {
-          final record = allRecords[i];
-          print('  Record ${i + 1}:');
-          print('    ID: ${record.id}');
-          print('    Title: ${record.title}');
-          print('    Pet ID: ${record.petId}');
-          print('    Vet ID: ${record.veterinarianId}');
-          print('    Type: ${record.type}');
-          print('    Date: ${record.recordDate}');
-        }
-      }
       
       // Load all health records created by this veterinarian
       print('🏥 VetHealthRecordsScreen: Loading health records for vet ID: ${authService.currentUser!.uid}');
       final records = await healthService.getHealthRecordsByVetId(authService.currentUser!.uid);
       print('📊 VetHealthRecordsScreen: Received ${records.length} health records from service');
       
-      if (records.isNotEmpty) {
-        print('📋 VetHealthRecordsScreen: Vet records details:');
-        for (int i = 0; i < records.take(3).length; i++) {
-          final record = records[i];
-          print('  Vet Record ${i + 1}:');
-          print('    ID: ${record.id}');
-          print('    Title: ${record.title}');
-          print('    Pet ID: ${record.petId}');
-          print('    Vet ID: ${record.veterinarianId}');
-        }
-      } else {
-        print('⚠️ VetHealthRecordsScreen: No records found for this vet. Checking if vet ID matches...');
-        final vetRecords = allRecords.where((r) => r.veterinarianId == authService.currentUser!.uid).toList();
-        print('🔍 VetHealthRecordsScreen: Found ${vetRecords.length} records with matching vet ID in all records');
-      }
-      
       // Load pets from appointments (pets assigned to this veterinarian)
-      print('🐕 VetHealthRecordsScreen: Loading appointments for vet...');
       final appointments = await appointmentService.getAppointmentsByVeterinarian(authService.currentUser!.uid);
-      print('📅 VetHealthRecordsScreen: Found ${appointments.length} appointments');
       final appointmentPetIds = appointments.map((a) => a.petId).toSet();
-      print('🐕 VetHealthRecordsScreen: Pet IDs from appointments: ${appointmentPetIds.toList()}');
       
       // Also include pets from existing health records
       final recordPetIds = records.map((r) => r.petId).toSet();
-      print('🐕 VetHealthRecordsScreen: Pet IDs from health records: ${recordPetIds.toList()}');
       final allPetIds = {...appointmentPetIds, ...recordPetIds};
-      print('🐕 VetHealthRecordsScreen: All unique pet IDs: ${allPetIds.toList()}');
       
       final pets = <String, PetModel>{};
       
-      print('🐕 VetHealthRecordsScreen: Loading pet details...');
       for (final petId in allPetIds) {
-        print('🔍 VetHealthRecordsScreen: Loading pet: $petId');
         final pet = await petService.getPetById(petId);
         if (pet != null) {
           pets[petId] = pet;
-          print('✅ VetHealthRecordsScreen: Loaded pet: ${pet.name} (${pet.species})');
-        } else {
-          print('❌ VetHealthRecordsScreen: Failed to load pet: $petId');
         }
       }
-
-      print('📊 VetHealthRecordsScreen: Before setState:');
-      print('  - Records: ${records.length}');
-      print('  - Pets: ${pets.length}');
-      print('  - Pet names: ${pets.values.map((p) => p.name).toList()}');
 
       setState(() {
         _allRecords = records;
@@ -231,11 +93,6 @@ class _VetHealthRecordsScreenState extends State<VetHealthRecordsScreen> with Ti
         _isLoading = false;
       });
       
-      // Start animations after data is loaded
-      _fadeAnimationController.forward();
-      _slideAnimationController.forward();
-      _scaleAnimationController.forward();
-      
       print('✅ VetHealthRecordsScreen: Data loaded successfully');
       print('📊 VetHealthRecordsScreen: Final counts:');
       print('  - All records: ${_allRecords.length}');
@@ -243,14 +100,8 @@ class _VetHealthRecordsScreenState extends State<VetHealthRecordsScreen> with Ti
       print('  - Due records: ${_dueRecords.length}');
       print('  - Overdue records: ${_overdueRecords.length}');
       print('  - Pets loaded: ${_pets.length}');
-      print('  - Pet details: ${_pets.entries.map((e) => '${e.key}: ${e.value.name}').toList()}');
     } catch (e) {
       print('❌ VetHealthRecordsScreen: Error loading health records: $e');
-      print('❌ VetHealthRecordsScreen: Error type: ${e.runtimeType}');
-      if (e is FirebaseException) {
-        print('❌ VetHealthRecordsScreen: Firebase error code: ${e.code}');
-        print('❌ VetHealthRecordsScreen: Firebase error message: ${e.message}');
-      }
       debugPrint('Error loading health records: $e');
       setState(() => _isLoading = false);
     }
@@ -259,817 +110,146 @@ class _VetHealthRecordsScreenState extends State<VetHealthRecordsScreen> with Ti
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: VetHealthRecordsTheme.backgroundGradient,
+      appBar: AppBar(
+        title: const Text('Health Records'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.search),
+            onPressed: _showSearchDialog,
           ),
-        ),
-        child: Column(
-          children: [
-            // Custom AppBar with gradient
-            Container(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: VetHealthRecordsTheme.primaryGradient,
-                ),
-              ),
-              child: SafeArea(
-                child: Column(
-                  children: [
-                    // AppBar content
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      child: Row(
-                        children: [
-                          IconButton(
-                            icon: Icon(
-                              Icons.arrow_back,
-                              color: VetHealthRecordsTheme.primaryBeige,
-                            ),
-                            onPressed: () => Navigator.of(context).pop(),
-                          ),
-                          Expanded(
-                            child: Text(
-                              'Health Records',
-                              style: TextStyle(
-                                fontSize: 22,
-                                fontWeight: FontWeight.w700,
-                                color: VetHealthRecordsTheme.primaryBeige,
-                                letterSpacing: 0.5,
-                              ),
-                            ),
-                          ),
-                          Container(
-                            margin: const EdgeInsets.only(right: 4),
-                            decoration: BoxDecoration(
-                              color: VetHealthRecordsTheme.primaryBeige.withOpacity(0.2),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: IconButton(
-                              icon: Icon(
-                                Icons.search,
-                                color: VetHealthRecordsTheme.primaryBeige,
-                                size: 22,
-                              ),
-                              onPressed: _showSearchDialog,
-                            ),
-                          ),
-                          Container(
-                            margin: const EdgeInsets.only(right: 4),
-                            decoration: BoxDecoration(
-                              color: VetHealthRecordsTheme.primaryBeige.withOpacity(0.2),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: IconButton(
-                              icon: Icon(
-                                Icons.upload_file,
-                                color: VetHealthRecordsTheme.primaryBeige,
-                                size: 22,
-                              ),
-                              onPressed: _showUploadDialog,
-                            ),
-                          ),
-                          Container(
-                            decoration: BoxDecoration(
-                              color: VetHealthRecordsTheme.primaryBeige.withOpacity(0.2),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: IconButton(
-                              icon: Icon(
-                                Icons.refresh,
-                                color: VetHealthRecordsTheme.primaryBeige,
-                                size: 22,
-                              ),
-                              onPressed: _loadData,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    // Custom TabBar
-                    Container(
-                      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: VetHealthRecordsTheme.primaryBeige.withOpacity(0.15),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: VetHealthRecordsTheme.primaryBeige.withOpacity(0.3),
-                          width: 1,
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
-                            blurRadius: 8,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: TabBar(
-                        controller: _tabController,
-                        indicator: BoxDecoration(
-                          color: VetHealthRecordsTheme.primaryBeige,
-                          borderRadius: BorderRadius.circular(16),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.15),
-                              blurRadius: 6,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        labelColor: VetHealthRecordsTheme.primaryBrown,
-                        unselectedLabelColor: VetHealthRecordsTheme.primaryBeige.withOpacity(0.8),
-                        labelStyle: const TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w700,
-                          height: 1.0,
-                        ),
-                        unselectedLabelStyle: const TextStyle(
-                          fontSize: 9,
-                          fontWeight: FontWeight.w600,
-                          height: 1.0,
-                        ),
-                        indicatorSize: TabBarIndicatorSize.tab,
-                        dividerColor: Colors.transparent,
-                        splashFactory: NoSplash.splashFactory,
-                        overlayColor: MaterialStateProperty.all(Colors.transparent),
-                        padding: const EdgeInsets.all(3),
-                        isScrollable: false,
-                        tabs: [
-                          Tab(
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 6),
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(Icons.list_alt_rounded, size: 14),
-                                  const SizedBox(height: 2),
-                                  const Text(
-                                    'All Records',
-                                    textAlign: TextAlign.center,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                          Tab(
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 6),
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(Icons.schedule_rounded, size: 14),
-                                  const SizedBox(height: 2),
-                                  const Text(
-                                    'Recent',
-                                    textAlign: TextAlign.center,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                          Tab(
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 6),
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(Icons.schedule_send_rounded, size: 14),
-                                  const SizedBox(height: 2),
-                                  const Text(
-                                    'Due Soon',
-                                    textAlign: TextAlign.center,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                          Tab(
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 6),
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(Icons.error_rounded, size: 14),
-                                  const SizedBox(height: 2),
-                                  const Text(
-                                    'Overdue',
-                                    textAlign: TextAlign.center,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            // Content
-            Expanded(
-              child: _isLoading
-                  ? Center(
-                      child: Container(
-                        padding: const EdgeInsets.all(20),
-                        decoration: BoxDecoration(
-                          color: VetHealthRecordsTheme.cardWhite.withOpacity(0.8),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            CircularProgressIndicator(
-                              valueColor: AlwaysStoppedAnimation<Color>(VetHealthRecordsTheme.primaryBrown),
-                              strokeWidth: 3,
-                            ),
-                            const SizedBox(height: 16),
-                            Text(
-                              'Loading Health Records...',
-                              style: TextStyle(
-                                color: VetHealthRecordsTheme.primaryBrown,
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    )
-                  : TabBarView(
-                      controller: _tabController,
-                      children: [
-                        _buildRecordsList(_allRecords, 'No health records found'),
-                        _buildRecordsList(_recentRecords, 'No recent records'),
-                        _buildRecordsList(_dueRecords, 'No records due soon'),
-                        _buildRecordsList(_overdueRecords, 'No overdue records'),
-                      ],
-                    ),
-            ),
+          IconButton(
+            icon: const Icon(Icons.upload_file),
+            onPressed: _showUploadDialog,
+          ),
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _loadData,
+          ),
+        ],
+        bottom: TabBar(
+          controller: _tabController,
+          tabs: const [
+            Tab(text: 'All Records', icon: Icon(Icons.list)),
+            Tab(text: 'Recent', icon: Icon(Icons.schedule)),
+            Tab(text: 'Due Soon', icon: Icon(Icons.warning)),
+            Tab(text: 'Overdue', icon: Icon(Icons.error)),
           ],
         ),
       ),
-      floatingActionButton: _animationsInitialized 
-          ? AnimatedBuilder(
-              animation: _scaleAnimation,
-              builder: (context, child) {
-                return Transform.scale(
-                  scale: _scaleAnimation.value,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: VetHealthRecordsTheme.accentGradient,
-                      ),
-                      borderRadius: BorderRadius.circular(28),
-                      boxShadow: [
-                        BoxShadow(
-                          color: VetHealthRecordsTheme.shadowColor,
-                          blurRadius: 15,
-                          offset: const Offset(0, 8),
-                        ),
-                      ],
-                    ),
-                    child: FloatingActionButton.extended(
-                      onPressed: _showPetSelector,
-                      backgroundColor: Colors.transparent,
-                      elevation: 0,
-                      icon: Icon(
-                        Icons.add,
-                        color: VetHealthRecordsTheme.primaryBeige,
-                      ),
-                      label: Text(
-                        'Add Record',
-                        style: TextStyle(
-                          color: VetHealthRecordsTheme.primaryBeige,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ),
-                );
-              },
-            )
-          : Container(
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: VetHealthRecordsTheme.accentGradient,
-                ),
-                borderRadius: BorderRadius.circular(28),
-                boxShadow: [
-                  BoxShadow(
-                    color: VetHealthRecordsTheme.shadowColor,
-                    blurRadius: 15,
-                    offset: const Offset(0, 8),
-                  ),
-                ],
-              ),
-              child: FloatingActionButton.extended(
-                onPressed: _showPetSelector,
-                backgroundColor: Colors.transparent,
-                elevation: 0,
-                icon: Icon(
-                  Icons.add,
-                  color: VetHealthRecordsTheme.primaryBeige,
-                ),
-                label: Text(
-                  'Add Record',
-                  style: TextStyle(
-                    color: VetHealthRecordsTheme.primaryBeige,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : TabBarView(
+              controller: _tabController,
+              children: [
+                _buildRecordsList(_allRecords, 'No health records found'),
+                _buildRecordsList(_recentRecords, 'No recent records'),
+                _buildRecordsList(_dueRecords, 'No records due soon'),
+                _buildRecordsList(_overdueRecords, 'No overdue records'),
+              ],
             ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _showPetSelector,
+        icon: const Icon(Icons.add),
+        label: const Text('Add Record'),
+      ),
     );
   }
 
   Widget _buildRecordsList(List<HealthRecordModel> records, String emptyMessage) {
     if (records.isEmpty) {
-      if (!_animationsInitialized) {
-        return Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: VetHealthRecordsTheme.cardWhite,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: VetHealthRecordsTheme.shadowColor,
-                      blurRadius: 15,
-                      offset: const Offset(0, 8),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: VetHealthRecordsTheme.lightBrown.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(50),
-                      ),
-                      child: Icon(
-                        Icons.medical_services_outlined,
-                        size: 48,
-                        color: VetHealthRecordsTheme.lightBrown,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      emptyMessage,
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: VetHealthRecordsTheme.primaryBrown,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        );
-      }
-      
-      return AnimatedBuilder(
-        animation: _fadeAnimation,
-        builder: (context, child) {
-          return FadeTransition(
-            opacity: _fadeAnimation,
-            child: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: VetHealthRecordsTheme.cardWhite,
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: [
-                        BoxShadow(
-                          color: VetHealthRecordsTheme.shadowColor,
-                          blurRadius: 15,
-                          offset: const Offset(0, 8),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: VetHealthRecordsTheme.lightBrown.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(50),
-                          ),
-                          child: Icon(
-                            Icons.medical_services_outlined,
-                            size: 48,
-                            color: VetHealthRecordsTheme.lightBrown,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          emptyMessage,
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            color: VetHealthRecordsTheme.primaryBrown,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.medical_services_outlined,
+              size: 64,
+              color: Colors.grey[400],
+            ),
+            const SizedBox(height: 16),
+            Text(
+              emptyMessage,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                color: Colors.grey[600],
               ),
             ),
-          );
-        },
+          ],
+        ),
       );
     }
 
-    if (!_animationsInitialized) {
-      return ListView.builder(
-        padding: const EdgeInsets.all(16),
-        itemCount: records.length,
-        itemBuilder: (context, index) {
-          final record = records[index];
-          final pet = _pets[record.petId];
-          
-          return Container(
-            margin: const EdgeInsets.only(bottom: 16),
-            decoration: BoxDecoration(
-              color: VetHealthRecordsTheme.cardWhite,
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: VetHealthRecordsTheme.shadowColor,
-                  blurRadius: 12,
-                  offset: const Offset(0, 6),
-                  spreadRadius: 1,
-                ),
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: records.length,
+      itemBuilder: (context, index) {
+        final record = records[index];
+        final pet = _pets[record.petId];
+        
+        return Card(
+          margin: const EdgeInsets.only(bottom: 12),
+          child: ListTile(
+            leading: CircleAvatar(
+              backgroundColor: _getRecordTypeColor(record.type).withOpacity(0.1),
+              child: Icon(
+                _getRecordTypeIcon(record.type),
+                color: _getRecordTypeColor(record.type),
+              ),
+            ),
+            title: Text(
+              record.title,
+              style: const TextStyle(fontWeight: FontWeight.w600),
+            ),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (pet != null) Text('Pet: ${pet.name} (${pet.species.toString().split('.').last})'),
+                Text('Date: ${DateFormat('MMM dd, yyyy').format(record.recordDate)}'),
+                if (record.nextDueDate != null)
+                  Text(
+                    'Next Due: ${DateFormat('MMM dd, yyyy').format(record.nextDueDate!)}',
+                    style: TextStyle(
+                      color: record.isOverdue ? Colors.red : Colors.orange,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
               ],
             ),
-            child: Material(
-              color: Colors.transparent,
-              child: InkWell(
-                onTap: () => _showRecordDetails(record),
-                borderRadius: BorderRadius.circular(16),
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
+            trailing: PopupMenuButton<String>(
+              onSelected: (value) => _handleRecordAction(value, record),
+              itemBuilder: (context) => [
+                const PopupMenuItem(
+                  value: 'view',
                   child: Row(
                     children: [
-                      // Leading Icon
-                      Container(
-                        width: 56,
-                        height: 56,
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                            colors: [
-                              _getRecordTypeColor(record.type).withOpacity(0.2),
-                              _getRecordTypeColor(record.type).withOpacity(0.4),
-                            ],
-                          ),
-                          borderRadius: BorderRadius.circular(16),
-                          boxShadow: [
-                            BoxShadow(
-                              color: _getRecordTypeColor(record.type).withOpacity(0.3),
-                              blurRadius: 8,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        child: Icon(
-                          _getRecordTypeIcon(record.type),
-                          color: Colors.white,
-                          size: 24,
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      // Content
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              record.title,
-                              style: TextStyle(
-                                fontWeight: FontWeight.w700,
-                                fontSize: 16,
-                                color: VetHealthRecordsTheme.primaryBrown,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            if (pet != null) ...[
-                              Text(
-                                'Pet: ${pet.name} (${pet.species.toString().split('.').last})',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: VetHealthRecordsTheme.lightBrown,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                            ],
-                            Text(
-                              'Date: ${DateFormat('MMM dd, yyyy').format(record.recordDate)}',
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: VetHealthRecordsTheme.lightBrown.withOpacity(0.8),
-                              ),
-                            ),
-                            if (record.nextDueDate != null) ...[
-                              const SizedBox(height: 2),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: record.isOverdue 
-                                      ? VetHealthRecordsTheme.warmRed.withOpacity(0.2)
-                                      : VetHealthRecordsTheme.accentGold.withOpacity(0.2),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Text(
-                                  'Next Due: ${DateFormat('MMM dd, yyyy').format(record.nextDueDate!)}',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: record.isOverdue 
-                                        ? VetHealthRecordsTheme.warmRed
-                                        : VetHealthRecordsTheme.accentGold,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
-                      ),
-                      // Menu Button
-                      Container(
-                        decoration: BoxDecoration(
-                          color: VetHealthRecordsTheme.lightBrown.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: PopupMenuButton<String>(
-                          onSelected: (value) => _handleRecordAction(value, record),
-                          icon: Icon(
-                            Icons.more_vert,
-                            color: VetHealthRecordsTheme.primaryBrown,
-                            size: 20,
-                          ),
-                          itemBuilder: (context) => [
-                            PopupMenuItem(
-                              value: 'view',
-                              child: Row(
-                                children: [
-                                  Icon(Icons.visibility, color: VetHealthRecordsTheme.primaryBrown),
-                                  const SizedBox(width: 8),
-                                  Text('View Details', style: TextStyle(color: VetHealthRecordsTheme.primaryBrown)),
-                                ],
-                              ),
-                            ),
-                            PopupMenuItem(
-                              value: 'edit',
-                              child: Row(
-                                children: [
-                                  Icon(Icons.edit, color: VetHealthRecordsTheme.accentGold),
-                                  const SizedBox(width: 8),
-                                  Text('Edit', style: TextStyle(color: VetHealthRecordsTheme.accentGold)),
-                                ],
-                              ),
-                            ),
-                            PopupMenuItem(
-                              value: 'delete',
-                              child: Row(
-                                children: [
-                                  Icon(Icons.delete, color: VetHealthRecordsTheme.warmRed),
-                                  const SizedBox(width: 8),
-                                  Text('Delete', style: TextStyle(color: VetHealthRecordsTheme.warmRed)),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
+                      Icon(Icons.visibility),
+                      SizedBox(width: 8),
+                      Text('View Details'),
                     ],
                   ),
                 ),
-              ),
+                const PopupMenuItem(
+                  value: 'edit',
+                  child: Row(
+                    children: [
+                      Icon(Icons.edit),
+                      SizedBox(width: 8),
+                      Text('Edit'),
+                    ],
+                  ),
+                ),
+                const PopupMenuItem(
+                  value: 'delete',
+                  child: Row(
+                    children: [
+                      Icon(Icons.delete, color: Colors.red),
+                      SizedBox(width: 8),
+                      Text('Delete', style: TextStyle(color: Colors.red)),
+                    ],
+                  ),
+                ),
+              ],
             ),
-          );
-        },
-      );
-    }
-
-    return AnimatedBuilder(
-      animation: _slideAnimation,
-      builder: (context, child) {
-        return SlideTransition(
-          position: _slideAnimation,
-          child: FadeTransition(
-            opacity: _fadeAnimation,
-            child: ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: records.length,
-              itemBuilder: (context, index) {
-                final record = records[index];
-                final pet = _pets[record.petId];
-                
-                return AnimatedBuilder(
-                  animation: _scaleAnimation,
-                  builder: (context, child) {
-                    return Transform.scale(
-                      scale: _scaleAnimation.value,
-                      child: Container(
-                        margin: const EdgeInsets.only(bottom: 16),
-                        decoration: BoxDecoration(
-                          color: VetHealthRecordsTheme.cardWhite,
-                          borderRadius: BorderRadius.circular(16),
-                          boxShadow: [
-                            BoxShadow(
-                              color: VetHealthRecordsTheme.shadowColor,
-                              blurRadius: 12,
-                              offset: const Offset(0, 6),
-                              spreadRadius: 1,
-                            ),
-                          ],
-                        ),
-                        child: Material(
-                          color: Colors.transparent,
-                          child: InkWell(
-                            onTap: () => _showRecordDetails(record),
-                            borderRadius: BorderRadius.circular(16),
-                            child: Padding(
-                              padding: const EdgeInsets.all(16),
-                              child: Row(
-                                children: [
-                                  // Leading Icon
-                                  Container(
-                                    width: 56,
-                                    height: 56,
-                                    decoration: BoxDecoration(
-                                      gradient: LinearGradient(
-                                        begin: Alignment.topLeft,
-                                        end: Alignment.bottomRight,
-                                        colors: [
-                                          _getRecordTypeColor(record.type).withOpacity(0.2),
-                                          _getRecordTypeColor(record.type).withOpacity(0.4),
-                                        ],
-                                      ),
-                                      borderRadius: BorderRadius.circular(16),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: _getRecordTypeColor(record.type).withOpacity(0.3),
-                                          blurRadius: 8,
-                                          offset: const Offset(0, 4),
-                                        ),
-                                      ],
-                                    ),
-                                    child: Icon(
-                                      _getRecordTypeIcon(record.type),
-                                      color: Colors.white,
-                                      size: 24,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 16),
-                                  // Content
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          record.title,
-                                          style: TextStyle(
-                                            fontWeight: FontWeight.w700,
-                                            fontSize: 16,
-                                            color: VetHealthRecordsTheme.primaryBrown,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 4),
-                                        if (pet != null) ...[
-                                          Text(
-                                            'Pet: ${pet.name} (${pet.species.toString().split('.').last})',
-                                            style: TextStyle(
-                                              fontSize: 14,
-                                              color: VetHealthRecordsTheme.lightBrown,
-                                              fontWeight: FontWeight.w500,
-                                            ),
-                                          ),
-                                          const SizedBox(height: 2),
-                                        ],
-                                        Text(
-                                          'Date: ${DateFormat('MMM dd, yyyy').format(record.recordDate)}',
-                                          style: TextStyle(
-                                            fontSize: 13,
-                                            color: VetHealthRecordsTheme.lightBrown.withOpacity(0.8),
-                                          ),
-                                        ),
-                                        if (record.nextDueDate != null) ...[
-                                          const SizedBox(height: 2),
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                            decoration: BoxDecoration(
-                                              color: record.isOverdue 
-                                                  ? VetHealthRecordsTheme.warmRed.withOpacity(0.2)
-                                                  : VetHealthRecordsTheme.accentGold.withOpacity(0.2),
-                                              borderRadius: BorderRadius.circular(12),
-                                            ),
-                                            child: Text(
-                                              'Next Due: ${DateFormat('MMM dd, yyyy').format(record.nextDueDate!)}',
-                                              style: TextStyle(
-                                                fontSize: 12,
-                                                color: record.isOverdue 
-                                                    ? VetHealthRecordsTheme.warmRed
-                                                    : VetHealthRecordsTheme.accentGold,
-                                                fontWeight: FontWeight.w600,
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      ],
-                                    ),
-                                  ),
-                                  // Menu Button
-                                  Container(
-                                    decoration: BoxDecoration(
-                                      color: VetHealthRecordsTheme.lightBrown.withOpacity(0.1),
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: PopupMenuButton<String>(
-                                      onSelected: (value) => _handleRecordAction(value, record),
-                                      icon: Icon(
-                                        Icons.more_vert,
-                                        color: VetHealthRecordsTheme.primaryBrown,
-                                        size: 20,
-                                      ),
-                                      itemBuilder: (context) => [
-                                        PopupMenuItem(
-                                          value: 'view',
-                                          child: Row(
-                                            children: [
-                                              Icon(Icons.visibility, color: VetHealthRecordsTheme.primaryBrown),
-                                              const SizedBox(width: 8),
-                                              Text('View Details', style: TextStyle(color: VetHealthRecordsTheme.primaryBrown)),
-                                            ],
-                                          ),
-                                        ),
-                                        PopupMenuItem(
-                                          value: 'edit',
-                                          child: Row(
-                                            children: [
-                                              Icon(Icons.edit, color: VetHealthRecordsTheme.accentGold),
-                                              const SizedBox(width: 8),
-                                              Text('Edit', style: TextStyle(color: VetHealthRecordsTheme.accentGold)),
-                                            ],
-                                          ),
-                                        ),
-                                        PopupMenuItem(
-                                          value: 'delete',
-                                          child: Row(
-                                            children: [
-                                              Icon(Icons.delete, color: VetHealthRecordsTheme.warmRed),
-                                              const SizedBox(width: 8),
-                                              Text('Delete', style: TextStyle(color: VetHealthRecordsTheme.warmRed)),
-                                            ],
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    );
-                  },
-                );
-              },
-            ),
+            onTap: () => _showRecordDetails(record),
           ),
         );
       },
@@ -1496,19 +676,19 @@ class _VetHealthRecordsScreenState extends State<VetHealthRecordsScreen> with Ti
   Color _getRecordTypeColor(HealthRecordType type) {
     switch (type) {
       case HealthRecordType.vaccination:
-        return VetHealthRecordsTheme.softGreen;
+        return Colors.green;
       case HealthRecordType.medication:
-        return VetHealthRecordsTheme.accentGold;
+        return Colors.blue;
       case HealthRecordType.checkup:
-        return VetHealthRecordsTheme.warmRed;
+        return Colors.orange;
       case HealthRecordType.surgery:
-        return VetHealthRecordsTheme.darkBrown;
+        return Colors.red;
       case HealthRecordType.allergy:
-        return VetHealthRecordsTheme.warmPurple;
+        return Colors.purple;
       case HealthRecordType.injury:
-        return VetHealthRecordsTheme.lightBrown;
+        return Colors.red.shade800;
       case HealthRecordType.other:
-        return VetHealthRecordsTheme.primaryBrown.withOpacity(0.7);
+        return Colors.grey;
     }
   }
 

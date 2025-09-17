@@ -6,8 +6,6 @@ import '../../services/health_record_service.dart';
 import '../../models/pet_model.dart';
 import '../../models/appointment_model.dart';
 import '../../models/health_record_model.dart';
-import '../../theme/pet_care_theme.dart';
-import '../../widgets/universal_image_widget.dart';
 import 'edit_pet_screen.dart';
 import 'health_records_screen.dart';
 import 'add_health_record_screen.dart';
@@ -62,193 +60,58 @@ class _PetProfileScreenState extends State<PetProfileScreen> with SingleTickerPr
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: PetCareTheme.backgroundGradient,
-          ),
-        ),
-        child: Column(
-          children: [
-            _buildModernAppBar(),
-            _buildTabBar(),
-            Expanded(
-              child: TabBarView(
-                controller: _tabController,
-                children: [
-                  _buildProfileTab(),
-                  _buildHealthTab(),
-                  _buildHistoryTab(),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildModernAppBar() {
-    return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: PetCareTheme.primaryGradient,
-        ),
-        borderRadius: BorderRadius.only(
-          bottomLeft: Radius.circular(24),
-          bottomRight: Radius.circular(24),
-        ),
-      ),
-      child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
-          child: Row(
-            children: [
-              IconButton(
-                onPressed: () => Navigator.pop(context),
-                icon: Icon(
-                  Icons.arrow_back_ios_rounded,
-                  color: PetCareTheme.primaryBeige,
-                  size: 24,
+      appBar: AppBar(
+        title: Text(widget.pet.name),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.edit),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => EditPetScreen(pet: widget.pet),
                 ),
-              ),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+              ).then((_) {
+                // Refresh the screen if pet was updated
+                Navigator.pop(context);
+              });
+            },
+          ),
+          PopupMenuButton<String>(
+            onSelected: (value) {
+              if (value == 'delete') {
+                _showDeleteDialog();
+              }
+            },
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'delete',
+                child: Row(
                   children: [
-                    Text(
-                      widget.pet.name,
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.w700,
-                        color: PetCareTheme.primaryBeige,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      _getSpeciesName(widget.pet.species),
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: PetCareTheme.primaryBeige.withOpacity( 0.8),
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
+                    Icon(Icons.delete, color: Colors.red),
+                    SizedBox(width: 8),
+                    Text('Delete Pet', style: TextStyle(color: Colors.red)),
                   ],
                 ),
               ),
-              Row(
-                children: [
-                  Container(
-                    decoration: BoxDecoration(
-                      color: PetCareTheme.primaryBeige.withOpacity( 0.2),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: IconButton(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => EditPetScreen(pet: widget.pet),
-                          ),
-                        ).then((_) {
-                          Navigator.pop(context);
-                        });
-                      },
-                      icon: Icon(
-                        Icons.edit_rounded,
-                        color: PetCareTheme.primaryBeige,
-                        size: 24,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Container(
-                    decoration: BoxDecoration(
-                      color: PetCareTheme.primaryBeige.withOpacity( 0.2),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: PopupMenuButton<String>(
-                      icon: Icon(
-                        Icons.more_vert_rounded,
-                        color: PetCareTheme.primaryBeige,
-                        size: 24,
-                      ),
-                      onSelected: (value) {
-                        if (value == 'delete') {
-                          _showDeleteDialog();
-                        }
-                      },
-                      itemBuilder: (context) => [
-                        PopupMenuItem(
-                          value: 'delete',
-                          child: Row(
-                            children: [
-                              Icon(Icons.delete_rounded, color: PetCareTheme.warmRed),
-                              const SizedBox(width: 8),
-                              Text('Delete Pet', style: TextStyle(color: PetCareTheme.warmRed)),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
             ],
           ),
+        ],
+        bottom: TabBar(
+          controller: _tabController,
+          tabs: const [
+            Tab(text: 'Profile', icon: Icon(Icons.pets)),
+            Tab(text: 'Health', icon: Icon(Icons.health_and_safety)),
+            Tab(text: 'History', icon: Icon(Icons.history)),
+          ],
         ),
       ),
-    );
-  }
-
-  Widget _buildTabBar() {
-    return Container(
-      margin: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-      decoration: BoxDecoration(
-        color: PetCareTheme.cardWhite,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [PetCareTheme.elevatedShadow],
-        border: Border.all(
-          color: PetCareTheme.primaryBrown.withOpacity( 0.1),
-          width: 1,
-        ),
-      ),
-      child: TabBar(
+      body: TabBarView(
         controller: _tabController,
-        indicator: BoxDecoration(
-          gradient: LinearGradient(colors: PetCareTheme.accentGradient),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        indicatorSize: TabBarIndicatorSize.tab,
-        dividerColor: Colors.transparent,
-        labelColor: Colors.white,
-        unselectedLabelColor: PetCareTheme.textLight,
-        labelStyle: const TextStyle(
-          fontWeight: FontWeight.w600,
-          fontSize: 14,
-        ),
-        unselectedLabelStyle: const TextStyle(
-          fontWeight: FontWeight.w500,
-          fontSize: 14,
-        ),
-        tabs: const [
-          Tab(
-            text: 'Profile',
-            icon: Icon(Icons.pets_rounded, size: 20),
-          ),
-          Tab(
-            text: 'Health',
-            icon: Icon(Icons.health_and_safety_rounded, size: 20),
-          ),
-          Tab(
-            text: 'History',
-            icon: Icon(Icons.history_rounded, size: 20),
-          ),
+        children: [
+          _buildProfileTab(),
+          _buildHealthTab(),
+          _buildHistoryTab(),
         ],
       ),
     );
@@ -256,41 +119,46 @@ class _PetProfileScreenState extends State<PetProfileScreen> with SingleTickerPr
 
   Widget _buildProfileTab() {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Photo Gallery
           if (widget.pet.photoUrls.isNotEmpty) ...[
-            Container(
-              height: 250,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [PetCareTheme.elevatedShadow],
-              ),
+            SizedBox(
+              height: 200,
               child: PageView.builder(
                 itemCount: widget.pet.photoUrls.length,
                 itemBuilder: (context, index) {
                   return Container(
                     margin: const EdgeInsets.symmetric(horizontal: 4),
                     decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(20),
+                      borderRadius: BorderRadius.circular(12),
                       boxShadow: [
                         BoxShadow(
-                          color: PetCareTheme.shadowColor,
-                          blurRadius: 15,
-                          offset: const Offset(0, 8),
+                          color: Colors.black.withOpacity(0.1),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
                         ),
                       ],
                     ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(20),
-                        child: PetImageWidget(
-                          imageUrl: widget.pet.photoUrls[index],
-                          width: double.infinity,
-                          height: double.infinity,
-                        ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Image.network(
+                        widget.pet.photoUrls[index],
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                            color: Colors.grey[200],
+                            child: Icon(
+                              Icons.pets,
+                              size: 64,
+                              color: Colors.grey[400],
+                            ),
+                          );
+                        },
                       ),
+                    ),
                   );
                 },
               ),
@@ -298,45 +166,26 @@ class _PetProfileScreenState extends State<PetProfileScreen> with SingleTickerPr
             const SizedBox(height: 24),
           ] else ...[
             Container(
-              height: 250,
+              height: 200,
               width: double.infinity,
               decoration: BoxDecoration(
-                color: PetCareTheme.cardWhite,
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [PetCareTheme.elevatedShadow],
-                border: Border.all(
-                  color: PetCareTheme.primaryBrown.withOpacity( 0.1),
-                  width: 1,
-                ),
+                color: Colors.grey[200],
+                borderRadius: BorderRadius.circular(12),
               ),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Container(
-                    width: 80,
-                    height: 80,
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          PetCareTheme.primaryBrown.withOpacity( 0.1),
-                          PetCareTheme.lightBrown.withOpacity( 0.1),
-                        ],
-                      ),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      Icons.pets_rounded,
-                      size: 40,
-                      color: PetCareTheme.primaryBrown.withOpacity( 0.6),
-                    ),
+                  Icon(
+                    Icons.pets,
+                    size: 64,
+                    color: Colors.grey[400],
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 8),
                   Text(
                     'No photos added',
                     style: TextStyle(
-                      color: PetCareTheme.textLight,
+                      color: Colors.grey[600],
                       fontSize: 16,
-                      fontWeight: FontWeight.w500,
                     ),
                   ),
                 ],
@@ -346,166 +195,91 @@ class _PetProfileScreenState extends State<PetProfileScreen> with SingleTickerPr
           ],
 
           // Basic Information Card
-          Container(
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: PetCareTheme.cardWhite,
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [PetCareTheme.elevatedShadow],
-              border: Border.all(
-                color: PetCareTheme.primaryBrown.withOpacity( 0.1),
-                width: 1,
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Basic Information',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  _buildInfoRow('Name', widget.pet.name, Icons.pets),
+                  _buildInfoRow('Species', _getSpeciesName(widget.pet.species), Icons.category),
+                  _buildInfoRow('Breed', widget.pet.breed, Icons.info_outline),
+                  _buildInfoRow('Gender', _getGenderName(widget.pet.gender), Icons.wc),
+                  if (widget.pet.dateOfBirth != null)
+                    _buildInfoRow('Age', widget.pet.ageString, Icons.cake),
+                  if (widget.pet.weight != null)
+                    _buildInfoRow('Weight', '${widget.pet.weight} kg', Icons.monitor_weight),
+                  if (widget.pet.color != null)
+                    _buildInfoRow('Color', widget.pet.color!, Icons.palette),
+                  if (widget.pet.microchipId != null)
+                    _buildInfoRow('Microchip ID', widget.pet.microchipId!, Icons.qr_code),
+                ],
               ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            PetCareTheme.primaryBrown.withOpacity( 0.1),
-                            PetCareTheme.primaryBrown.withOpacity( 0.2),
-                          ],
-                        ),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Icon(
-                        Icons.info_rounded,
-                        color: PetCareTheme.primaryBrown,
-                        size: 20,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Text(
-                      'Basic Information',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w700,
-                        color: PetCareTheme.textDark,
-                        letterSpacing: 0.3,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                _buildInfoRow('Name', widget.pet.name, Icons.pets_rounded),
-                _buildInfoRow('Species', _getSpeciesName(widget.pet.species), Icons.category_rounded),
-                _buildInfoRow('Breed', widget.pet.breed, Icons.info_outline_rounded),
-                _buildInfoRow('Gender', _getGenderName(widget.pet.gender), Icons.wc_rounded),
-                if (widget.pet.dateOfBirth != null)
-                  _buildInfoRow('Age', widget.pet.ageString, Icons.cake_rounded),
-                if (widget.pet.weight != null)
-                  _buildInfoRow('Weight', '${widget.pet.weight} kg', Icons.monitor_weight_rounded),
-                if (widget.pet.color != null)
-                  _buildInfoRow('Color', widget.pet.color!, Icons.palette_rounded),
-                if (widget.pet.microchipId != null)
-                  _buildInfoRow('Microchip ID', widget.pet.microchipId!, Icons.qr_code_rounded),
-              ],
             ),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 16),
 
           // Health Status Card
-          Container(
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: PetCareTheme.cardWhite,
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [PetCareTheme.elevatedShadow],
-              border: Border.all(
-                color: _getHealthStatusColor(widget.pet.healthStatus).withOpacity( 0.2),
-                width: 1.5,
-              ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            _getHealthStatusColor(widget.pet.healthStatus).withOpacity( 0.1),
-                            _getHealthStatusColor(widget.pet.healthStatus).withOpacity( 0.2),
-                          ],
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Health Status',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: _getHealthStatusColor(widget.pet.healthStatus).withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(12),
                         ),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Icon(
-                        Icons.health_and_safety_rounded,
-                        color: _getHealthStatusColor(widget.pet.healthStatus),
-                        size: 20,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Text(
-                      'Health Status',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w700,
-                        color: PetCareTheme.textDark,
-                        letterSpacing: 0.3,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            _getHealthStatusColor(widget.pet.healthStatus).withOpacity( 0.1),
-                            _getHealthStatusColor(widget.pet.healthStatus).withOpacity( 0.2),
-                          ],
+                        child: Icon(
+                          Icons.health_and_safety,
+                          color: _getHealthStatusColor(widget.pet.healthStatus),
+                          size: 24,
                         ),
-                        borderRadius: BorderRadius.circular(16),
                       ),
-                      child: Icon(
-                        Icons.health_and_safety_rounded,
-                        color: _getHealthStatusColor(widget.pet.healthStatus),
-                        size: 32,
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            _getHealthStatusName(widget.pet.healthStatus),
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w700,
-                              color: _getHealthStatusColor(widget.pet.healthStatus),
-                              letterSpacing: 0.3,
-                            ),
-                          ),
-                          if (widget.pet.medicalNotes != null) ...[
-                            const SizedBox(height: 8),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
                             Text(
-                              widget.pet.medicalNotes!,
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: PetCareTheme.textLight,
-                                height: 1.4,
+                              _getHealthStatusName(widget.pet.healthStatus),
+                              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.w600,
+                                color: _getHealthStatusColor(widget.pet.healthStatus),
                               ),
                             ),
+                            if (widget.pet.medicalNotes != null)
+                              Text(
+                                widget.pet.medicalNotes!,
+                                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                                ),
+                              ),
                           ],
-                        ],
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-              ],
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
         ],
@@ -515,253 +289,43 @@ class _PetProfileScreenState extends State<PetProfileScreen> with SingleTickerPr
 
   Widget _buildHealthTab() {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Health Status Card
-          Container(
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: PetCareTheme.cardWhite,
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [PetCareTheme.elevatedShadow],
-              border: Border.all(
-                color: _getHealthStatusColor(widget.pet.healthStatus).withOpacity( 0.2),
-                width: 1.5,
-              ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            _getHealthStatusColor(widget.pet.healthStatus).withOpacity( 0.1),
-                            _getHealthStatusColor(widget.pet.healthStatus).withOpacity( 0.2),
-                          ],
-                        ),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Icon(
-                        Icons.health_and_safety_rounded,
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.health_and_safety,
                         color: _getHealthStatusColor(widget.pet.healthStatus),
-                        size: 20,
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    Text(
-                      'Health Status',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                        color: PetCareTheme.textDark,
-                        letterSpacing: 0.3,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        _getHealthStatusColor(widget.pet.healthStatus).withOpacity( 0.1),
-                        _getHealthStatusColor(widget.pet.healthStatus).withOpacity( 0.2),
-                      ],
-                    ),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: _getHealthStatusColor(widget.pet.healthStatus).withOpacity( 0.3),
-                      width: 1,
-                    ),
-                  ),
-                  child: Text(
-                    _getHealthStatusText(widget.pet.healthStatus),
-                    style: TextStyle(
-                      color: _getHealthStatusColor(widget.pet.healthStatus),
-                      fontWeight: FontWeight.w600,
-                      fontSize: 16,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 20),
-
-          // Due Records Alert
-          if (_dueRecords.isNotEmpty) ...[
-            Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: PetCareTheme.cardWhite,
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [PetCareTheme.elevatedShadow],
-                border: Border.all(
-                  color: PetCareTheme.accentGold.withOpacity( 0.3),
-                  width: 1.5,
-                ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              PetCareTheme.accentGold.withOpacity( 0.1),
-                              PetCareTheme.accentGold.withOpacity( 0.2),
-                            ],
-                          ),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Icon(
-                          Icons.warning_rounded,
-                          color: PetCareTheme.accentGold,
-                          size: 20,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
+                      const SizedBox(width: 8),
                       Text(
-                        'Due Records (${_dueRecords.length})',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                          color: PetCareTheme.textDark,
-                          letterSpacing: 0.3,
+                        'Health Status',
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 16),
-                  ..._dueRecords.take(3).map((record) => Container(
-                    margin: const EdgeInsets.only(bottom: 8),
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: PetCareTheme.accentGold.withOpacity( 0.05),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: PetCareTheme.accentGold.withOpacity( 0.2),
-                        width: 1,
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.circle,
-                          size: 8,
-                          color: PetCareTheme.accentGold,
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            '${record.title} - Due: ${_formatDate(record.nextDueDate!)}',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: PetCareTheme.textDark,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  )),
-                  if (_dueRecords.length > 3)
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: PetCareTheme.primaryBeige.withOpacity( 0.1),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        'And ${_dueRecords.length - 3} more...',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: PetCareTheme.textLight,
-                          fontStyle: FontStyle.italic,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 20),
-          ],
-
-          // Medical Notes
-          if (widget.pet.medicalNotes != null && widget.pet.medicalNotes!.isNotEmpty) ...[
-            Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: PetCareTheme.cardWhite,
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [PetCareTheme.elevatedShadow],
-                border: Border.all(
-                  color: PetCareTheme.softGreen.withOpacity( 0.2),
-                  width: 1.5,
-                ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              PetCareTheme.softGreen.withOpacity( 0.1),
-                              PetCareTheme.softGreen.withOpacity( 0.2),
-                            ],
-                          ),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Icon(
-                          Icons.note_alt_rounded,
-                          color: PetCareTheme.softGreen,
-                          size: 20,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Text(
-                        'Medical Notes',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                          color: PetCareTheme.textDark,
-                          letterSpacing: 0.3,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 8),
                   Container(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
-                      color: PetCareTheme.softGreen.withOpacity( 0.05),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: PetCareTheme.softGreen.withOpacity( 0.2),
-                        width: 1,
-                      ),
+                      color: _getHealthStatusColor(widget.pet.healthStatus).withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
-                      widget.pet.medicalNotes!,
+                      _getHealthStatusText(widget.pet.healthStatus),
                       style: TextStyle(
-                        fontSize: 14,
-                        color: PetCareTheme.textDark,
-                        height: 1.5,
+                        color: _getHealthStatusColor(widget.pet.healthStatus),
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -769,67 +333,104 @@ class _PetProfileScreenState extends State<PetProfileScreen> with SingleTickerPr
                 ],
               ),
             ),
-            const SizedBox(height: 20),
+          ),
+          const SizedBox(height: 16),
+
+          // Due Records Alert
+          if (_dueRecords.isNotEmpty) ...[
+            Card(
+              color: Colors.orange.withOpacity(0.1),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.warning, color: Colors.orange),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Due Records (${_dueRecords.length})',
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                            color: Colors.orange[800],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    ..._dueRecords.take(3).map((record) => Padding(
+                      padding: const EdgeInsets.only(bottom: 4),
+                      child: Text(
+                        '• ${record.title} - Due: ${_formatDate(record.nextDueDate!)}',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    )),
+                    if (_dueRecords.length > 3)
+                      Text(
+                        'And ${_dueRecords.length - 3} more...',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
+
+          // Medical Notes
+          if (widget.pet.medicalNotes != null && widget.pet.medicalNotes!.isNotEmpty) ...[
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.note_alt),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Medical Notes',
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      widget.pet.medicalNotes!,
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
           ],
 
           // Health Records Section
-          Container(
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: PetCareTheme.cardWhite,
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [PetCareTheme.elevatedShadow],
-              border: Border.all(
-                color: PetCareTheme.primaryBrown.withOpacity( 0.1),
-                width: 1,
-              ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            PetCareTheme.primaryBrown.withOpacity( 0.1),
-                            PetCareTheme.primaryBrown.withOpacity( 0.2),
-                          ],
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.medical_services),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Health Records',
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
                         ),
-                        borderRadius: BorderRadius.circular(12),
                       ),
-                      child: Icon(
-                        Icons.medical_services_rounded,
-                        color: PetCareTheme.primaryBrown,
-                        size: 20,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Text(
-                      'Health Records',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                        color: PetCareTheme.textDark,
-                        letterSpacing: 0.3,
-                      ),
-                    ),
-                    const Spacer(),
-                    Container(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(colors: PetCareTheme.accentGradient),
-                        borderRadius: BorderRadius.circular(12),
-                        boxShadow: [
-                          BoxShadow(
-                            color: PetCareTheme.shadowColor,
-                            blurRadius: 8,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: TextButton.icon(
+                      const Spacer(),
+                      TextButton.icon(
                         onPressed: () async {
                           final result = await Navigator.push(
                             context,
@@ -841,145 +442,63 @@ class _PetProfileScreenState extends State<PetProfileScreen> with SingleTickerPr
                             _loadAppointments();
                           }
                         },
-                        icon: const Icon(Icons.visibility_rounded, size: 16),
+                        icon: const Icon(Icons.visibility),
                         label: const Text('View All'),
-                        style: TextButton.styleFrom(
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                
-                if (_healthRecords.isEmpty)
-                  Container(
-                    padding: const EdgeInsets.all(32),
-                    decoration: BoxDecoration(
-                      color: PetCareTheme.primaryBeige.withOpacity( 0.05),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: PetCareTheme.primaryBrown.withOpacity( 0.1),
-                        width: 1,
-                      ),
-                    ),
-                    child: Column(
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  
+                  if (_healthRecords.isEmpty)
+                    Column(
                       children: [
-                        Container(
-                          width: 80,
-                          height: 80,
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [
-                                PetCareTheme.primaryBrown.withOpacity( 0.1),
-                                PetCareTheme.lightBrown.withOpacity( 0.1),
-                              ],
-                            ),
-                            shape: BoxShape.circle,
-                          ),
-                          child: Icon(
-                            Icons.medical_services_outlined,
-                            size: 40,
-                            color: PetCareTheme.primaryBrown.withOpacity( 0.6),
-                          ),
+                        const Icon(
+                          Icons.medical_services,
+                          size: 48,
+                          color: Colors.grey,
                         ),
                         const SizedBox(height: 16),
-                        Text(
+                        const Text(
                           'No health records yet',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w600,
-                            color: PetCareTheme.textDark,
-                          ),
+                          style: TextStyle(color: Colors.grey),
                         ),
                         const SizedBox(height: 8),
-                        Text(
-                          'Add health records to track your pet\'s health',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: PetCareTheme.textLight,
-                            height: 1.4,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 16),
-                        Container(
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(colors: PetCareTheme.accentGradient),
-                            borderRadius: BorderRadius.circular(12),
-                            boxShadow: [
-                              BoxShadow(
-                                color: PetCareTheme.shadowColor,
-                                blurRadius: 8,
-                                offset: const Offset(0, 4),
+                        ElevatedButton.icon(
+                          onPressed: () async {
+                            final result = await Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => AddHealthRecordScreen(petId: widget.pet.id),
                               ),
-                            ],
-                          ),
-                          child: ElevatedButton.icon(
-                            onPressed: () async {
-                              final result = await Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => AddHealthRecordScreen(petId: widget.pet.id),
-                                ),
-                              );
-                              if (result == true) {
-                                _loadAppointments();
-                              }
-                            },
-                            icon: const Icon(Icons.add_rounded, size: 18),
-                            label: const Text('Add First Record'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.transparent,
-                              foregroundColor: Colors.white,
-                              elevation: 0,
-                              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                          ),
+                            );
+                            if (result == true) {
+                              _loadAppointments();
+                            }
+                          },
+                          icon: const Icon(Icons.add),
+                          label: const Text('Add First Record'),
                         ),
                       ],
-                    ),
-                  )
-                else
-                  Column(
-                    children: [
-                      ..._healthRecords.take(3).map((record) => _buildHealthRecordTile(record)),
-                      if (_healthRecords.length > 3)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 8),
-                          child: Text(
-                            'And ${_healthRecords.length - 3} more records...',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: PetCareTheme.textLight,
-                              fontStyle: FontStyle.italic,
-                              fontWeight: FontWeight.w500,
+                    )
+                  else
+                    Column(
+                      children: [
+                        ..._healthRecords.take(3).map((record) => _buildHealthRecordTile(record)),
+                        if (_healthRecords.length > 3)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 8),
+                            child: Text(
+                              'And ${_healthRecords.length - 3} more records...',
+                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                fontStyle: FontStyle.italic,
+                                color: Colors.grey[600],
+                              ),
                             ),
                           ),
-                        ),
-                      const SizedBox(height: 16),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Container(
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(colors: PetCareTheme.accentGradient),
-                                borderRadius: BorderRadius.circular(12),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: PetCareTheme.shadowColor,
-                                    blurRadius: 8,
-                                    offset: const Offset(0, 4),
-                                  ),
-                                ],
-                              ),
+                        const SizedBox(height: 16),
+                        Row(
+                          children: [
+                            Expanded(
                               child: OutlinedButton.icon(
                                 onPressed: () async {
                                   final result = await Navigator.push(
@@ -992,229 +511,15 @@ class _PetProfileScreenState extends State<PetProfileScreen> with SingleTickerPr
                                     _loadAppointments();
                                   }
                                 },
-                                icon: const Icon(Icons.add_rounded, size: 16),
+                                icon: const Icon(Icons.add),
                                 label: const Text('Add Record'),
-                                style: OutlinedButton.styleFrom(
-                                  foregroundColor: Colors.white,
-                                  side: BorderSide.none,
-                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                ),
                               ),
                             ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: OutlinedButton.icon(
-                              onPressed: () async {
-                                final result = await Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => HealthRecordsScreen(petId: widget.pet.id),
-                                  ),
-                                );
-                                if (result == true) {
-                                  _loadAppointments();
-                                }
-                              },
-                              icon: const Icon(Icons.visibility_rounded, size: 16),
-                              label: const Text('View All'),
-                              style: OutlinedButton.styleFrom(
-                                foregroundColor: PetCareTheme.primaryBrown,
-                                side: BorderSide(
-                                  color: PetCareTheme.primaryBrown.withOpacity( 0.3),
-                                  width: 1,
-                                ),
-                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildHistoryTab() {
-    return _isLoading
-        ? Center(
-            child: CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation<Color>(PetCareTheme.primaryBrown),
-            ),
-          )
-        : SingleChildScrollView(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    color: PetCareTheme.cardWhite,
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [PetCareTheme.elevatedShadow],
-                    border: Border.all(
-                      color: PetCareTheme.primaryBrown.withOpacity( 0.1),
-                      width: 1,
-                    ),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [
-                                  PetCareTheme.primaryBrown.withOpacity( 0.1),
-                                  PetCareTheme.primaryBrown.withOpacity( 0.2),
-                                ],
-                              ),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Icon(
-                              Icons.history_rounded,
-                              color: PetCareTheme.primaryBrown,
-                              size: 20,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Text(
-                            'Appointment History',
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.w700,
-                              color: PetCareTheme.textDark,
-                              letterSpacing: 0.3,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 20),
-                      if (_appointments.isEmpty)
-                        Container(
-                          padding: const EdgeInsets.all(32),
-                          decoration: BoxDecoration(
-                            color: PetCareTheme.primaryBeige.withOpacity( 0.05),
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(
-                              color: PetCareTheme.primaryBrown.withOpacity( 0.1),
-                              width: 1,
-                            ),
-                          ),
-                          child: Column(
-                            children: [
-                              Container(
-                                width: 80,
-                                height: 80,
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    colors: [
-                                      PetCareTheme.primaryBrown.withOpacity( 0.1),
-                                      PetCareTheme.lightBrown.withOpacity( 0.1),
-                                    ],
-                                  ),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: Icon(
-                                  Icons.calendar_today_outlined,
-                                  size: 40,
-                                  color: PetCareTheme.primaryBrown.withOpacity( 0.6),
-                                ),
-                              ),
-                              const SizedBox(height: 16),
-                              Text(
-                                'No appointments yet',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w600,
-                                  color: PetCareTheme.textDark,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                'Appointments will appear here once scheduled',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: PetCareTheme.textLight,
-                                  height: 1.4,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                            ],
-                          ),
-                        )
-                      else
-                        Column(
-                          children: _appointments.take(5).map((appointment) => _buildAppointmentTile(appointment)).toList(),
+                          ],
                         ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          );
-  }
-
-  Widget _buildInfoRow(String label, String value, IconData icon) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: PetCareTheme.primaryBeige.withOpacity( 0.05),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: PetCareTheme.primaryBrown.withOpacity( 0.1),
-          width: 1,
-        ),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: PetCareTheme.primaryBrown.withOpacity( 0.1),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(
-              icon,
-              size: 18,
-              color: PetCareTheme.primaryBrown,
-            ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            flex: 2,
-            child: Text(
-              label,
-              style: TextStyle(
-                fontSize: 14,
-                color: PetCareTheme.textLight,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-          Expanded(
-            flex: 3,
-            child: Text(
-              value,
-              style: TextStyle(
-                fontSize: 14,
-                color: PetCareTheme.textDark,
-                fontWeight: FontWeight.w600,
+                      ],
+                    ),
+                ],
               ),
             ),
           ),
@@ -1225,28 +530,22 @@ class _PetProfileScreenState extends State<PetProfileScreen> with SingleTickerPr
 
   Widget _buildHealthRecordTile(HealthRecordModel record) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: PetCareTheme.primaryBeige.withOpacity( 0.05),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: PetCareTheme.primaryBrown.withOpacity( 0.1),
-          width: 1,
-        ),
+        color: Colors.grey[50],
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey[200]!),
       ),
       child: Row(
         children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: PetCareTheme.softGreen.withOpacity( 0.1),
-              borderRadius: BorderRadius.circular(8),
-            ),
+          CircleAvatar(
+            radius: 16,
+            backgroundColor: _getRecordTypeColor(record.type).withOpacity(0.1),
             child: Icon(
-              Icons.medical_services_rounded,
-              color: PetCareTheme.softGreen,
-              size: 18,
+              _getRecordTypeIcon(record.type),
+              size: 16,
+              color: _getRecordTypeColor(record.type),
             ),
           ),
           const SizedBox(width: 12),
@@ -1256,19 +555,14 @@ class _PetProfileScreenState extends State<PetProfileScreen> with SingleTickerPr
               children: [
                 Text(
                   record.title,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: PetCareTheme.textDark,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
-                const SizedBox(height: 4),
                 Text(
                   '${_getRecordTypeName(record.type)} • ${_formatDate(record.recordDate)}',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: PetCareTheme.textLight,
-                    fontWeight: FontWeight.w500,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Colors.grey[600],
                   ),
                 ),
               ],
@@ -1276,21 +570,17 @@ class _PetProfileScreenState extends State<PetProfileScreen> with SingleTickerPr
           ),
           if (record.nextDueDate != null && record.isDue)
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
-                color: record.isOverdue ? PetCareTheme.warmRed.withOpacity( 0.1) : PetCareTheme.accentGold.withOpacity( 0.1),
+                color: record.isOverdue ? Colors.red.withOpacity(0.1) : Colors.orange.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: record.isOverdue ? PetCareTheme.warmRed.withOpacity( 0.3) : PetCareTheme.accentGold.withOpacity( 0.3),
-                  width: 1,
-                ),
               ),
               child: Text(
                 record.isOverdue ? 'Overdue' : 'Due',
                 style: TextStyle(
-                  color: record.isOverdue ? PetCareTheme.warmRed : PetCareTheme.accentGold,
+                  color: record.isOverdue ? Colors.red : Colors.orange,
                   fontSize: 10,
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
             ),
@@ -1299,55 +589,123 @@ class _PetProfileScreenState extends State<PetProfileScreen> with SingleTickerPr
     );
   }
 
-  Widget _buildAppointmentTile(AppointmentModel appointment) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: PetCareTheme.primaryBeige.withOpacity( 0.05),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: PetCareTheme.primaryBrown.withOpacity( 0.1),
-          width: 1,
-        ),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: PetCareTheme.primaryBrown.withOpacity( 0.1),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(
-              Icons.calendar_today_rounded,
-              color: PetCareTheme.primaryBrown,
-              size: 18,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
+  Widget _buildHistoryTab() {
+    return _isLoading
+        ? const Center(child: CircularProgressIndicator())
+        : SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  appointment.reason,
-                  style: TextStyle(
-                    fontSize: 14,
+                  'Appointment History',
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.w600,
-                    color: PetCareTheme.textDark,
                   ),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  '${_formatDate(appointment.appointmentDate)} • ${appointment.status}',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: PetCareTheme.textLight,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
+                const SizedBox(height: 16),
+
+                if (_appointments.isEmpty)
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        children: [
+                          Icon(
+                            Icons.calendar_today,
+                            size: 48,
+                            color: Colors.grey[400],
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            'No appointments yet',
+                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Book your first appointment to see history here',
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: Colors.grey[500],
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                else
+                  ..._appointments.map((appointment) {
+                    return Card(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      child: ListTile(
+                        leading: CircleAvatar(
+                          backgroundColor: _getAppointmentStatusColor(appointment.status),
+                          child: Icon(
+                            _getAppointmentTypeIcon(appointment.type),
+                            color: Colors.white,
+                            size: 20,
+                          ),
+                        ),
+                        title: Text(_getAppointmentTypeName(appointment.type)),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('${appointment.appointmentDate.day}/${appointment.appointmentDate.month}/${appointment.appointmentDate.year} at ${appointment.timeSlot}'),
+                            if (appointment.reason.isNotEmpty)
+                              Text('Reason: ${appointment.reason}'),
+                            if (appointment.diagnosis != null && appointment.diagnosis!.isNotEmpty)
+                              Text('Diagnosis: ${appointment.diagnosis}', style: const TextStyle(fontWeight: FontWeight.w500)),
+                          ],
+                        ),
+                        trailing: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: _getAppointmentStatusColor(appointment.status).withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            _getAppointmentStatusName(appointment.status),
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: _getAppointmentStatusColor(appointment.status),
+                            ),
+                          ),
+                        ),
+                        isThreeLine: true,
+                      ),
+                    );
+                  }),
               ],
+            ),
+          );
+  }
+
+  Widget _buildInfoRow(String label, String value, IconData icon) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        children: [
+          Icon(icon, size: 20, color: Colors.grey[600]),
+          const SizedBox(width: 12),
+          Expanded(
+            flex: 2,
+            child: Text(
+              label,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Colors.grey[600],
+              ),
+            ),
+          ),
+          Expanded(
+            flex: 3,
+            child: Text(
+              value,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w500,
+              ),
             ),
           ),
         ],
@@ -1359,105 +717,172 @@ class _PetProfileScreenState extends State<PetProfileScreen> with SingleTickerPr
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(
-          'Delete Pet',
-          style: TextStyle(
-            color: PetCareTheme.textDark,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-        content: Text(
-          'Are you sure you want to delete ${widget.pet.name}? This action cannot be undone.',
-          style: TextStyle(
-            color: PetCareTheme.textLight,
-            height: 1.4,
-          ),
-        ),
+        title: const Text('Delete Pet'),
+        content: Text('Are you sure you want to delete ${widget.pet.name}? This action cannot be undone.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text(
-              'Cancel',
-              style: TextStyle(
-                color: PetCareTheme.textLight,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
+            child: const Text('Cancel'),
           ),
-          Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(colors: PetCareTheme.accentGradient),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: TextButton(
-              onPressed: () async {
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              final petService = Provider.of<PetService>(context, listen: false);
+              final success = await petService.deletePet(widget.pet.id);
+              
+              if (success) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Pet deleted successfully'),
+                    backgroundColor: Colors.green,
+                  ),
+                );
                 Navigator.pop(context);
-                final petService = Provider.of<PetService>(context, listen: false);
-                await petService.deletePet(widget.pet.id);
-                Navigator.pop(context);
-              },
-              child: const Text(
-                'Delete',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Failed to delete pet'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            },
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Delete'),
           ),
         ],
       ),
     );
   }
 
+  // Helper methods
   String _getSpeciesName(PetSpecies species) {
-    switch (species) {
-      case PetSpecies.dog:
-        return 'Dog';
-      case PetSpecies.cat:
-        return 'Cat';
-      case PetSpecies.bird:
-        return 'Bird';
-      case PetSpecies.fish:
-        return 'Fish';
-      case PetSpecies.rabbit:
-        return 'Rabbit';
-      case PetSpecies.hamster:
-        return 'Hamster';
-      case PetSpecies.reptile:
-        return 'Reptile';
-      case PetSpecies.other:
-        return 'Other';
-    }
+    return species.toString().split('.').last.toUpperCase();
   }
 
   String _getGenderName(PetGender gender) {
-    switch (gender) {
-      case PetGender.male:
-        return 'Male';
-      case PetGender.female:
-        return 'Female';
-      case PetGender.unknown:
-        return 'Unknown';
-    }
+    return gender.toString().split('.').last.toUpperCase();
+  }
+
+  String _getHealthStatusName(HealthStatus status) {
+    return status.toString().split('.').last.toUpperCase();
+  }
+
+  String _getAppointmentTypeName(AppointmentType type) {
+    return type.toString().split('.').last.toUpperCase();
+  }
+
+  String _getAppointmentStatusName(AppointmentStatus status) {
+    return status.toString().split('.').last.toUpperCase();
   }
 
   Color _getHealthStatusColor(HealthStatus status) {
     switch (status) {
       case HealthStatus.healthy:
-        return PetCareTheme.softGreen;
+        return Colors.green;
       case HealthStatus.sick:
-        return Colors.orange;
+        return Colors.red;
       case HealthStatus.recovering:
-        return PetCareTheme.accentGold;
+        return Colors.orange;
       case HealthStatus.critical:
-        return PetCareTheme.warmRed;
+        return Colors.red.shade800;
       case HealthStatus.unknown:
-        return PetCareTheme.textLight;
+        return Colors.grey;
     }
   }
 
-  String _getHealthStatusName(HealthStatus status) {
+  Color _getAppointmentStatusColor(AppointmentStatus status) {
+    switch (status) {
+      case AppointmentStatus.scheduled:
+        return Colors.blue;
+      case AppointmentStatus.confirmed:
+        return Colors.green;
+      case AppointmentStatus.inProgress:
+        return Colors.orange;
+      case AppointmentStatus.completed:
+        return Colors.green.shade700;
+      case AppointmentStatus.cancelled:
+        return Colors.red;
+      case AppointmentStatus.noShow:
+        return Colors.red.shade800;
+    }
+  }
+
+  IconData _getAppointmentTypeIcon(AppointmentType type) {
+    switch (type) {
+      case AppointmentType.checkup:
+        return Icons.health_and_safety;
+      case AppointmentType.vaccination:
+        return Icons.vaccines;
+      case AppointmentType.surgery:
+        return Icons.medical_services;
+      case AppointmentType.emergency:
+        return Icons.emergency;
+      case AppointmentType.grooming:
+        return Icons.content_cut;
+      case AppointmentType.consultation:
+        return Icons.chat;
+    }
+  }
+
+  Color _getRecordTypeColor(HealthRecordType type) {
+    switch (type) {
+      case HealthRecordType.vaccination:
+        return Colors.green;
+      case HealthRecordType.medication:
+        return Colors.blue;
+      case HealthRecordType.checkup:
+        return Colors.orange;
+      case HealthRecordType.surgery:
+        return Colors.red;
+      case HealthRecordType.allergy:
+        return Colors.purple;
+      case HealthRecordType.injury:
+        return Colors.brown;
+      case HealthRecordType.other:
+        return Colors.grey;
+    }
+  }
+
+  IconData _getRecordTypeIcon(HealthRecordType type) {
+    switch (type) {
+      case HealthRecordType.vaccination:
+        return Icons.vaccines;
+      case HealthRecordType.medication:
+        return Icons.medication;
+      case HealthRecordType.checkup:
+        return Icons.health_and_safety;
+      case HealthRecordType.surgery:
+        return Icons.medical_services;
+      case HealthRecordType.allergy:
+        return Icons.warning;
+      case HealthRecordType.injury:
+        return Icons.healing;
+      case HealthRecordType.other:
+        return Icons.note_alt;
+    }
+  }
+
+  String _getRecordTypeName(HealthRecordType type) {
+    switch (type) {
+      case HealthRecordType.vaccination:
+        return 'Vaccination';
+      case HealthRecordType.medication:
+        return 'Medication';
+      case HealthRecordType.checkup:
+        return 'Checkup';
+      case HealthRecordType.surgery:
+        return 'Surgery';
+      case HealthRecordType.allergy:
+        return 'Allergy';
+      case HealthRecordType.injury:
+        return 'Injury';
+      case HealthRecordType.other:
+        return 'Other';
+    }
+  }
+
+  String _getHealthStatusText(HealthStatus status) {
     switch (status) {
       case HealthStatus.healthy:
         return 'Healthy';
@@ -1469,40 +894,6 @@ class _PetProfileScreenState extends State<PetProfileScreen> with SingleTickerPr
         return 'Critical';
       case HealthStatus.unknown:
         return 'Unknown';
-    }
-  }
-
-  String _getHealthStatusText(HealthStatus status) {
-    switch (status) {
-      case HealthStatus.healthy:
-        return 'Your pet is in excellent health!';
-      case HealthStatus.sick:
-        return 'Your pet needs medical attention.';
-      case HealthStatus.recovering:
-        return 'Your pet is recovering well.';
-      case HealthStatus.critical:
-        return 'Your pet needs immediate medical attention.';
-      case HealthStatus.unknown:
-        return 'Health status is unknown.';
-    }
-  }
-
-  String _getRecordTypeName(HealthRecordType type) {
-    switch (type) {
-      case HealthRecordType.vaccination:
-        return 'Vaccination';
-      case HealthRecordType.checkup:
-        return 'Checkup';
-      case HealthRecordType.medication:
-        return 'Medication';
-      case HealthRecordType.surgery:
-        return 'Surgery';
-      case HealthRecordType.allergy:
-        return 'Allergy';
-      case HealthRecordType.injury:
-        return 'Injury';
-      case HealthRecordType.other:
-        return 'Other';
     }
   }
 

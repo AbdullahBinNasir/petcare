@@ -1,42 +1,32 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/adoption_request_model.dart';
-import 'notification_service.dart';
 
 class AdoptionRequestService extends ChangeNotifier {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final NotificationService _notificationService = NotificationService();
 
   // Get adoption requests by shelter owner ID
-  Future<List<AdoptionRequestModel>> getAdoptionRequestsByShelterOwnerId(
-    String shelterOwnerId,
-  ) async {
+  Future<List<AdoptionRequestModel>> getAdoptionRequestsByShelterOwnerId(String shelterOwnerId) async {
     try {
       print('Fetching adoption requests for shelter owner ID: $shelterOwnerId');
-
+      
       final querySnapshot = await _firestore
           .collection('adoption_requests')
           .where('shelterOwnerId', isEqualTo: shelterOwnerId)
           .where('isActive', isEqualTo: true)
           .get();
 
-      print(
-        'Found ${querySnapshot.docs.length} adoption requests in Firestore',
-      );
+      print('Found ${querySnapshot.docs.length} adoption requests in Firestore');
 
-      final adoptionRequests = querySnapshot.docs
-          .map((doc) {
-            try {
-              print('Processing adoption request document: ${doc.id}');
-              return AdoptionRequestModel.fromFirestore(doc);
-            } catch (e) {
-              print('Error processing adoption request ${doc.id}: $e');
-              return null;
-            }
-          })
-          .where((request) => request != null)
-          .cast<AdoptionRequestModel>()
-          .toList();
+      final adoptionRequests = querySnapshot.docs.map((doc) {
+        try {
+          print('Processing adoption request document: ${doc.id}');
+          return AdoptionRequestModel.fromFirestore(doc);
+        } catch (e) {
+          print('Error processing adoption request ${doc.id}: $e');
+          return null;
+        }
+      }).where((request) => request != null).cast<AdoptionRequestModel>().toList();
 
       // Sort manually in code instead of Firestore
       adoptionRequests.sort((a, b) => b.createdAt.compareTo(a.createdAt));
@@ -51,35 +41,27 @@ class AdoptionRequestService extends ChangeNotifier {
   }
 
   // Get adoption requests by pet owner ID
-  Future<List<AdoptionRequestModel>> getAdoptionRequestsByPetOwnerId(
-    String petOwnerId,
-  ) async {
+  Future<List<AdoptionRequestModel>> getAdoptionRequestsByPetOwnerId(String petOwnerId) async {
     try {
       print('Fetching adoption requests for pet owner ID: $petOwnerId');
-
+      
       final querySnapshot = await _firestore
           .collection('adoption_requests')
           .where('petOwnerId', isEqualTo: petOwnerId)
           .where('isActive', isEqualTo: true)
           .get();
 
-      print(
-        'Found ${querySnapshot.docs.length} adoption requests in Firestore',
-      );
+      print('Found ${querySnapshot.docs.length} adoption requests in Firestore');
 
-      final adoptionRequests = querySnapshot.docs
-          .map((doc) {
-            try {
-              print('Processing adoption request document: ${doc.id}');
-              return AdoptionRequestModel.fromFirestore(doc);
-            } catch (e) {
-              print('Error processing adoption request ${doc.id}: $e');
-              return null;
-            }
-          })
-          .where((request) => request != null)
-          .cast<AdoptionRequestModel>()
-          .toList();
+      final adoptionRequests = querySnapshot.docs.map((doc) {
+        try {
+          print('Processing adoption request document: ${doc.id}');
+          return AdoptionRequestModel.fromFirestore(doc);
+        } catch (e) {
+          print('Error processing adoption request ${doc.id}: $e');
+          return null;
+        }
+      }).where((request) => request != null).cast<AdoptionRequestModel>().toList();
 
       // Sort manually in code instead of Firestore
       adoptionRequests.sort((a, b) => b.createdAt.compareTo(a.createdAt));
@@ -97,11 +79,8 @@ class AdoptionRequestService extends ChangeNotifier {
   Future<AdoptionRequestModel?> getAdoptionRequestById(String requestId) async {
     try {
       print('Fetching adoption request with ID: $requestId');
-      final doc = await _firestore
-          .collection('adoption_requests')
-          .doc(requestId)
-          .get();
-
+      final doc = await _firestore.collection('adoption_requests').doc(requestId).get();
+      
       if (doc.exists && doc.data() != null) {
         print('Adoption request found: ${doc.data()}');
         return AdoptionRequestModel.fromFirestore(doc);
@@ -115,13 +94,11 @@ class AdoptionRequestService extends ChangeNotifier {
   }
 
   // Add new adoption request
-  Future<String?> addAdoptionRequest(
-    AdoptionRequestModel adoptionRequest,
-  ) async {
+  Future<String?> addAdoptionRequest(AdoptionRequestModel adoptionRequest) async {
     try {
       print('Adding new adoption request for pet: ${adoptionRequest.petName}');
       print('Adoption request data to save: ${adoptionRequest.toFirestore()}');
-
+      
       // Validate required fields
       if (adoptionRequest.petListingId.isEmpty) {
         print('Error: petListingId is empty');
@@ -135,24 +112,10 @@ class AdoptionRequestService extends ChangeNotifier {
         print('Error: shelterOwnerId is empty');
         return null;
       }
-
-      final docRef = await _firestore
-          .collection('adoption_requests')
-          .add(adoptionRequest.toFirestore());
+      
+      final docRef = await _firestore.collection('adoption_requests').add(adoptionRequest.toFirestore());
       print('Adoption request added successfully with ID: ${docRef.id}');
-
-      // Send notification about new adoption request
-      try {
-        await _notificationService.notifyAdoptionRequestReceived(
-          adoptionRequest.petName,
-          adoptionRequest.petOwnerName,
-        );
-      } catch (notificationError) {
-        print(
-          'Warning: Could not send adoption request notification: $notificationError',
-        );
-      }
-
+      
       notifyListeners();
       return docRef.id;
     } catch (e) {
@@ -163,20 +126,16 @@ class AdoptionRequestService extends ChangeNotifier {
   }
 
   // Update adoption request
-  Future<bool> updateAdoptionRequest(
-    AdoptionRequestModel adoptionRequest,
-  ) async {
+  Future<bool> updateAdoptionRequest(AdoptionRequestModel adoptionRequest) async {
     try {
       print('Updating adoption request: ${adoptionRequest.id}');
-
-      final updatedRequest = adoptionRequest.copyWith(
-        updatedAt: DateTime.now(),
-      );
+      
+      final updatedRequest = adoptionRequest.copyWith(updatedAt: DateTime.now());
       await _firestore
           .collection('adoption_requests')
           .doc(adoptionRequest.id)
           .update(updatedRequest.toFirestore());
-
+      
       print('Adoption request updated successfully');
       notifyListeners();
       return true;
@@ -190,12 +149,12 @@ class AdoptionRequestService extends ChangeNotifier {
   Future<bool> deleteAdoptionRequest(String requestId) async {
     try {
       print('Soft deleting adoption request: $requestId');
-
+      
       await _firestore.collection('adoption_requests').doc(requestId).update({
         'isActive': false,
         'updatedAt': Timestamp.fromDate(DateTime.now()),
       });
-
+      
       print('Adoption request deleted successfully');
       notifyListeners();
       return true;
@@ -214,14 +173,11 @@ class AdoptionRequestService extends ChangeNotifier {
   }) async {
     try {
       print('Searching adoption requests with query: $query');
-
+      
       Query baseQuery = _firestore.collection('adoption_requests');
-
+      
       if (shelterOwnerId != null) {
-        baseQuery = baseQuery.where(
-          'shelterOwnerId',
-          isEqualTo: shelterOwnerId,
-        );
+        baseQuery = baseQuery.where('shelterOwnerId', isEqualTo: shelterOwnerId);
       }
 
       if (petOwnerId != null) {
@@ -229,10 +185,7 @@ class AdoptionRequestService extends ChangeNotifier {
       }
 
       if (status != null) {
-        baseQuery = baseQuery.where(
-          'status',
-          isEqualTo: status.toString().split('.').last,
-        );
+        baseQuery = baseQuery.where('status', isEqualTo: status.toString().split('.').last);
       }
 
       final querySnapshot = await baseQuery
@@ -256,14 +209,12 @@ class AdoptionRequestService extends ChangeNotifier {
       final filteredRequests = adoptionRequests.where((request) {
         final searchText = query.toLowerCase();
         return request.petName.toLowerCase().contains(searchText) ||
-            request.petOwnerName.toLowerCase().contains(searchText) ||
-            request.petType.toLowerCase().contains(searchText) ||
-            request.reasonForAdoption.toLowerCase().contains(searchText);
+               request.petOwnerName.toLowerCase().contains(searchText) ||
+               request.petType.toLowerCase().contains(searchText) ||
+               request.reasonForAdoption.toLowerCase().contains(searchText);
       }).toList();
 
-      print(
-        'Found ${filteredRequests.length} adoption requests matching search',
-      );
+      print('Found ${filteredRequests.length} adoption requests matching search');
       return filteredRequests;
     } catch (e) {
       print('Error searching adoption requests: $e');
@@ -272,18 +223,15 @@ class AdoptionRequestService extends ChangeNotifier {
   }
 
   // Get adoption requests by status
-  Future<List<AdoptionRequestModel>> getAdoptionRequestsByStatus(
-    AdoptionRequestStatus status, {
-    String? shelterOwnerId,
-  }) async {
+  Future<List<AdoptionRequestModel>> getAdoptionRequestsByStatus(AdoptionRequestStatus status, {String? shelterOwnerId}) async {
     try {
       print('Fetching adoption requests by status: $status');
-
+      
       Query query = _firestore
           .collection('adoption_requests')
           .where('status', isEqualTo: status.toString().split('.').last)
           .where('isActive', isEqualTo: true);
-
+      
       if (shelterOwnerId != null) {
         query = query.where('shelterOwnerId', isEqualTo: shelterOwnerId);
       }
@@ -303,9 +251,7 @@ class AdoptionRequestService extends ChangeNotifier {
           .cast<AdoptionRequestModel>()
           .toList();
 
-      print(
-        'Found ${adoptionRequests.length} adoption requests with status $status',
-      );
+      print('Found ${adoptionRequests.length} adoption requests with status $status');
       return adoptionRequests;
     } catch (e) {
       print('Error getting adoption requests by status: $e');
@@ -314,35 +260,27 @@ class AdoptionRequestService extends ChangeNotifier {
   }
 
   // Get adoption requests by pet listing ID
-  Future<List<AdoptionRequestModel>> getAdoptionRequestsByPetListingId(
-    String petListingId,
-  ) async {
+  Future<List<AdoptionRequestModel>> getAdoptionRequestsByPetListingId(String petListingId) async {
     try {
       print('Fetching adoption requests for pet listing ID: $petListingId');
-
+      
       final querySnapshot = await _firestore
           .collection('adoption_requests')
           .where('petListingId', isEqualTo: petListingId)
           .where('isActive', isEqualTo: true)
           .get();
 
-      print(
-        'Found ${querySnapshot.docs.length} adoption requests for pet listing',
-      );
+      print('Found ${querySnapshot.docs.length} adoption requests for pet listing');
 
-      final adoptionRequests = querySnapshot.docs
-          .map((doc) {
-            try {
-              print('Processing adoption request document: ${doc.id}');
-              return AdoptionRequestModel.fromFirestore(doc);
-            } catch (e) {
-              print('Error processing adoption request ${doc.id}: $e');
-              return null;
-            }
-          })
-          .where((request) => request != null)
-          .cast<AdoptionRequestModel>()
-          .toList();
+      final adoptionRequests = querySnapshot.docs.map((doc) {
+        try {
+          print('Processing adoption request document: ${doc.id}');
+          return AdoptionRequestModel.fromFirestore(doc);
+        } catch (e) {
+          print('Error processing adoption request ${doc.id}: $e');
+          return null;
+        }
+      }).where((request) => request != null).cast<AdoptionRequestModel>().toList();
 
       // Sort manually in code instead of Firestore
       adoptionRequests.sort((a, b) => b.createdAt.compareTo(a.createdAt));
@@ -357,13 +295,9 @@ class AdoptionRequestService extends ChangeNotifier {
   }
 
   // Stream adoption requests by shelter owner ID (real-time updates)
-  Stream<List<AdoptionRequestModel>> streamAdoptionRequestsByShelterOwnerId(
-    String shelterOwnerId,
-  ) {
-    print(
-      'Setting up stream for adoption requests of shelter owner: $shelterOwnerId',
-    );
-
+  Stream<List<AdoptionRequestModel>> streamAdoptionRequestsByShelterOwnerId(String shelterOwnerId) {
+    print('Setting up stream for adoption requests of shelter owner: $shelterOwnerId');
+    
     return _firestore
         .collection('adoption_requests')
         .where('shelterOwnerId', isEqualTo: shelterOwnerId)
@@ -372,7 +306,7 @@ class AdoptionRequestService extends ChangeNotifier {
         .snapshots()
         .map((snapshot) {
           print('Stream received ${snapshot.docs.length} adoption requests');
-
+          
           return snapshot.docs
               .map((doc) {
                 try {
@@ -389,14 +323,10 @@ class AdoptionRequestService extends ChangeNotifier {
   }
 
   // Update adoption request status
-  Future<bool> updateAdoptionRequestStatus(
-    String requestId,
-    AdoptionRequestStatus status, {
-    String? response,
-  }) async {
+  Future<bool> updateAdoptionRequestStatus(String requestId, AdoptionRequestStatus status, {String? response}) async {
     try {
       print('Updating adoption request status: $requestId to $status');
-
+      
       final updateData = {
         'status': status.toString().split('.').last,
         'updatedAt': Timestamp.fromDate(DateTime.now()),
@@ -406,33 +336,9 @@ class AdoptionRequestService extends ChangeNotifier {
         updateData['shelterResponse'] = response;
         updateData['responseDate'] = Timestamp.fromDate(DateTime.now());
       }
-
-      await _firestore
-          .collection('adoption_requests')
-          .doc(requestId)
-          .update(updateData);
-
-      // Send notification if approved
-      if (status == AdoptionRequestStatus.approved) {
-        try {
-          // Get adoption request details for notification
-          final requestDoc = await _firestore
-              .collection('adoption_requests')
-              .doc(requestId)
-              .get();
-          if (requestDoc.exists) {
-            final request = AdoptionRequestModel.fromFirestore(requestDoc);
-            await _notificationService.notifyAdoptionRequestApproved(
-              request.petName,
-            );
-          }
-        } catch (notificationError) {
-          print(
-            'Warning: Could not send approval notification: $notificationError',
-          );
-        }
-      }
-
+      
+      await _firestore.collection('adoption_requests').doc(requestId).update(updateData);
+      
       print('Adoption request status updated successfully');
       notifyListeners();
       return true;
@@ -443,10 +349,7 @@ class AdoptionRequestService extends ChangeNotifier {
   }
 
   // Check if adoption request exists for pet listing and pet owner
-  Future<bool> adoptionRequestExists(
-    String petListingId,
-    String petOwnerId,
-  ) async {
+  Future<bool> adoptionRequestExists(String petListingId, String petOwnerId) async {
     try {
       final querySnapshot = await _firestore
           .collection('adoption_requests')
@@ -454,7 +357,7 @@ class AdoptionRequestService extends ChangeNotifier {
           .where('petOwnerId', isEqualTo: petOwnerId)
           .where('isActive', isEqualTo: true)
           .get();
-
+      
       return querySnapshot.docs.isNotEmpty;
     } catch (e) {
       print('Error checking adoption request existence: $e');
@@ -463,33 +366,19 @@ class AdoptionRequestService extends ChangeNotifier {
   }
 
   // Get adoption request statistics
-  Future<Map<String, int>> getAdoptionRequestStatistics(
-    String shelterOwnerId,
-  ) async {
+  Future<Map<String, int>> getAdoptionRequestStatistics(String shelterOwnerId) async {
     try {
-      final allRequests = await getAdoptionRequestsByShelterOwnerId(
-        shelterOwnerId,
-      );
-
+      final allRequests = await getAdoptionRequestsByShelterOwnerId(shelterOwnerId);
+      
       final stats = <String, int>{
         'total': allRequests.length,
-        'pending': allRequests
-            .where((r) => r.status == AdoptionRequestStatus.pending)
-            .length,
-        'approved': allRequests
-            .where((r) => r.status == AdoptionRequestStatus.approved)
-            .length,
-        'rejected': allRequests
-            .where((r) => r.status == AdoptionRequestStatus.rejected)
-            .length,
-        'completed': allRequests
-            .where((r) => r.status == AdoptionRequestStatus.completed)
-            .length,
-        'cancelled': allRequests
-            .where((r) => r.status == AdoptionRequestStatus.cancelled)
-            .length,
+        'pending': allRequests.where((r) => r.status == AdoptionRequestStatus.pending).length,
+        'approved': allRequests.where((r) => r.status == AdoptionRequestStatus.approved).length,
+        'rejected': allRequests.where((r) => r.status == AdoptionRequestStatus.rejected).length,
+        'completed': allRequests.where((r) => r.status == AdoptionRequestStatus.completed).length,
+        'cancelled': allRequests.where((r) => r.status == AdoptionRequestStatus.cancelled).length,
       };
-
+      
       return stats;
     } catch (e) {
       print('Error getting adoption request statistics: $e');

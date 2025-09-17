@@ -365,7 +365,6 @@ class _VetAppointmentFiltersScreenState extends State<VetAppointmentFiltersScree
                   decoration: const InputDecoration(
                     labelText: 'Pet',
                     border: OutlineInputBorder(),
-                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   ),
                   items: [
                     const DropdownMenuItem(
@@ -375,28 +374,23 @@ class _VetAppointmentFiltersScreenState extends State<VetAppointmentFiltersScree
                     ..._pets.values.map((pet) {
                       return DropdownMenuItem(
                         value: pet.id,
-                        child: Text(
-                          pet.name,
-                          overflow: TextOverflow.ellipsis,
-                        ),
+                        child: Text(pet.name),
                       );
                     }),
                   ],
-                  isExpanded: true,
                   onChanged: (value) {
                     setState(() => _selectedPetId = value);
                     _applyFilters();
                   },
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 16),
               Expanded(
                 child: DropdownButtonFormField<String?>(
                   value: _selectedOwnerId,
                   decoration: const InputDecoration(
                     labelText: 'Owner',
                     border: OutlineInputBorder(),
-                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   ),
                   items: [
                     const DropdownMenuItem(
@@ -406,14 +400,10 @@ class _VetAppointmentFiltersScreenState extends State<VetAppointmentFiltersScree
                     ..._petOwners.values.map((owner) {
                       return DropdownMenuItem(
                         value: owner.id,
-                        child: Text(
-                          owner.fullName,
-                          overflow: TextOverflow.ellipsis,
-                        ),
+                        child: Text(owner.fullName),
                       );
                     }),
                   ],
-                  isExpanded: true,
                   onChanged: (value) {
                     setState(() => _selectedOwnerId = value);
                     _applyFilters();

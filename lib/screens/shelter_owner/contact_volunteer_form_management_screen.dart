@@ -21,13 +21,6 @@ class _ContactVolunteerFormManagementScreenState extends State<ContactVolunteerF
   FormStatus? _selectedStatus;
   String? _errorMessage;
 
-  // Custom colors
-  static const Color primaryColor = Color(0xFF7D4D20);
-  static const Color backgroundColor = Color(0xFFFAFAF0);
-  static const Color cardColor = Colors.white;
-  static const Color accentColor = Color(0xFF9A6B39);
-  static const Color lightAccent = Color(0xFFE8DCC8);
-
   @override
   void initState() {
     super.initState();
@@ -150,68 +143,33 @@ class _ContactVolunteerFormManagementScreenState extends State<ContactVolunteerF
   void _showErrorSnackBar(String message) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message, style: const TextStyle(color: Colors.white)),
-        backgroundColor: const Color(0xFFD32F2F),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        margin: const EdgeInsets.all(16),
-      ),
+      SnackBar(content: Text(message), backgroundColor: Colors.red),
     );
   }
 
   void _showSuccessSnackBar(String message) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message, style: const TextStyle(color: Colors.white)),
-        backgroundColor: const Color(0xFF388E3C),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        margin: const EdgeInsets.all(16),
-      ),
+      SnackBar(content: Text(message), backgroundColor: Colors.green),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: backgroundColor,
       appBar: AppBar(
-        title: const Text(
-          'Forms Management',
-          style: TextStyle(
-            fontWeight: FontWeight.w600,
-            letterSpacing: 0.5,
-          ),
-        ),
-        backgroundColor: primaryColor,
-        foregroundColor: backgroundColor,
-        elevation: 0,
+        title: const Text('Forms Management'),
+        backgroundColor: Colors.teal,
+        foregroundColor: Colors.white,
         actions: [
-          Container(
-            margin: const EdgeInsets.only(right: 8),
-            decoration: BoxDecoration(
-              color: accentColor,
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: IconButton(
-              icon: const Icon(Icons.refresh_rounded, color: Colors.white),
-              onPressed: _loadForms,
-              tooltip: 'Refresh Forms',
-            ),
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _loadForms,
           ),
-          Container(
-            margin: const EdgeInsets.only(right: 16),
-            decoration: BoxDecoration(
-              color: accentColor,
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: IconButton(
-              icon: const Icon(Icons.info_outline_rounded, color: Colors.white),
-              onPressed: _showDebugInfo,
-              tooltip: 'Debug Info',
-            ),
+          // Debug info button
+          IconButton(
+            icon: const Icon(Icons.info),
+            onPressed: _showDebugInfo,
           ),
         ],
       ),
@@ -219,136 +177,86 @@ class _ContactVolunteerFormManagementScreenState extends State<ContactVolunteerF
         children: [
           // Search and Filter Section
           Container(
-            padding: const EdgeInsets.all(20.0),
-            decoration: BoxDecoration(
-              color: cardColor,
-              boxShadow: [
-                BoxShadow(
-                  color: primaryColor.withOpacity(0.1),
-                  blurRadius: 10,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
+            padding: const EdgeInsets.all(16.0),
+            color: Colors.grey[100],
             child: Column(
               children: [
                 // Search Bar
-                Container(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: lightAccent, width: 1.5),
-                    color: backgroundColor.withOpacity(0.5),
-                  ),
-                  child: TextField(
-                    decoration: InputDecoration(
-                      hintText: 'Search forms...',
-                      hintStyle: TextStyle(color: primaryColor.withOpacity(0.6)),
-                      prefixIcon: Icon(Icons.search_rounded, color: primaryColor),
-                      suffixIcon: _searchQuery.isNotEmpty
-                          ? Container(
-                              margin: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: accentColor,
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: IconButton(
-                                icon: const Icon(Icons.clear_rounded, color: Colors.white, size: 18),
-                                onPressed: () {
-                                  setState(() => _searchQuery = '');
-                                  _loadForms();
-                                },
-                              ),
-                            )
-                          : null,
-                      border: InputBorder.none,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                TextField(
+                  decoration: InputDecoration(
+                    hintText: 'Search forms...',
+                    prefixIcon: const Icon(Icons.search),
+                    suffixIcon: _searchQuery.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear),
+                            onPressed: () {
+                              setState(() => _searchQuery = '');
+                              _loadForms();
+                            },
+                          )
+                        : null,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
                     ),
-                    style: TextStyle(color: primaryColor, fontWeight: FontWeight.w500),
-                    onChanged: (value) {
-                      setState(() => _searchQuery = value);
-                      if (value.isEmpty) {
-                        _loadForms();
-                      } else {
-                        _searchForms();
-                      }
-                    },
                   ),
+                  onChanged: (value) {
+                    setState(() => _searchQuery = value);
+                    if (value.isEmpty) {
+                      _loadForms();
+                    } else {
+                      _searchForms();
+                    }
+                  },
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 12),
                 // Filter Row
                 Row(
                   children: [
                     Expanded(
-                      child: Container(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: lightAccent, width: 1.5),
-                          color: backgroundColor.withOpacity(0.5),
+                      child: DropdownButtonFormField<FormType?>(
+                        value: _selectedType,
+                        decoration: const InputDecoration(
+                          labelText: 'Type',
+                          border: OutlineInputBorder(),
                         ),
-                        child: DropdownButtonFormField<FormType?>(
-                          value: _selectedType,
-                          decoration: const InputDecoration(
-                            labelText: 'Type',
-                            border: InputBorder.none,
-                            contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        items: [
+                          const DropdownMenuItem<FormType?>(
+                            value: null,
+                            child: Text('All Types'),
                           ),
-                          style: TextStyle(color: primaryColor, fontWeight: FontWeight.w500),
-                          dropdownColor: backgroundColor,
-                          items: [
-                            DropdownMenuItem<FormType?>(
-                              value: null,
-                              child: Text('All Types', style: TextStyle(color: primaryColor)),
-                            ),
-                            ...FormType.values.map((type) => DropdownMenuItem(
-                              value: type,
-                              child: Text(
-                                type.toString().split('.').last,
-                                style: TextStyle(color: primaryColor),
-                              ),
-                            )),
-                          ],
-                          onChanged: (value) {
-                            setState(() => _selectedType = value);
-                            _searchForms();
-                          },
-                        ),
+                          ...FormType.values.map((type) => DropdownMenuItem(
+                            value: type,
+                            child: Text(type.toString().split('.').last),
+                          )),
+                        ],
+                        onChanged: (value) {
+                          setState(() => _selectedType = value);
+                          _searchForms();
+                        },
                       ),
                     ),
-                    const SizedBox(width: 16),
+                    const SizedBox(width: 12),
                     Expanded(
-                      child: Container(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: lightAccent, width: 1.5),
-                          color: backgroundColor.withOpacity(0.5),
+                      child: DropdownButtonFormField<FormStatus?>(
+                        value: _selectedStatus,
+                        decoration: const InputDecoration(
+                          labelText: 'Status',
+                          border: OutlineInputBorder(),
                         ),
-                        child: DropdownButtonFormField<FormStatus?>(
-                          value: _selectedStatus,
-                          decoration: const InputDecoration(
-                            labelText: 'Status',
-                            border: InputBorder.none,
-                            contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        items: [
+                          const DropdownMenuItem<FormStatus?>(
+                            value: null,
+                            child: Text('All Statuses'),
                           ),
-                          style: TextStyle(color: primaryColor, fontWeight: FontWeight.w500),
-                          dropdownColor: backgroundColor,
-                          items: [
-                            DropdownMenuItem<FormStatus?>(
-                              value: null,
-                              child: Text('All Statuses', style: TextStyle(color: primaryColor)),
-                            ),
-                            ...FormStatus.values.map((status) => DropdownMenuItem(
-                              value: status,
-                              child: Text(
-                                status.toString().split('.').last,
-                                style: TextStyle(color: primaryColor),
-                              ),
-                            )),
-                          ],
-                          onChanged: (value) {
-                            setState(() => _selectedStatus = value);
-                            _searchForms();
-                          },
-                        ),
+                          ...FormStatus.values.map((status) => DropdownMenuItem(
+                            value: status,
+                            child: Text(status.toString().split('.').last),
+                          )),
+                        ],
+                        onChanged: (value) {
+                          setState(() => _selectedStatus = value);
+                          _searchForms();
+                        },
                       ),
                     ),
                   ],
@@ -367,144 +275,60 @@ class _ContactVolunteerFormManagementScreenState extends State<ContactVolunteerF
 
   Widget _buildContent() {
     if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    
+    if (_errorMessage != null) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation<Color>(primaryColor),
-              strokeWidth: 3,
-            ),
+            const Icon(Icons.error, size: 64, color: Colors.red),
             const SizedBox(height: 16),
             Text(
-              'Loading forms...',
-              style: TextStyle(
-                color: primaryColor,
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
+              'Error',
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Text(
+                _errorMessage!,
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Colors.red),
               ),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: _loadForms,
+              child: const Text('Retry'),
             ),
           ],
         ),
       );
     }
     
-    if (_errorMessage != null) {
-      return Center(
-        child: Container(
-          margin: const EdgeInsets.all(24),
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: cardColor,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: primaryColor.withOpacity(0.1),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFFEBEE),
-                  borderRadius: BorderRadius.circular(50),
-                ),
-                child: const Icon(Icons.error_outline_rounded, size: 48, color: Color(0xFFD32F2F)),
-              ),
-              const SizedBox(height: 20),
-              Text(
-                'Oops! Something went wrong',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w600,
-                  color: primaryColor,
-                ),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                _errorMessage!,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: primaryColor.withOpacity(0.7),
-                  fontSize: 16,
-                ),
-              ),
-              const SizedBox(height: 24),
-              ElevatedButton.icon(
-                onPressed: _loadForms,
-                icon: const Icon(Icons.refresh_rounded),
-                label: const Text('Try Again'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: primaryColor,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-    
     if (_forms.isEmpty) {
-      return Center(
-        child: Container(
-          margin: const EdgeInsets.all(24),
-          padding: const EdgeInsets.all(32),
-          decoration: BoxDecoration(
-            color: cardColor,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: primaryColor.withOpacity(0.1),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: lightAccent,
-                  borderRadius: BorderRadius.circular(50),
-                ),
-                child: Icon(Icons.contact_mail_rounded, size: 48, color: primaryColor),
-              ),
-              const SizedBox(height: 20),
-              Text(
-                'No forms found',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w600,
-                  color: primaryColor,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Forms will appear here when users submit them',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: primaryColor.withOpacity(0.7),
-                  fontSize: 16,
-                ),
-              ),
-            ],
-          ),
+      return const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.contact_mail, size: 64, color: Colors.grey),
+            SizedBox(height: 16),
+            Text(
+              'No forms found',
+              style: TextStyle(fontSize: 18, color: Colors.grey),
+            ),
+            Text(
+              'Forms will appear here when users submit them',
+              style: TextStyle(color: Colors.grey),
+            ),
+          ],
         ),
       );
     }
     
     return ListView.builder(
-      padding: const EdgeInsets.all(16),
       itemCount: _forms.length,
       itemBuilder: (context, index) {
         final form = _forms[index];
@@ -517,58 +341,31 @@ class _ContactVolunteerFormManagementScreenState extends State<ContactVolunteerF
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: backgroundColor,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text(
-          'Debug Info',
-          style: TextStyle(color: primaryColor, fontWeight: FontWeight.w600),
-        ),
-        content: Container(
-          decoration: BoxDecoration(
-            color: cardColor,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          padding: const EdgeInsets.all(16),
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _debugInfoRow('Shelter Owner ID:', _shelterOwnerId),
-                _debugInfoRow('Forms Count:', '${_forms.length}'),
-                _debugInfoRow('Is Loading:', '$_isLoading'),
-                _debugInfoRow('Search Query:', '"$_searchQuery"'),
-                _debugInfoRow('Selected Type:', '$_selectedType'),
-                _debugInfoRow('Selected Status:', '$_selectedStatus'),
-                _debugInfoRow('Error:', '$_errorMessage'),
-                const SizedBox(height: 16),
-                Text(
-                  'Forms:',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: primaryColor,
-                    fontSize: 16,
-                  ),
-                ),
-                ..._forms.map((form) => Padding(
-                  padding: const EdgeInsets.only(left: 16.0, top: 4),
-                  child: Text(
-                    '• ${form.subject} (${form.formType})',
-                    style: TextStyle(color: primaryColor.withOpacity(0.8)),
-                  ),
-                )),
-              ],
-            ),
+        title: const Text('Debug Info'),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('Shelter Owner ID: $_shelterOwnerId'),
+              Text('Forms Count: ${_forms.length}'),
+              Text('Is Loading: $_isLoading'),
+              Text('Search Query: "$_searchQuery"'),
+              Text('Selected Type: $_selectedType'),
+              Text('Selected Status: $_selectedStatus'),
+              Text('Error: $_errorMessage'),
+              const SizedBox(height: 16),
+              const Text('Forms:', style: TextStyle(fontWeight: FontWeight.bold)),
+              ..._forms.map((form) => Padding(
+                padding: const EdgeInsets.only(left: 16.0),
+                child: Text('• ${form.subject} (${form.formType})'),
+              )),
+            ],
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            style: TextButton.styleFrom(
-              backgroundColor: primaryColor,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-            ),
             child: const Text('OK'),
           ),
         ],
@@ -576,48 +373,11 @@ class _ContactVolunteerFormManagementScreenState extends State<ContactVolunteerF
     );
   }
 
-  Widget _debugInfoRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: TextStyle(
-              fontWeight: FontWeight.w600,
-              color: primaryColor,
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              value,
-              style: TextStyle(color: primaryColor.withOpacity(0.8)),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildFormCard(ContactVolunteerFormModel form) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(
-        color: cardColor,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: primaryColor.withOpacity(0.08),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-        border: Border.all(color: lightAccent.withOpacity(0.5), width: 1),
-      ),
+    return Card(
+      margin: const EdgeInsets.all(8.0),
       child: Padding(
-        padding: const EdgeInsets.all(20.0),
+        padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -625,14 +385,10 @@ class _ContactVolunteerFormManagementScreenState extends State<ContactVolunteerF
               children: [
                 // Form Icon
                 Container(
-                  padding: const EdgeInsets.all(12),
+                  padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: _getTypeColor(form.formType).withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: _getTypeColor(form.formType).withOpacity(0.3),
-                      width: 1,
-                    ),
+                    color: _getTypeColor(form.formType).withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(
                     _getTypeIcon(form.formType),
@@ -640,7 +396,7 @@ class _ContactVolunteerFormManagementScreenState extends State<ContactVolunteerF
                     size: 24,
                   ),
                 ),
-                const SizedBox(width: 16),
+                const SizedBox(width: 12),
                 // Form Details
                 Expanded(
                   child: Column(
@@ -648,117 +404,87 @@ class _ContactVolunteerFormManagementScreenState extends State<ContactVolunteerF
                     children: [
                       Text(
                         form.subject,
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 18,
-                          fontWeight: FontWeight.w600,
-                          color: primaryColor,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        '${form.formTypeDisplayName} • From ${form.submitterName}',
-                        style: TextStyle(
-                          color: primaryColor.withOpacity(0.7),
-                          fontWeight: FontWeight.w500,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
                       const SizedBox(height: 4),
                       Text(
+                        '${form.formTypeDisplayName} • From ${form.submitterName}',
+                        style: TextStyle(color: Colors.grey[600]),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
                         form.timeSinceSubmission,
-                        style: TextStyle(
-                          color: primaryColor.withOpacity(0.6),
-                          fontSize: 12,
-                          fontWeight: FontWeight.w400,
-                        ),
+                        style: TextStyle(color: Colors.grey[600], fontSize: 12),
                       ),
                     ],
                   ),
                 ),
                 // Status Badge
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    color: _getStatusColor(form.status).withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: _getStatusColor(form.status).withOpacity(0.3),
-                      width: 1,
-                    ),
+                    color: _getStatusColor(form.status).withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(16),
                   ),
                   child: Text(
                     form.statusDisplayName,
                     style: TextStyle(
                       color: _getStatusColor(form.status),
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.w500,
                       fontSize: 12,
                     ),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
             // Form Message
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: backgroundColor.withOpacity(0.5),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: lightAccent.withOpacity(0.5), width: 1),
-              ),
-              child: Text(
-                form.message,
-                style: TextStyle(
-                  color: primaryColor.withOpacity(0.8),
-                  fontSize: 15,
-                  height: 1.4,
-                ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
+            Text(
+              form.message,
+              style: TextStyle(color: Colors.grey[700]),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
             // Action Buttons
             Row(
               children: [
                 Expanded(
                   child: OutlinedButton.icon(
                     onPressed: () => _viewFormDetails(form),
-                    icon: const Icon(Icons.visibility_rounded, size: 18),
+                    icon: const Icon(Icons.visibility, size: 16),
                     label: const Text('View Details'),
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: primaryColor,
-                      side: BorderSide(color: primaryColor, width: 1.5),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      foregroundColor: Colors.teal,
+                      side: const BorderSide(color: Colors.teal),
                     ),
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 8),
                 if (form.isPending) ...[
                   Expanded(
                     child: ElevatedButton.icon(
                       onPressed: () => _showRespondDialog(form),
-                      icon: const Icon(Icons.reply_rounded, size: 18),
+                      icon: const Icon(Icons.reply, size: 16),
                       label: const Text('Respond'),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF1976D2),
+                        backgroundColor: Colors.blue,
                         foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                        padding: const EdgeInsets.symmetric(vertical: 12),
                       ),
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 8),
                   Expanded(
                     child: ElevatedButton.icon(
                       onPressed: () => _updateFormStatus(form.id, FormStatus.closed),
-                      icon: const Icon(Icons.close_rounded, size: 18),
+                      icon: const Icon(Icons.close, size: 16),
                       label: const Text('Close'),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF757575),
+                        backgroundColor: Colors.grey,
                         foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                        padding: const EdgeInsets.symmetric(vertical: 12),
                       ),
                     ),
                   ),
@@ -774,33 +500,33 @@ class _ContactVolunteerFormManagementScreenState extends State<ContactVolunteerF
   Color _getTypeColor(FormType type) {
     switch (type) {
       case FormType.contact:
-        return const Color(0xFF1976D2);
+        return Colors.blue;
       case FormType.volunteer:
-        return const Color(0xFF388E3C);
+        return Colors.green;
       case FormType.donation:
-        return const Color(0xFFF57C00);
+        return Colors.orange;
     }
   }
 
   IconData _getTypeIcon(FormType type) {
     switch (type) {
       case FormType.contact:
-        return Icons.contact_mail_rounded;
+        return Icons.contact_mail;
       case FormType.volunteer:
-        return Icons.volunteer_activism_rounded;
+        return Icons.volunteer_activism;
       case FormType.donation:
-        return Icons.attach_money_rounded;
+        return Icons.attach_money;
     }
   }
 
   Color _getStatusColor(FormStatus status) {
     switch (status) {
       case FormStatus.pending:
-        return const Color(0xFFF57C00);
+        return Colors.orange;
       case FormStatus.responded:
-        return const Color(0xFF388E3C);
+        return Colors.green;
       case FormStatus.closed:
-        return const Color(0xFF757575);
+        return Colors.grey;
     }
   }
 
@@ -823,57 +549,28 @@ class _ContactVolunteerFormManagementScreenState extends State<ContactVolunteerF
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          backgroundColor: backgroundColor,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: Text(
-            'Respond to Form',
-            style: TextStyle(
-              color: primaryColor,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
+          title: const Text('Respond to Form'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: lightAccent.withOpacity(0.3),
-                  borderRadius: BorderRadius.circular(12),
+              Text('Respond to ${form.submitterName}\'s ${form.formTypeDisplayName.toLowerCase()} form?'),
+              const SizedBox(height: 16),
+              TextField(
+                controller: responseController,
+                decoration: const InputDecoration(
+                  labelText: 'Your Response',
+                  border: OutlineInputBorder(),
                 ),
-                child: Text(
-                  'Respond to ${form.submitterName}\'s ${form.formTypeDisplayName.toLowerCase()} form?',
-                  style: TextStyle(color: primaryColor, fontSize: 16),
-                ),
-              ),
-              const SizedBox(height: 20),
-              Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: lightAccent, width: 1.5),
-                ),
-                child: TextField(
-                  controller: responseController,
-                  decoration: const InputDecoration(
-                    labelText: 'Your Response',
-                    border: InputBorder.none,
-                    contentPadding: EdgeInsets.all(16),
-                  ),
-                  style: TextStyle(color: primaryColor),
-                  maxLines: 4,
-                ),
+                maxLines: 4,
               ),
             ],
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              style: TextButton.styleFrom(
-                foregroundColor: primaryColor.withOpacity(0.7),
-              ),
               child: const Text('Cancel'),
             ),
-            ElevatedButton(
+            TextButton(
               onPressed: () {
                 Navigator.of(context).pop();
                 _updateFormStatus(
@@ -882,12 +579,7 @@ class _ContactVolunteerFormManagementScreenState extends State<ContactVolunteerF
                   response: responseController.text.trim(),
                 );
               },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF1976D2),
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-              ),
-              child: const Text('Send Response'),
+              child: const Text('Send Response', style: TextStyle(color: Colors.blue)),
             ),
           ],
         );

@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
-import 'package:image_picker/image_picker.dart';
 import 'dart:io';
-import 'dart:convert';
 import '../models/pet_model.dart';
 
 class PetService extends ChangeNotifier {
@@ -15,10 +13,12 @@ Future<List<PetModel>> getPetsByOwnerId(String ownerId) async {
   try {
     print('Fetching pets for owner ID: $ownerId');
     
-    // Get all pets for the owner first, then filter in code to handle null isActive values
+    // Temporary fix: Remove orderBy to avoid index requirement
     final querySnapshot = await _firestore
         .collection('pets')
         .where('ownerId', isEqualTo: ownerId)
+        .where('isActive', isEqualTo: true)
+        // .orderBy('createdAt', descending: true)  // Comment out temporarily
         .get();
 
     print('Found ${querySnapshot.docs.length} pets in Firestore');
@@ -26,9 +26,7 @@ Future<List<PetModel>> getPetsByOwnerId(String ownerId) async {
     final pets = querySnapshot.docs.map((doc) {
       try {
         print('Processing pet document: ${doc.id}');
-        final pet = PetModel.fromFirestore(doc);
-        // Filter out inactive pets (isActive == false or null)
-        return pet.isActive ? pet : null;
+        return PetModel.fromFirestore(doc);
       } catch (e) {
         print('Error processing pet ${doc.id}: $e');
         return null;
@@ -38,7 +36,7 @@ Future<List<PetModel>> getPetsByOwnerId(String ownerId) async {
     // Sort manually in code instead of Firestore
     pets.sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
-    print('Successfully parsed ${pets.length} active pets');
+    print('Successfully parsed ${pets.length} pets');
     return pets;
   } catch (e) {
     print('Error getting pets: $e');
@@ -141,25 +139,6 @@ Future<List<PetModel>> getPetsByOwnerId(String ownerId) async {
     }
   }
 
-  // Upload pet photo from XFile (for web compatibility)
-  Future<String?> uploadPetPhotoFromXFile(XFile xFile, String petId) async {
-    try {
-      print('Uploading photo from XFile for pet: $petId');
-      
-      // Converts XFile to base64 data URL
-      final bytes = await xFile.readAsBytes();
-      final base64String = base64Encode(bytes);
-      final mimeType = xFile.name.toLowerCase().endsWith('.png') ? 'image/png' : 'image/jpeg';
-      final dataUrl = 'data:$mimeType;base64,$base64String';
-      
-      print('Photo converted to base64 data URL successfully');
-      return dataUrl; // Returns base64 data URL
-    } catch (e) {
-      print('Error uploading photo from XFile: $e');
-      return null;
-    }
-  }
-
   // Add photo URL to pet
   Future<bool> addPhotoToPet(String petId, String photoUrl) async {
     try {
@@ -202,14 +181,14 @@ Future<List<PetModel>> getPetsByOwnerId(String ownerId) async {
         baseQuery = baseQuery.where('ownerId', isEqualTo: ownerId);
       }
 
-      final querySnapshot = await baseQuery.get();
+      final querySnapshot = await baseQuery
+          .where('isActive', isEqualTo: true)
+          .get();
 
       final pets = querySnapshot.docs
           .map((doc) {
             try {
-              final pet = PetModel.fromFirestore(doc);
-              // Filter out inactive pets (isActive == false or null)
-              return pet.isActive ? pet : null;
+              return PetModel.fromFirestore(doc);
             } catch (e) {
               print('Error parsing pet in search: $e');
               return null;
@@ -242,7 +221,8 @@ Future<List<PetModel>> getPetsByOwnerId(String ownerId) async {
       
       Query query = _firestore
           .collection('pets')
-          .where('species', isEqualTo: species.toString().split('.').last);
+          .where('species', isEqualTo: species.toString().split('.').last)
+          .where('isActive', isEqualTo: true);
       
       if (ownerId != null) {
         query = query.where('ownerId', isEqualTo: ownerId);
@@ -253,9 +233,7 @@ Future<List<PetModel>> getPetsByOwnerId(String ownerId) async {
       final pets = querySnapshot.docs
           .map((doc) {
             try {
-              final pet = PetModel.fromFirestore(doc);
-              // Filter out inactive pets (isActive == false or null)
-              return pet.isActive ? pet : null;
+              return PetModel.fromFirestore(doc);
             } catch (e) {
               print('Error parsing pet by species: $e');
               return null;
@@ -280,7 +258,8 @@ Future<List<PetModel>> getPetsByOwnerId(String ownerId) async {
       
       Query query = _firestore
           .collection('pets')
-          .where('healthStatus', isEqualTo: status.toString().split('.').last);
+          .where('healthStatus', isEqualTo: status.toString().split('.').last)
+          .where('isActive', isEqualTo: true);
       
       if (ownerId != null) {
         query = query.where('ownerId', isEqualTo: ownerId);
@@ -291,9 +270,7 @@ Future<List<PetModel>> getPetsByOwnerId(String ownerId) async {
       final pets = querySnapshot.docs
           .map((doc) {
             try {
-              final pet = PetModel.fromFirestore(doc);
-              // Filter out inactive pets (isActive == false or null)
-              return pet.isActive ? pet : null;
+              return PetModel.fromFirestore(doc);
             } catch (e) {
               print('Error parsing pet by health status: $e');
               return null;
@@ -318,6 +295,7 @@ Future<List<PetModel>> getPetsByOwnerId(String ownerId) async {
     return _firestore
         .collection('pets')
         .where('ownerId', isEqualTo: ownerId)
+        .where('isActive', isEqualTo: true)
         .orderBy('createdAt', descending: true)
         .snapshots()
         .map((snapshot) {
@@ -326,9 +304,7 @@ Future<List<PetModel>> getPetsByOwnerId(String ownerId) async {
           return snapshot.docs
               .map((doc) {
                 try {
-                  final pet = PetModel.fromFirestore(doc);
-                  // Filter out inactive pets (isActive == false or null)
-                  return pet.isActive ? pet : null;
+                  return PetModel.fromFirestore(doc);
                 } catch (e) {
                   print('Error parsing pet in stream: $e');
                   return null;
@@ -346,25 +322,16 @@ Future<List<PetModel>> getPetsByOwnerId(String ownerId) async {
       Query query = _firestore
           .collection('pets')
           .where('ownerId', isEqualTo: ownerId)
-          .where('name', isEqualTo: name);
+          .where('name', isEqualTo: name)
+          .where('isActive', isEqualTo: true);
 
       final querySnapshot = await query.get();
       
-      // Filter for active pets only
-      final activePets = querySnapshot.docs.where((doc) {
-        try {
-          final pet = PetModel.fromFirestore(doc);
-          return pet.isActive;
-        } catch (e) {
-          return false;
-        }
-      });
-      
       if (excludePetId != null) {
-        return activePets.any((doc) => doc.id != excludePetId);
+        return querySnapshot.docs.any((doc) => doc.id != excludePetId);
       }
       
-      return activePets.isNotEmpty;
+      return querySnapshot.docs.isNotEmpty;
     } catch (e) {
       print('Error checking pet name existence: $e');
       return false;

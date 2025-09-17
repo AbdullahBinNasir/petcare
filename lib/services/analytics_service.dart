@@ -184,12 +184,16 @@ class AnalyticsService extends ChangeNotifier {
         final data = doc.data();
         final itemId = doc.id;
         
-        // Try to get item name from analytics data first (faster)
-        String itemName = data['itemName'];
-        
-        // If not available in analytics, fall back to store items collection
-        if (itemName == null || itemName.isEmpty || itemName == 'Unknown Item') {
-          itemName = await getItemName(itemId);
+        // Get item name from store items collection
+        String itemName = 'Unknown Item';
+        try {
+          final itemDoc = await _firestore.collection('store_items').doc(itemId).get();
+          if (itemDoc.exists) {
+            final itemData = itemDoc.data() as Map<String, dynamic>;
+            itemName = itemData['name'] ?? 'Unknown Item';
+          }
+        } catch (e) {
+          debugPrint('Error fetching item name for $itemId: $e');
         }
         
         mostViewedWithNames.add({
@@ -217,12 +221,16 @@ class AnalyticsService extends ChangeNotifier {
         final data = doc.data();
         final itemId = doc.id;
         
-        // Try to get item name from analytics data first (faster)
-        String itemName = data['itemName'];
-        
-        // If not available in analytics, fall back to store items collection
-        if (itemName == null || itemName.isEmpty || itemName == 'Unknown Item') {
-          itemName = await getItemName(itemId);
+        // Get item name from store items collection
+        String itemName = 'Unknown Item';
+        try {
+          final itemDoc = await _firestore.collection('store_items').doc(itemId).get();
+          if (itemDoc.exists) {
+            final itemData = itemDoc.data() as Map<String, dynamic>;
+            itemName = itemData['name'] ?? 'Unknown Item';
+          }
+        } catch (e) {
+          debugPrint('Error fetching item name for $itemId: $e');
         }
         
         mostClickedWithNames.add({
@@ -273,29 +281,62 @@ class AnalyticsService extends ChangeNotifier {
     try {
       debugPrint('Analytics: Generating sample data...');
       
-      // Get actual store items to use their real IDs
-      final storeItems = await _firestore
-          .collection('store_items')
-          .where('isActive', isEqualTo: true)
-          .limit(10)
-          .get();
-      
-      if (storeItems.docs.isEmpty) {
-        // If no store items exist, create some sample ones first
-        await _createSampleStoreItems();
-        // Retry getting the items
-        final newStoreItems = await _firestore
-            .collection('store_items')
-            .where('isActive', isEqualTo: true)
-            .limit(10)
-            .get();
-        
-        if (newStoreItems.docs.isNotEmpty) {
-          await _generateAnalyticsForItems(newStoreItems.docs);
-        }
-      } else {
-        await _generateAnalyticsForItems(storeItems.docs);
-      }
+      // Sample item views
+      await _firestore
+          .collection('analytics')
+          .doc('item_views')
+          .collection('items')
+          .doc('sample_item_1')
+          .set({
+        'viewCount': 15,
+        'lastViewed': FieldValue.serverTimestamp(),
+        'category': 'food',
+      });
+
+      await _firestore
+          .collection('analytics')
+          .doc('item_views')
+          .collection('items')
+          .doc('sample_item_2')
+          .set({
+        'viewCount': 12,
+        'lastViewed': FieldValue.serverTimestamp(),
+        'category': 'toys',
+      });
+
+      await _firestore
+          .collection('analytics')
+          .doc('item_views')
+          .collection('items')
+          .doc('sample_item_3')
+          .set({
+        'viewCount': 8,
+        'lastViewed': FieldValue.serverTimestamp(),
+        'category': 'grooming',
+      });
+
+      // Sample item clicks
+      await _firestore
+          .collection('analytics')
+          .doc('item_clicks')
+          .collection('items')
+          .doc('sample_item_1')
+          .set({
+        'clickCount': 5,
+        'lastClicked': FieldValue.serverTimestamp(),
+        'category': 'food',
+      });
+
+      await _firestore
+          .collection('analytics')
+          .doc('item_clicks')
+          .collection('items')
+          .doc('sample_item_2')
+          .set({
+        'clickCount': 3,
+        'lastClicked': FieldValue.serverTimestamp(),
+        'category': 'toys',
+      });
 
       // Sample category popularity
       await _firestore
@@ -353,300 +394,6 @@ class AnalyticsService extends ChangeNotifier {
     } catch (e) {
       debugPrint('Error generating sample data: $e');
     }
-  }
-  
-  /// Generate analytics data for a list of actual store items
-  Future<void> _generateAnalyticsForItems(List<QueryDocumentSnapshot> items) async {
-    try {
-      debugPrint('Generating analytics for ${items.length} real store items...');
-      
-      for (int i = 0; i < items.length && i < 5; i++) {
-        final doc = items[i];
-        final itemData = doc.data() as Map<String, dynamic>;
-        final itemId = doc.id;
-        final category = itemData['category'] ?? 'other';
-        final itemName = itemData['name'] ?? 'Unknown Item';
-        
-        debugPrint('Creating analytics for item: $itemName (ID: $itemId, Category: $category)');
-        
-        // Generate sample view counts (decreasing order)
-        final viewCount = 15 - (i * 2);
-        await _firestore
-            .collection('analytics')
-            .doc('item_views')
-            .collection('items')
-            .doc(itemId)
-            .set({
-          'viewCount': viewCount,
-          'lastViewed': FieldValue.serverTimestamp(),
-          'category': category,
-          'itemName': itemName, // Store name for easier lookup
-        });
-        
-        // Generate sample click counts (about 1/3 of view counts)
-        final clickCount = (viewCount / 3).round();
-        await _firestore
-            .collection('analytics')
-            .doc('item_clicks')
-            .collection('items')
-            .doc(itemId)
-            .set({
-          'clickCount': clickCount,
-          'lastClicked': FieldValue.serverTimestamp(),
-          'category': category,
-          'itemName': itemName, // Store name for easier lookup
-        });
-      }
-    } catch (e) {
-      debugPrint('Error generating analytics for items: $e');
-    }
-  }
-
-  /// Create sample store items for analytics testing
-  Future<void> _createSampleStoreItems() async {
-    try {
-      // Check if any store items exist
-      final existingItems = await _firestore
-          .collection('store_items')
-          .limit(1)
-          .get();
-      
-      if (existingItems.docs.isNotEmpty) {
-        debugPrint('Store items already exist, skipping sample creation');
-        return;
-      }
-
-      debugPrint('Creating sample store items...');
-      
-      // Create sample store items using add() to get auto-generated IDs
-      final sampleItems = [
-        {
-          'name': 'Premium Dog Food',
-          'description': 'High-quality nutrition for adult dogs with essential vitamins and minerals',
-          'price': 29.99,
-          'category': 'food',
-          'brand': 'PetCare Pro',
-          'isActive': true,
-          'isInStock': true,
-          'stockQuantity': 50,
-          'imageUrls': [],
-          'externalUrl': '',
-          'specifications': {'Weight': '5kg', 'Age': 'Adult', 'Ingredients': 'Chicken, Rice, Vegetables'},
-          'tags': ['premium', 'nutrition', 'adult'],
-          'rating': 4.5,
-          'reviewCount': 25,
-          'clickCount': 0,
-          'createdAt': FieldValue.serverTimestamp(),
-          'updatedAt': FieldValue.serverTimestamp(),
-        },
-        {
-          'name': 'Interactive Cat Toy',
-          'description': 'Engaging electronic toy to keep your cat mentally stimulated and active',
-          'price': 15.99,
-          'category': 'toys',
-          'brand': 'Feline Fun',
-          'isActive': true,
-          'isInStock': true,
-          'stockQuantity': 30,
-          'imageUrls': [],
-          'externalUrl': '',
-          'specifications': {'Material': 'Plastic', 'Batteries': '2 AA', 'Size': 'Medium'},
-          'tags': ['interactive', 'electronic', 'mental stimulation'],
-          'rating': 4.2,
-          'reviewCount': 18,
-          'clickCount': 0,
-          'createdAt': FieldValue.serverTimestamp(),
-          'updatedAt': FieldValue.serverTimestamp(),
-        },
-        {
-          'name': 'Complete Grooming Kit',
-          'description': 'Professional-grade grooming tools for maintaining your pet\'s coat',
-          'price': 45.99,
-          'category': 'grooming',
-          'brand': 'GroomMaster',
-          'isActive': true,
-          'isInStock': true,
-          'stockQuantity': 20,
-          'imageUrls': [],
-          'externalUrl': '',
-          'specifications': {'Includes': 'Brush, Comb, Nail Clippers, Scissors', 'Material': 'Stainless Steel'},
-          'tags': ['professional', 'complete set', 'grooming'],
-          'rating': 4.8,
-          'reviewCount': 32,
-          'clickCount': 0,
-          'createdAt': FieldValue.serverTimestamp(),
-          'updatedAt': FieldValue.serverTimestamp(),
-        },
-        {
-          'name': 'Healthy Pet Treats',
-          'description': 'Natural, organic treats perfect for training and rewards',
-          'price': 8.99,
-          'category': 'food',
-          'brand': 'Nature\'s Best',
-          'isActive': true,
-          'isInStock': true,
-          'stockQuantity': 100,
-          'imageUrls': [],
-          'externalUrl': '',
-          'specifications': {'Weight': '200g', 'Ingredients': 'Organic Chicken, Sweet Potato'},
-          'tags': ['organic', 'treats', 'training'],
-          'rating': 4.3,
-          'reviewCount': 45,
-          'clickCount': 0,
-          'createdAt': FieldValue.serverTimestamp(),
-          'updatedAt': FieldValue.serverTimestamp(),
-        },
-        {
-          'name': 'Cozy Pet Bed',
-          'description': 'Ultra-comfortable orthopedic bed for better pet sleep',
-          'price': 39.99,
-          'category': 'accessories',
-          'brand': 'ComfortPet',
-          'isActive': true,
-          'isInStock': true,
-          'stockQuantity': 15,
-          'imageUrls': [],
-          'externalUrl': '',
-          'specifications': {'Size': 'Medium', 'Material': 'Memory Foam', 'Washable': 'Yes'},
-          'tags': ['comfort', 'orthopedic', 'sleep'],
-          'rating': 4.6,
-          'reviewCount': 28,
-          'clickCount': 0,
-          'createdAt': FieldValue.serverTimestamp(),
-          'updatedAt': FieldValue.serverTimestamp(),
-        },
-      ];
-
-      // Add each sample item to Firestore using add() for auto-generated IDs
-      for (final item in sampleItems) {
-        await _firestore
-            .collection('store_items')
-            .add(item);
-      }
-      
-      // Add a small delay to ensure items are created before generating analytics
-      await Future.delayed(const Duration(milliseconds: 500));
-
-      debugPrint('Sample store items created successfully with auto-generated IDs!');
-    } catch (e) {
-      debugPrint('Error creating sample store items: $e');
-    }
-  }
-
-  /// Get item name from store items collection with fallback to analytics data
-  Future<String> getItemName(String itemId) async {
-    try {
-      // First try to get from store items
-      final storeDoc = await _firestore
-          .collection('store_items')
-          .doc(itemId)
-          .get();
-      
-      if (storeDoc.exists) {
-        final data = storeDoc.data() as Map<String, dynamic>;
-        final itemName = data['name'] ?? 'Unknown Item';
-        debugPrint('Found item name from store: $itemName for ID: $itemId');
-        return itemName;
-      }
-      
-      // Fallback: try to get from analytics data (which now stores itemName)
-      final analyticsViews = await _firestore
-          .collection('analytics')
-          .doc('item_views')
-          .collection('items')
-          .doc(itemId)
-          .get();
-      
-      if (analyticsViews.exists) {
-        final data = analyticsViews.data() as Map<String, dynamic>;
-        final itemName = data['itemName'];
-        if (itemName != null && itemName.isNotEmpty) {
-          debugPrint('Found item name from analytics: $itemName for ID: $itemId');
-          return itemName;
-        }
-      }
-      
-      // If still not found, try analytics clicks data
-      final analyticsClicks = await _firestore
-          .collection('analytics')
-          .doc('item_clicks')
-          .collection('items')
-          .doc(itemId)
-          .get();
-      
-      if (analyticsClicks.exists) {
-        final data = analyticsClicks.data() as Map<String, dynamic>;
-        final itemName = data['itemName'];
-        if (itemName != null && itemName.isNotEmpty) {
-          debugPrint('Found item name from analytics clicks: $itemName for ID: $itemId');
-          return itemName;
-        }
-      }
-      
-      debugPrint('No item name found for ID: $itemId');
-      return 'Unknown Item';
-    } catch (e) {
-      debugPrint('Error getting item name for ID $itemId: $e');
-      return 'Unknown Item';
-    }
-  }
-  
-  /// Get all item names for a list of item IDs efficiently
-  Future<Map<String, String>> getItemNames(List<String> itemIds) async {
-    final Map<String, String> itemNames = {};
-    
-    if (itemIds.isEmpty) return itemNames;
-    
-    try {
-      // Batch get from store items first
-      final storeQuery = await _firestore
-          .collection('store_items')
-          .where(FieldPath.documentId, whereIn: itemIds.take(10).toList()) // Firestore limit
-          .get();
-      
-      for (final doc in storeQuery.docs) {
-        final data = doc.data();
-        final name = data['name'];
-        if (name != null && name.isNotEmpty) {
-          itemNames[doc.id] = name;
-        }
-      }
-      
-      // For remaining items without names, try analytics data
-      final missingIds = itemIds.where((id) => !itemNames.containsKey(id)).toList();
-      
-      if (missingIds.isNotEmpty) {
-        // Try analytics views
-        for (final itemId in missingIds.take(5)) { // Limit to avoid too many requests
-          final analyticsDoc = await _firestore
-              .collection('analytics')
-              .doc('item_views')
-              .collection('items')
-              .doc(itemId)
-              .get();
-          
-          if (analyticsDoc.exists) {
-            final data = analyticsDoc.data() as Map<String, dynamic>;
-            final itemName = data['itemName'];
-            if (itemName != null && itemName.isNotEmpty) {
-              itemNames[itemId] = itemName;
-            }
-          }
-        }
-      }
-      
-    } catch (e) {
-      debugPrint('Error batch getting item names: $e');
-    }
-    
-    // Fill in any remaining missing names
-    for (final itemId in itemIds) {
-      if (!itemNames.containsKey(itemId)) {
-        itemNames[itemId] = 'Unknown Item';
-      }
-    }
-    
-    return itemNames;
   }
 
   /// Get user-specific recommendations based on their interests

@@ -4,7 +4,6 @@ import '../../services/auth_service.dart';
 import '../../services/adoption_request_service.dart';
 import '../../models/pet_listing_model.dart';
 import '../../models/adoption_request_model.dart';
-import '../../theme/pet_care_theme.dart';
 
 class AdoptionFormScreen extends StatefulWidget {
   final PetListingModel petListing;
@@ -18,7 +17,7 @@ class AdoptionFormScreen extends StatefulWidget {
   State<AdoptionFormScreen> createState() => _AdoptionFormScreenState();
 }
 
-class _AdoptionFormScreenState extends State<AdoptionFormScreen> with TickerProviderStateMixin {
+class _AdoptionFormScreenState extends State<AdoptionFormScreen> {
   final _formKey = GlobalKey<FormState>();
   final _reasonController = TextEditingController();
   final _livingSituationController = TextEditingController();
@@ -32,74 +31,9 @@ class _AdoptionFormScreenState extends State<AdoptionFormScreen> with TickerProv
   bool _hasOtherPets = false;
   bool _hasChildren = false;
   bool _isLoading = false;
-  
-  // Animation controllers
-  late AnimationController _slideAnimationController;
-  late AnimationController _fadeAnimationController;
-  late AnimationController _scaleAnimationController;
-  late Animation<Offset> _slideAnimation;
-  late Animation<double> _fadeAnimation;
-  late Animation<double> _scaleAnimation;
-  bool _animationsInitialized = false;
-
-  @override
-  void initState() {
-    super.initState();
-    
-    // Initialize animation controllers
-    _slideAnimationController = AnimationController(
-      duration: const Duration(milliseconds: 800),
-      vsync: this,
-    );
-    
-    _fadeAnimationController = AnimationController(
-      duration: const Duration(milliseconds: 600),
-      vsync: this,
-    );
-    
-    _scaleAnimationController = AnimationController(
-      duration: const Duration(milliseconds: 400),
-      vsync: this,
-    );
-    
-    // Initialize animations
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 0.1),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(
-      parent: _slideAnimationController,
-      curve: Curves.easeOutCubic,
-    ));
-    
-    _fadeAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _fadeAnimationController,
-      curve: Curves.easeInOut,
-    ));
-    
-    _scaleAnimation = Tween<double>(
-      begin: 0.8,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _scaleAnimationController,
-      curve: Curves.elasticOut,
-    ));
-    
-    _animationsInitialized = true;
-    
-    // Start animations
-    _slideAnimationController.forward();
-    _fadeAnimationController.forward();
-    _scaleAnimationController.forward();
-  }
 
   @override
   void dispose() {
-    _slideAnimationController.dispose();
-    _fadeAnimationController.dispose();
-    _scaleAnimationController.dispose();
     _reasonController.dispose();
     _livingSituationController.dispose();
     _experienceController.dispose();
@@ -186,739 +120,221 @@ class _AdoptionFormScreenState extends State<AdoptionFormScreen> with TickerProv
 
   void _showErrorSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: PetCareTheme.warmRed,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      ),
+      SnackBar(content: Text(message), backgroundColor: Colors.red),
     );
   }
 
   void _showSuccessSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: PetCareTheme.softGreen,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      ),
+      SnackBar(content: Text(message), backgroundColor: Colors.green),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: PetCareTheme.backgroundGradient,
-          ),
-        ),
-        child: Form(
-          key: _formKey,
-          child: CustomScrollView(
-            slivers: [
-              _buildModernAppBar(),
-              SliverToBoxAdapter(
-                child: _animationsInitialized ? AnimatedBuilder(
-                  animation: _fadeAnimation,
-                  builder: (context, child) {
-                    return FadeTransition(
-                      opacity: _fadeAnimation,
-                      child: SlideTransition(
-                        position: _slideAnimation,
-                        child: Padding(
-                          padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const SizedBox(height: 8),
-                              _buildPetInfoCard(),
-                              const SizedBox(height: 32),
-                              _buildFormHeader(),
-                              const SizedBox(height: 20),
-                              _buildFormFields(),
-                              const SizedBox(height: 32),
-                              _buildSubmitButton(),
-                              const SizedBox(height: 20),
-                            ],
-                          ),
-                        ),
-                      ),
-                    );
-                  },
-                ) : Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+      appBar: AppBar(
+        title: const Text('Adoption Application'),
+        backgroundColor: Colors.teal,
+        foregroundColor: Colors.white,
+        actions: [
+          if (_isLoading)
+            const Padding(
+              padding: EdgeInsets.all(16.0),
+              child: SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+              ),
+            )
+          else
+            TextButton(
+              onPressed: _submitAdoptionRequest,
+              child: const Text('Submit', style: TextStyle(color: Colors.white)),
+            ),
+        ],
+      ),
+      body: Form(
+        key: _formKey,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Pet Information Card
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      Text(
+                        'Pet Information',
+                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
                       const SizedBox(height: 8),
-                      _buildPetInfoCard(),
-                      const SizedBox(height: 32),
-                      _buildFormHeader(),
-                      const SizedBox(height: 20),
-                      _buildFormFields(),
-                      const SizedBox(height: 32),
-                      _buildSubmitButton(),
-                      const SizedBox(height: 20),
+                      Text('Name: ${widget.petListing.name}'),
+                      Text('Type: ${widget.petListing.typeDisplayName}'),
+                      Text('Breed: ${widget.petListing.breed}'),
+                      Text('Age: ${widget.petListing.ageString}'),
+                      Text('Gender: ${widget.petListing.gender.toString().split('.').last}'),
                     ],
                   ),
                 ),
               ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+              const SizedBox(height: 20),
 
-  Widget _buildModernAppBar() {
-    return SliverAppBar(
-      expandedHeight: 120,
-      floating: false,
-      pinned: true,
-      elevation: 0,
-      flexibleSpace: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: PetCareTheme.primaryGradient,
-          ),
-        ),
-        child: FlexibleSpaceBar(
-          title: Text(
-            'Adoption Application',
-            style: TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.w700,
-              color: PetCareTheme.primaryBeige,
-              letterSpacing: 0.5,
-            ),
-          ),
-          centerTitle: true,
-        ),
-      ),
-      backgroundColor: Colors.transparent,
-      foregroundColor: PetCareTheme.primaryBeige,
-      actions: [
-        if (_isLoading)
-          Container(
-            margin: const EdgeInsets.only(right: 12),
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: PetCareTheme.primaryBeige.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const SizedBox(
-              width: 20,
-              height: 20,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                color: PetCareTheme.primaryBeige,
+              // Application Form
+              const Text(
+                'Adoption Application Form',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               ),
-            ),
-          )
-        else
-          Container(
-            margin: const EdgeInsets.only(right: 12),
-            decoration: BoxDecoration(
-              color: PetCareTheme.primaryBeige.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: PetCareTheme.primaryBeige.withOpacity(0.3),
-                width: 1,
-              ),
-            ),
-            child: TextButton(
-              onPressed: _submitAdoptionRequest,
-              child: Text(
-                'Submit',
-                style: TextStyle(
-                  color: PetCareTheme.primaryBeige,
-                  fontWeight: FontWeight.w600,
+              const SizedBox(height: 16),
+
+              // Reason for Adoption
+              TextFormField(
+                controller: _reasonController,
+                decoration: const InputDecoration(
+                  labelText: 'Why do you want to adopt this pet? *',
+                  border: OutlineInputBorder(),
+                  hintText: 'Tell us about your motivation for adoption...',
                 ),
+                maxLines: 3,
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Please tell us why you want to adopt this pet';
+                  }
+                  return null;
+                },
               ),
-            ),
-          ),
-      ],
-    );
-  }
+              const SizedBox(height: 16),
 
-  Widget _buildPetInfoCard() {
-    return _animationsInitialized ? ScaleTransition(
-      scale: _scaleAnimation,
-      child: Container(
-        width: double.infinity,
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: PetCareTheme.accentGradient,
-          ),
-          borderRadius: BorderRadius.circular(24),
-          boxShadow: [
-            BoxShadow(
-              color: PetCareTheme.shadowColor,
-              blurRadius: 20,
-              offset: const Offset(0, 10),
-              spreadRadius: 2,
-            ),
-          ],
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(28),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(18),
-                decoration: BoxDecoration(
-                  color: PetCareTheme.primaryBeige.withOpacity(0.25),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color: PetCareTheme.primaryBeige.withOpacity(0.4),
-                    width: 2,
+              // Living Situation
+              TextFormField(
+                controller: _livingSituationController,
+                decoration: const InputDecoration(
+                  labelText: 'Describe your living situation *',
+                  border: OutlineInputBorder(),
+                  hintText: 'House, apartment, yard, etc...',
+                ),
+                maxLines: 2,
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Please describe your living situation';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+
+              // Experience with Pets
+              TextFormField(
+                controller: _experienceController,
+                decoration: const InputDecoration(
+                  labelText: 'Tell us about your experience with pets *',
+                  border: OutlineInputBorder(),
+                  hintText: 'Previous pets, training experience, etc...',
+                ),
+                maxLines: 3,
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Please tell us about your experience with pets';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+
+              // Other Pets
+              CheckboxListTile(
+                title: const Text('Do you have other pets?'),
+                value: _hasOtherPets,
+                onChanged: (value) => setState(() => _hasOtherPets = value ?? false),
+              ),
+              if (_hasOtherPets) ...[
+                TextFormField(
+                  controller: _otherPetsController,
+                  decoration: const InputDecoration(
+                    labelText: 'Please describe your other pets',
+                    border: OutlineInputBorder(),
+                    hintText: 'Types, ages, how they get along with other animals...',
                   ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
-                      blurRadius: 8,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
+                  maxLines: 2,
                 ),
-                child: Icon(
-                  Icons.pets_rounded,
-                  color: PetCareTheme.primaryBeige,
-                  size: 36,
-                ),
-              ),
-              const SizedBox(width: 22),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Adopting',
-                      style: TextStyle(
-                        color: PetCareTheme.primaryBeige.withOpacity(0.9),
-                        fontSize: 15,
-                        fontWeight: FontWeight.w500,
-                        letterSpacing: 0.3,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      widget.petListing.name,
-                      style: TextStyle(
-                        color: PetCareTheme.primaryBeige,
-                        fontSize: 22,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: PetCareTheme.primaryBeige.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        '${widget.petListing.typeDisplayName} • ${widget.petListing.ageString}',
-                        style: TextStyle(
-                          color: PetCareTheme.primaryBeige,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    ) : Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: PetCareTheme.accentGradient,
-        ),
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: PetCareTheme.shadowColor,
-            blurRadius: 20,
-            offset: const Offset(0, 10),
-            spreadRadius: 2,
-          ),
-        ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(28),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(18),
-              decoration: BoxDecoration(
-                color: PetCareTheme.primaryBeige.withOpacity(0.25),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                  color: PetCareTheme.primaryBeige.withOpacity(0.4),
-                  width: 2,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
-                    blurRadius: 8,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: Icon(
-                Icons.pets_rounded,
-                color: PetCareTheme.primaryBeige,
-                size: 36,
-              ),
-            ),
-            const SizedBox(width: 22),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Adopting',
-                    style: TextStyle(
-                      color: PetCareTheme.primaryBeige.withOpacity(0.9),
-                      fontSize: 15,
-                      fontWeight: FontWeight.w500,
-                      letterSpacing: 0.3,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    widget.petListing.name,
-                    style: TextStyle(
-                      color: PetCareTheme.primaryBeige,
-                      fontSize: 22,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: PetCareTheme.primaryBeige.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      '${widget.petListing.typeDisplayName} • ${widget.petListing.ageString}',
-                      style: TextStyle(
-                        color: PetCareTheme.primaryBeige,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildFormHeader() {
-    return Text(
-      'Adoption Application Form',
-      style: TextStyle(
-        fontSize: 24,
-        fontWeight: FontWeight.w800,
-        color: PetCareTheme.primaryBrown,
-        letterSpacing: 0.5,
-      ),
-    );
-  }
-
-  Widget _buildFormFields() {
-    return Column(
-      children: [
-        _buildFormField(
-          controller: _reasonController,
-          label: 'Why do you want to adopt this pet?',
-          hint: 'Tell us about your motivation for adoption...',
-          maxLines: 3,
-          isRequired: true,
-          icon: Icons.favorite_rounded,
-        ),
-        const SizedBox(height: 20),
-        _buildFormField(
-          controller: _livingSituationController,
-          label: 'Describe your living situation',
-          hint: 'House, apartment, yard, etc...',
-          maxLines: 2,
-          isRequired: true,
-          icon: Icons.home_rounded,
-        ),
-        const SizedBox(height: 20),
-        _buildFormField(
-          controller: _experienceController,
-          label: 'Tell us about your experience with pets',
-          hint: 'Previous pets, training experience, etc...',
-          maxLines: 3,
-          isRequired: true,
-          icon: Icons.pets_rounded,
-        ),
-        const SizedBox(height: 20),
-        _buildCheckboxSection(
-          title: 'Do you have other pets?',
-          value: _hasOtherPets,
-          onChanged: (value) => setState(() => _hasOtherPets = value ?? false),
-          child: _hasOtherPets ? _buildFormField(
-            controller: _otherPetsController,
-            label: 'Please describe your other pets',
-            hint: 'Types, ages, how they get along with other animals...',
-            maxLines: 2,
-            icon: Icons.pets_rounded,
-          ) : null,
-        ),
-        const SizedBox(height: 20),
-        _buildCheckboxSection(
-          title: 'Do you have children?',
-          value: _hasChildren,
-          onChanged: (value) => setState(() => _hasChildren = value ?? false),
-          child: _hasChildren ? _buildFormField(
-            controller: _childrenAgesController,
-            label: 'What are the ages of your children?',
-            hint: 'e.g., 5, 8, 12 years old',
-            maxLines: 1,
-            icon: Icons.child_care_rounded,
-          ) : null,
-        ),
-        const SizedBox(height: 20),
-        _buildFormField(
-          controller: _homeDescriptionController,
-          label: 'Describe your home environment',
-          hint: 'Safe spaces, outdoor access, etc...',
-          maxLines: 2,
-          icon: Icons.place_rounded,
-        ),
-        const SizedBox(height: 20),
-        _buildFormField(
-          controller: _workScheduleController,
-          label: 'Describe your work schedule',
-          hint: 'How much time will you have for the pet?',
-          maxLines: 2,
-          icon: Icons.schedule_rounded,
-        ),
-        const SizedBox(height: 20),
-        _buildFormField(
-          controller: _additionalNotesController,
-          label: 'Additional notes or questions',
-          hint: 'Anything else you\'d like us to know...',
-          maxLines: 3,
-          icon: Icons.note_rounded,
-        ),
-      ],
-    );
-  }
-
-  Widget _buildFormField({
-    required TextEditingController controller,
-    required String label,
-    required String hint,
-    required int maxLines,
-    required IconData icon,
-    bool isRequired = false,
-  }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: PetCareTheme.cardWhite,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [PetCareTheme.cardShadow],
-        border: Border.all(
-          color: PetCareTheme.primaryBrown.withOpacity(0.1),
-          width: 1,
-        ),
-      ),
-      child: TextFormField(
-        controller: controller,
-        maxLines: maxLines,
-        validator: isRequired ? (value) {
-          if (value == null || value.trim().isEmpty) {
-            return 'This field is required';
-          }
-          return null;
-        } : null,
-        style: TextStyle(
-          color: PetCareTheme.textDark,
-          fontSize: 16,
-        ),
-        decoration: InputDecoration(
-          labelText: isRequired ? '$label *' : label,
-          hintText: hint,
-          prefixIcon: Icon(
-            icon,
-            color: PetCareTheme.primaryBrown.withOpacity(0.7),
-            size: 20,
-          ),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(20),
-            borderSide: BorderSide.none,
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(20),
-            borderSide: BorderSide.none,
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(20),
-            borderSide: BorderSide(
-              color: PetCareTheme.primaryBrown.withOpacity(0.5),
-              width: 2,
-            ),
-          ),
-          errorBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(20),
-            borderSide: BorderSide(
-              color: PetCareTheme.warmRed,
-              width: 1,
-            ),
-          ),
-          focusedErrorBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(20),
-            borderSide: BorderSide(
-              color: PetCareTheme.warmRed,
-              width: 2,
-            ),
-          ),
-          filled: true,
-          fillColor: PetCareTheme.cardBackground,
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 20,
-            vertical: 16,
-          ),
-          labelStyle: TextStyle(
-            color: PetCareTheme.primaryBrown,
-            fontWeight: FontWeight.w600,
-          ),
-          hintStyle: TextStyle(
-            color: PetCareTheme.textLight,
-            fontSize: 14,
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCheckboxSection({
-    required String title,
-    required bool value,
-    required ValueChanged<bool?> onChanged,
-    Widget? child,
-  }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: PetCareTheme.cardWhite,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [PetCareTheme.cardShadow],
-        border: Border.all(
-          color: PetCareTheme.primaryBrown.withOpacity(0.1),
-          width: 1,
-        ),
-      ),
-      child: Column(
-        children: [
-          CheckboxListTile(
-            title: Text(
-              title,
-              style: TextStyle(
-                color: PetCareTheme.textDark,
-                fontWeight: FontWeight.w600,
-                fontSize: 16,
-              ),
-            ),
-            value: value,
-            onChanged: onChanged,
-            activeColor: PetCareTheme.primaryBrown,
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 20,
-              vertical: 8,
-            ),
-          ),
-          if (child != null) ...[
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-              child: child,
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSubmitButton() {
-    return _animationsInitialized ? AnimatedBuilder(
-      animation: _scaleAnimation,
-      builder: (context, child) {
-        return Transform.scale(
-          scale: _scaleAnimation.value,
-          child: Container(
-            width: double.infinity,
-            height: 60,
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: PetCareTheme.primaryGradient,
-              ),
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  color: PetCareTheme.shadowColor,
-                  blurRadius: 15,
-                  offset: const Offset(0, 8),
-                  spreadRadius: 2,
-                ),
+                const SizedBox(height: 16),
               ],
-            ),
-            child: Material(
-              color: Colors.transparent,
-              child: InkWell(
-                onTap: _isLoading ? null : _submitAdoptionRequest,
-                borderRadius: BorderRadius.circular(20),
-                child: Center(
+
+              // Children
+              CheckboxListTile(
+                title: const Text('Do you have children?'),
+                value: _hasChildren,
+                onChanged: (value) => setState(() => _hasChildren = value ?? false),
+              ),
+              if (_hasChildren) ...[
+                TextFormField(
+                  controller: _childrenAgesController,
+                  decoration: const InputDecoration(
+                    labelText: 'What are the ages of your children?',
+                    border: OutlineInputBorder(),
+                    hintText: 'e.g., 5, 8, 12 years old',
+                  ),
+                ),
+                const SizedBox(height: 16),
+              ],
+
+              // Home Description
+              TextFormField(
+                controller: _homeDescriptionController,
+                decoration: const InputDecoration(
+                  labelText: 'Describe your home environment',
+                  border: OutlineInputBorder(),
+                  hintText: 'Safe spaces, outdoor access, etc...',
+                ),
+                maxLines: 2,
+              ),
+              const SizedBox(height: 16),
+
+              // Work Schedule
+              TextFormField(
+                controller: _workScheduleController,
+                decoration: const InputDecoration(
+                  labelText: 'Describe your work schedule',
+                  border: OutlineInputBorder(),
+                  hintText: 'How much time will you have for the pet?',
+                ),
+                maxLines: 2,
+              ),
+              const SizedBox(height: 16),
+
+              // Additional Notes
+              TextFormField(
+                controller: _additionalNotesController,
+                decoration: const InputDecoration(
+                  labelText: 'Additional notes or questions',
+                  border: OutlineInputBorder(),
+                  hintText: 'Anything else you\'d like us to know...',
+                ),
+                maxLines: 3,
+              ),
+              const SizedBox(height: 20),
+
+              // Submit Button
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _isLoading ? null : _submitAdoptionRequest,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.teal,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                  ),
                   child: _isLoading
-                      ? Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: PetCareTheme.primaryBeige,
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Text(
-                              'Submitting...',
-                              style: TextStyle(
-                                color: PetCareTheme.primaryBeige,
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        )
-                      : Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.send_rounded,
-                              color: PetCareTheme.primaryBeige,
-                              size: 20,
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              'Submit Adoption Request',
-                              style: TextStyle(
-                                color: PetCareTheme.primaryBeige,
-                                fontSize: 16,
-                                fontWeight: FontWeight.w700,
-                                letterSpacing: 0.5,
-                              ),
-                            ),
-                          ],
-                        ),
+                      ? const CircularProgressIndicator(color: Colors.white)
+                      : const Text('Submit Adoption Request', style: TextStyle(fontSize: 16)),
                 ),
               ),
-            ),
-          ),
-        );
-      },
-    ) : Container(
-      width: double.infinity,
-      height: 60,
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: PetCareTheme.primaryGradient,
-        ),
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: PetCareTheme.shadowColor,
-            blurRadius: 15,
-            offset: const Offset(0, 8),
-            spreadRadius: 2,
-          ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: _isLoading ? null : _submitAdoptionRequest,
-          borderRadius: BorderRadius.circular(20),
-          child: Center(
-            child: _isLoading
-                ? Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: PetCareTheme.primaryBeige,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Text(
-                        'Submitting...',
-                        style: TextStyle(
-                          color: PetCareTheme.primaryBeige,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  )
-                : Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.send_rounded,
-                        color: PetCareTheme.primaryBeige,
-                        size: 20,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Submit Adoption Request',
-                        style: TextStyle(
-                          color: PetCareTheme.primaryBeige,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                    ],
-                  ),
+              const SizedBox(height: 20),
+            ],
           ),
         ),
       ),

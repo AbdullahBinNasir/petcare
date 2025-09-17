@@ -1,25 +1,24 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../services/auth_service.dart';
 import '../../services/pet_service.dart';
 import '../../services/appointment_service.dart';
-import '../../services/notification_service.dart';
 import '../../models/pet_model.dart';
 import '../../models/appointment_model.dart';
-import '../../theme/pet_care_theme.dart';
 import '../shared/profile_screen.dart';
+import '../shared/appointments_screen.dart';
 import '../shared/pet_store_screen.dart';
-import '../shared/notifications_screen.dart';
+import '../shared/blog_screen.dart';
+import '../shared/global_search_screen.dart';
 import 'add_pet_screen.dart';
 import 'pet_profile_screen.dart';
 import 'book_appointment_screen.dart';
+import 'health_records_screen.dart';
+import 'health_tracking_screen.dart';
 import 'pet_adoption_screen.dart';
 import 'success_stories_screen.dart';
 import 'contact_volunteer_form_screen.dart';
-import 'health_tracking_screen.dart';
-import 'appointments_screen.dart';
 import '../../models/contact_volunteer_form_model.dart';
 
 class PetOwnerDashboard extends StatefulWidget {
@@ -29,99 +28,40 @@ class PetOwnerDashboard extends StatefulWidget {
   State<PetOwnerDashboard> createState() => _PetOwnerDashboardState();
 }
 
-class _PetOwnerDashboardState extends State<PetOwnerDashboard>
-    with TickerProviderStateMixin {
+class _PetOwnerDashboardState extends State<PetOwnerDashboard> {
   int _currentIndex = 0;
   List<PetModel> _pets = [];
   List<AppointmentModel> _upcomingAppointments = [];
   bool _isLoading = true;
   String? _errorMessage;
 
-  // Animation controllers
-  late AnimationController _slideAnimationController;
-  late AnimationController _fadeAnimationController;
-  late AnimationController _scaleAnimationController;
-  late Animation<Offset> _slideAnimation;
-  late Animation<double> _fadeAnimation;
-  late Animation<double> _scaleAnimation;
-  bool _animationsInitialized = false;
-
   @override
   void initState() {
     super.initState();
-
-    // Initialize animation controllers
-    _slideAnimationController = AnimationController(
-      duration: const Duration(milliseconds: 800),
-      vsync: this,
-    );
-
-    _fadeAnimationController = AnimationController(
-      duration: const Duration(milliseconds: 600),
-      vsync: this,
-    );
-
-    _scaleAnimationController = AnimationController(
-      duration: const Duration(milliseconds: 400),
-      vsync: this,
-    );
-
-    // Initialize animations
-    _slideAnimation =
-        Tween<Offset>(begin: const Offset(0, 0.1), end: Offset.zero).animate(
-          CurvedAnimation(
-            parent: _slideAnimationController,
-            curve: Curves.easeOutCubic,
-          ),
-        );
-
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _fadeAnimationController,
-        curve: Curves.easeInOut,
-      ),
-    );
-
-    _scaleAnimation = Tween<double>(begin: 0.8, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _scaleAnimationController,
-        curve: Curves.elasticOut,
-      ),
-    );
-
-    _animationsInitialized = true;
     _loadDashboardData();
-  }
-
-  @override
-  void dispose() {
-    _slideAnimationController.dispose();
-    _fadeAnimationController.dispose();
-    _scaleAnimationController.dispose();
-    super.dispose();
   }
 
   Future<void> _debugEverything() async {
     print('\n======= COMPLETE DEBUG START =======');
-
+    
     try {
       final authService = Provider.of<AuthService>(context, listen: false);
       final currentUser = authService.currentUser;
-
+      
       print('1. USER CHECK:');
       print('   - Current User: ${currentUser?.uid}');
       print('   - User Email: ${currentUser?.email}');
       print('   - User Display Name: ${currentUser?.displayName}');
       print('   - User is null: ${currentUser == null}');
-
+      
       if (currentUser == null) {
         print('   ❌ USER NOT AUTHENTICATED - STOPPING DEBUG');
         return;
       }
-
+      
       print('\n2. FIRESTORE CONNECTION TEST:');
       try {
-        await FirebaseFirestore.instance
+        final testDoc = await FirebaseFirestore.instance
             .collection('test')
             .doc('connection')
             .get();
@@ -129,14 +69,14 @@ class _PetOwnerDashboardState extends State<PetOwnerDashboard>
       } catch (e) {
         print('   ❌ Firestore connection error: $e');
       }
-
+      
       print('\n3. ALL PETS IN DATABASE:');
       final allPetsSnapshot = await FirebaseFirestore.instance
           .collection('pets')
           .get();
-
+      
       print('   - Total pets in database: ${allPetsSnapshot.docs.length}');
-
+      
       if (allPetsSnapshot.docs.isEmpty) {
         print('   ❌ NO PETS IN DATABASE AT ALL');
         print('   → You need to add a pet first');
@@ -147,39 +87,37 @@ class _PetOwnerDashboardState extends State<PetOwnerDashboard>
           print('   Pet Name: ${data['name']}');
           print('   Owner ID: ${data['ownerId']}');
           print('   Is Active: ${data['isActive']}');
-          print(
-            '   Matches Current User: ${data['ownerId'] == currentUser.uid}',
-          );
+          print('   Matches Current User: ${data['ownerId'] == currentUser.uid}');
           print('   ---');
         }
       }
-
+      
       print('\n4. PETS FOR CURRENT USER (NO FILTERS):');
       final userPetsSnapshot = await FirebaseFirestore.instance
           .collection('pets')
           .where('ownerId', isEqualTo: currentUser.uid)
           .get();
-
+      
       print('   - User pets (any status): ${userPetsSnapshot.docs.length}');
-
+      
       print('\n5. ACTIVE PETS FOR CURRENT USER:');
       final activePetsSnapshot = await FirebaseFirestore.instance
           .collection('pets')
           .where('ownerId', isEqualTo: currentUser.uid)
           .where('isActive', isEqualTo: true)
           .get();
-
+      
       print('   - Active user pets: ${activePetsSnapshot.docs.length}');
-
+      
       print('\n6. TESTING PET SERVICE:');
       final petService = Provider.of<PetService>(context, listen: false);
       final servicePets = await petService.getPetsByOwnerId(currentUser.uid);
       print('   - Pets from service: ${servicePets.length}');
-
+      
       for (var pet in servicePets) {
         print('   Service Pet: ${pet.name} (ID: ${pet.id})');
       }
-
+      
       print('\n7. TESTING ORDERED QUERY (EXACT DASHBOARD QUERY):');
       try {
         final orderedSnapshot = await FirebaseFirestore.instance
@@ -188,19 +126,18 @@ class _PetOwnerDashboardState extends State<PetOwnerDashboard>
             .where('isActive', isEqualTo: true)
             .orderBy('createdAt', descending: true)
             .get();
-
-        print(
-          '   ✅ Ordered query successful: ${orderedSnapshot.docs.length} pets',
-        );
+        
+        print('   ✅ Ordered query successful: ${orderedSnapshot.docs.length} pets');
       } catch (e) {
         print('   ❌ Ordered query failed: $e');
         print('   → This might need a composite index in Firestore');
       }
+      
     } catch (e) {
       print('❌ DEBUG ERROR: $e');
       print('Stack trace: ${StackTrace.current}');
     }
-
+    
     print('======= COMPLETE DEBUG END =======\n');
   }
 
@@ -218,14 +155,11 @@ class _PetOwnerDashboardState extends State<PetOwnerDashboard>
     try {
       final authService = Provider.of<AuthService>(context, listen: false);
       final petService = Provider.of<PetService>(context, listen: false);
-      final appointmentService = Provider.of<AppointmentService>(
-        context,
-        listen: false,
-      );
+      final appointmentService = Provider.of<AppointmentService>(context, listen: false);
 
       final currentUser = authService.currentUser;
       print('LOAD DATA: Current user: ${currentUser?.uid}');
-
+      
       if (currentUser == null) {
         throw Exception('User not authenticated');
       }
@@ -235,9 +169,7 @@ class _PetOwnerDashboardState extends State<PetOwnerDashboard>
 
       print('LOAD DATA: Fetching pets...');
       final pets = await petService.getPetsByOwnerId(userId);
-      print(
-        'LOAD DATA: Fetched ${pets.length} pets: ${pets.map((p) => p.name).toList()}',
-      );
+      print('LOAD DATA: Fetched ${pets.length} pets: ${pets.map((p) => p.name).toList()}');
 
       print('LOAD DATA: Fetching appointments...');
       List<AppointmentModel> appointments = [];
@@ -245,9 +177,7 @@ class _PetOwnerDashboardState extends State<PetOwnerDashboard>
         appointments = await appointmentService.getUpcomingAppointments(userId);
         print('LOAD DATA: Fetched ${appointments.length} appointments');
       } catch (e) {
-        print(
-          'LOAD DATA: Error loading appointments (continuing without them): $e',
-        );
+        print('LOAD DATA: Error loading appointments (continuing without them): $e');
       }
 
       if (mounted) {
@@ -256,15 +186,7 @@ class _PetOwnerDashboardState extends State<PetOwnerDashboard>
           _upcomingAppointments = appointments;
           _isLoading = false;
         });
-
-        // Start animations after data is loaded
-        _slideAnimationController.forward();
-        _fadeAnimationController.forward();
-        _scaleAnimationController.forward();
-
-        print(
-          'LOAD DATA: UI updated with ${_pets.length} pets and ${_upcomingAppointments.length} appointments',
-        );
+        print('LOAD DATA: UI updated with ${_pets.length} pets and ${_upcomingAppointments.length} appointments');
       }
     } catch (e) {
       print('LOAD DATA: Error loading dashboard data: $e');
@@ -282,6 +204,8 @@ class _PetOwnerDashboardState extends State<PetOwnerDashboard>
   Widget build(BuildContext context) {
     final List<Widget> pages = [
       _buildHomeTab(),
+      const AppointmentsScreen(),
+      const HealthTrackingScreen(),
       const PetStoreScreen(),
       const PetAdoptionScreen(),
       const SuccessStoriesScreen(),
@@ -289,67 +213,43 @@ class _PetOwnerDashboardState extends State<PetOwnerDashboard>
     ];
 
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: PetCareTheme.backgroundGradient,
-          ),
-        ),
-        child: IndexedStack(index: _currentIndex, children: pages),
+      body: IndexedStack(
+        index: _currentIndex,
+        children: pages,
       ),
-      bottomNavigationBar: _buildModernBottomNavBar(),
-    );
-  }
-
-  Widget _buildModernBottomNavBar() {
-    return Container(
-      decoration: BoxDecoration(
-        color: PetCareTheme.cardWhite,
-        boxShadow: [
-          BoxShadow(
-            color: PetCareTheme.shadowColor,
-            blurRadius: 15,
-            offset: const Offset(0, -5),
-          ),
-        ],
-      ),
-      child: BottomNavigationBar(
+      bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
         currentIndex: _currentIndex,
         onTap: (index) => setState(() => _currentIndex = index),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        selectedItemColor: PetCareTheme.primaryBrown,
-        unselectedItemColor: PetCareTheme.lightBrown.withOpacity(0.7),
-        selectedFontSize: 12,
-        unselectedFontSize: 11,
-        selectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600),
+        selectedItemColor: Theme.of(context).colorScheme.primary,
+        unselectedItemColor: Colors.grey[600],
         items: const [
           BottomNavigationBarItem(
-            icon: Icon(Icons.dashboard_rounded, size: 24),
-            activeIcon: Icon(Icons.dashboard_rounded, size: 26),
-            label: 'Dashboard',
+            icon: Icon(Icons.home),
+            label: 'Home',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.store_rounded, size: 24),
-            activeIcon: Icon(Icons.store_rounded, size: 26),
-            label: 'Store',
+            icon: Icon(Icons.calendar_today),
+            label: 'Appointments',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.pets_rounded, size: 24),
-            activeIcon: Icon(Icons.pets_rounded, size: 26),
+            icon: Icon(Icons.health_and_safety),
+            label: 'Health Tracking',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.store),
+            label: 'Pet Store',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.pets),
             label: 'Adopt',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.auto_stories_rounded, size: 24),
-            activeIcon: Icon(Icons.auto_stories_rounded, size: 26),
+            icon: Icon(Icons.celebration),
             label: 'Stories',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.person_rounded, size: 24),
-            activeIcon: Icon(Icons.person_rounded, size: 26),
+            icon: Icon(Icons.person),
             label: 'Profile',
           ),
         ],
@@ -359,283 +259,118 @@ class _PetOwnerDashboardState extends State<PetOwnerDashboard>
 
   Widget _buildHomeTab() {
     return Scaffold(
-      backgroundColor: Colors.transparent,
-      appBar: _buildModernAppBar(),
-      body: _buildHomeBody(),
-    );
-  }
-
-  PreferredSizeWidget _buildModernAppBar() {
-    return AppBar(
-      elevation: 0,
-      flexibleSpace: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: PetCareTheme.primaryGradient,
-          ),
-        ),
-      ),
-      backgroundColor: Colors.transparent,
-      foregroundColor: PetCareTheme.primaryBeige,
-      title: Text(
-        'Pet Owner Dashboard',
-        style: TextStyle(
-          fontSize: 22,
-          fontWeight: FontWeight.w700,
-          color: PetCareTheme.primaryBeige,
-          letterSpacing: 0.5,
-        ),
-      ),
-      actions: [
-        Consumer<NotificationService>(
-          builder: (context, notificationService, child) {
-            return Stack(
-              children: [
-                Container(
-                  margin: const EdgeInsets.only(right: 12),
-                  decoration: BoxDecoration(
-                    color: PetCareTheme.primaryBeige.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: PetCareTheme.primaryBeige.withOpacity(0.3),
-                      width: 1,
-                    ),
-                  ),
-                  child: IconButton(
-                    icon: Icon(
-                      Icons.notifications_rounded,
-                      color: PetCareTheme.primaryBeige,
-                      size: 24,
-                    ),
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const NotificationsScreen(),
-                        ),
-                      );
-                    },
-                  ),
+      backgroundColor: Colors.grey[50],
+      appBar: AppBar(
+        title: const Text('Pet Care Dashboard'),
+        backgroundColor: Theme.of(context).colorScheme.primary,
+        foregroundColor: Colors.white,
+        elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.search),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const GlobalSearchScreen(),
                 ),
-                if (notificationService.unreadCount > 0)
-                  Positioned(
-                    right: 8,
-                    top: 8,
-                    child: Container(
-                      padding: const EdgeInsets.all(4),
-                      decoration: BoxDecoration(
-                        color: Colors.red,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      constraints: const BoxConstraints(
-                        minWidth: 20,
-                        minHeight: 20,
-                      ),
-                      child: Text(
-                        '${notificationService.unreadCount}',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-                  ),
-              ],
-            );
-          },
-        ),
-      ],
+              );
+            },
+            tooltip: 'Search',
+          ),
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _loadDashboardData,
+            tooltip: 'Refresh',
+          ),
+          IconButton(
+            icon: const Icon(Icons.bug_report),
+            onPressed: _debugEverything,
+            tooltip: 'Debug',
+          ),
+          IconButton(
+            icon: const Icon(Icons.notifications),
+            onPressed: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Notifications coming soon!')),
+              );
+            },
+          ),
+        ],
+      ),
+      body: _buildHomeBody(),
     );
   }
 
   Widget _buildHomeBody() {
     if (_isLoading) {
-      return _buildLoadingState();
+      return const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(height: 16),
+            Text('Loading your pets...'),
+          ],
+        ),
+      );
     }
 
     if (_errorMessage != null) {
-      return _buildErrorState();
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.error_outline,
+                size: 64,
+                color: Colors.red[400],
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Something went wrong',
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                _errorMessage!,
+                style: Theme.of(context).textTheme.bodyMedium,
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton.icon(
+                onPressed: _loadDashboardData,
+                icon: const Icon(Icons.refresh),
+                label: const Text('Retry'),
+              ),
+            ],
+          ),
+        ),
+      );
     }
 
     return RefreshIndicator(
       onRefresh: _loadDashboardData,
-      color: PetCareTheme.primaryBrown,
-      backgroundColor: PetCareTheme.cardWhite,
       child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-        child: _animationsInitialized
-            ? AnimatedBuilder(
-                animation: _fadeAnimation,
-                builder: (context, child) {
-                  return FadeTransition(
-                    opacity: _fadeAnimation,
-                    child: _animationsInitialized
-                        ? SlideTransition(
-                            position: _slideAnimation,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const SizedBox(height: 8),
-                                _buildWelcomeSection(),
-                                const SizedBox(height: 32),
-                                _buildQuickStatsHeader(),
-                                const SizedBox(height: 20),
-                                _buildQuickStats(),
-                                const SizedBox(height: 36),
-                                _buildMyPetsSection(),
-                                const SizedBox(height: 32),
-                                _buildQuickActions(),
-                                const SizedBox(height: 20),
-                              ],
-                            ),
-                          )
-                        : Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const SizedBox(height: 8),
-                              _buildWelcomeSection(),
-                              const SizedBox(height: 32),
-                              _buildQuickStatsHeader(),
-                              const SizedBox(height: 20),
-                              _buildQuickStats(),
-                              const SizedBox(height: 36),
-                              _buildMyPetsSection(),
-                              const SizedBox(height: 32),
-                              _buildQuickActions(),
-                              const SizedBox(height: 20),
-                            ],
-                          ),
-                  );
-                },
-              )
-            : Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: 8),
-                  _buildWelcomeSection(),
-                  const SizedBox(height: 32),
-                  _buildQuickStatsHeader(),
-                  const SizedBox(height: 20),
-                  _buildQuickStats(),
-                  const SizedBox(height: 36),
-                  _buildMyPetsSection(),
-                  const SizedBox(height: 32),
-                  _buildQuickActions(),
-                  const SizedBox(height: 20),
-                ],
-              ),
-      ),
-    );
-  }
-
-  Widget _buildLoadingState() {
-    return Center(
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: PetCareTheme.cardWhite.withOpacity(0.8),
-          borderRadius: BorderRadius.circular(20),
-        ),
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.all(16),
         child: Column(
-          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation<Color>(
-                PetCareTheme.primaryBrown,
-              ),
-              strokeWidth: 3,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Loading Dashboard...',
-              style: TextStyle(
-                color: PetCareTheme.primaryBrown,
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
+            _buildWelcomeSection(),
+            const SizedBox(height: 24),
+            _buildQuickStats(),
+            const SizedBox(height: 24),
+            _buildMyPetsSection(),
+            const SizedBox(height: 24),
+            _buildUpcomingAppointments(),
+            const SizedBox(height: 24),
+            _buildQuickActions(),
+            const SizedBox(height: 80), // Bottom padding for FAB
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildErrorState() {
-    return Center(
-      child: Container(
-        margin: const EdgeInsets.all(32),
-        padding: const EdgeInsets.all(32),
-        decoration: BoxDecoration(
-          color: PetCareTheme.cardBackground,
-          borderRadius: BorderRadius.circular(24),
-          boxShadow: [PetCareTheme.elevatedShadow],
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 80,
-              height: 80,
-              decoration: BoxDecoration(
-                color: Colors.red.shade50,
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                Icons.error_outline_rounded,
-                size: 40,
-                color: Colors.red.shade400,
-              ),
-            ),
-            const SizedBox(height: 24),
-            Text(
-              'Something went wrong',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w600,
-                color: PetCareTheme.textDark,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              _errorMessage!,
-              style: TextStyle(fontSize: 16, color: PetCareTheme.textLight),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 24),
-            ElevatedButton.icon(
-              onPressed: _loadDashboardData,
-              icon: const Icon(Icons.refresh_rounded),
-              label: const Text('Retry'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: PetCareTheme.primaryBrown,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 24,
-                  vertical: 14,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildQuickStatsHeader() {
-    return Text(
-      'Today\'s Overview',
-      style: TextStyle(
-        fontSize: 22,
-        fontWeight: FontWeight.w800,
-        color: PetCareTheme.primaryBrown,
-        letterSpacing: 0.5,
       ),
     );
   }
@@ -644,520 +379,98 @@ class _PetOwnerDashboardState extends State<PetOwnerDashboard>
     return Consumer<AuthService>(
       builder: (context, authService, child) {
         final user = authService.currentUserModel;
-        return _animationsInitialized
-            ? ScaleTransition(
-                scale: _scaleAnimation,
-                child: Container(
-                  width: double.infinity,
+        final userName = user?.firstName ?? authService.currentUser?.displayName ?? 'User';
+        final userInitial = userName.isNotEmpty ? userName[0].toUpperCase() : 'U';
+
+        return Container(
+          width: double.infinity,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                Theme.of(context).colorScheme.primary,
+                Theme.of(context).colorScheme.primary.withOpacity(0.8),
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Row(
+              children: [
+                Container(
+                  width: 60,
+                  height: 60,
                   decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: PetCareTheme.accentGradient,
-                    ),
-                    borderRadius: BorderRadius.circular(24),
-                    boxShadow: [
-                      BoxShadow(
-                        color: PetCareTheme.shadowColor,
-                        blurRadius: 20,
-                        offset: const Offset(0, 10),
-                        spreadRadius: 2,
+                    color: Colors.white.withOpacity(0.2),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Center(
+                    child: Text(
+                      userInitial,
+                      style: const TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
                       ),
-                    ],
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(28),
-                    child: Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(18),
-                          decoration: BoxDecoration(
-                            color: PetCareTheme.primaryBeige.withOpacity(0.25),
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(
-                              color: PetCareTheme.primaryBeige.withOpacity(0.4),
-                              width: 2,
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.1),
-                                blurRadius: 8,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
-                          ),
-                          child: Icon(
-                            Icons.pets_rounded,
-                            color: PetCareTheme.primaryBeige,
-                            size: 36,
-                          ),
-                        ),
-                        const SizedBox(width: 22),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Welcome back,',
-                                style: TextStyle(
-                                  color: PetCareTheme.primaryBeige.withOpacity(
-                                    0.9,
-                                  ),
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w500,
-                                  letterSpacing: 0.3,
-                                ),
-                              ),
-                              const SizedBox(height: 6),
-                              Text(
-                                '${user?.fullName ?? 'Pet Parent'}',
-                                style: TextStyle(
-                                  color: PetCareTheme.primaryBeige,
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.w800,
-                                  letterSpacing: 0.5,
-                                ),
-                              ),
-                              const SizedBox(height: 6),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 4,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: PetCareTheme.primaryBeige.withOpacity(
-                                    0.2,
-                                  ),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Text(
-                                  'Pet Owner',
-                                  style: TextStyle(
-                                    color: PetCareTheme.primaryBeige,
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
                     ),
                   ),
                 ),
-              )
-            : Container(
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: PetCareTheme.accentGradient,
-                  ),
-                  borderRadius: BorderRadius.circular(24),
-                  boxShadow: [
-                    BoxShadow(
-                      color: PetCareTheme.shadowColor,
-                      blurRadius: 20,
-                      offset: const Offset(0, 10),
-                      spreadRadius: 2,
-                    ),
-                  ],
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(28),
-                  child: Row(
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Container(
-                        padding: const EdgeInsets.all(18),
-                        decoration: BoxDecoration(
-                          color: PetCareTheme.primaryBeige.withOpacity(0.25),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: PetCareTheme.primaryBeige.withOpacity(0.4),
-                            width: 2,
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.1),
-                              blurRadius: 8,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        child: Icon(
-                          Icons.pets_rounded,
-                          color: PetCareTheme.primaryBeige,
-                          size: 36,
+                      Text(
+                        'Welcome back, $userName!',
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
                         ),
                       ),
-                      const SizedBox(width: 22),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Welcome back,',
-                              style: TextStyle(
-                                color: PetCareTheme.primaryBeige.withOpacity(
-                                  0.9,
-                                ),
-                                fontSize: 15,
-                                fontWeight: FontWeight.w500,
-                                letterSpacing: 0.3,
-                              ),
-                            ),
-                            const SizedBox(height: 6),
-                            Text(
-                              '${user?.fullName ?? 'Pet Owner'}',
-                              style: TextStyle(
-                                color: PetCareTheme.primaryBeige,
-                                fontSize: 22,
-                                fontWeight: FontWeight.w800,
-                                letterSpacing: 0.5,
-                              ),
-                            ),
-                            const SizedBox(height: 6),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 4,
-                              ),
-                              decoration: BoxDecoration(
-                                color: PetCareTheme.primaryBeige.withOpacity(
-                                  0.2,
-                                ),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Text(
-                                'Pet Owner',
-                                style: TextStyle(
-                                  color: PetCareTheme.primaryBeige,
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                          ],
+                      const SizedBox(height: 4),
+                      Text(
+                        'Take great care of your pets today',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.white.withOpacity(0.9),
                         ),
                       ),
                     ],
                   ),
                 ),
-              );
-      },
-    );
-  }
-
-  Widget _buildQuickStats() {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final screenWidth = constraints.maxWidth;
-        final spacing = 16.0;
-
-        // Calculate additional stats
-        final totalAppointments = _upcomingAppointments.length;
-        final healthRecords = 0; // Health records are managed separately
-
-        // Always show 2x2 grid layout
-        return Column(
-          children: [
-            // First Row
-            Row(
-              children: [
-                Expanded(
-                  child: _buildResponsiveStatCard(
-                    'My Pets',
-                    _pets.length.toString(),
-                    Icons.pets_rounded,
-                    PetCareTheme.accentGold,
-                    screenWidth,
-                  ),
-                ),
-                SizedBox(width: spacing),
-                Expanded(
-                  child: _buildResponsiveStatCard(
-                    'Appointments',
-                    totalAppointments.toString(),
-                    Icons.calendar_month_rounded,
-                    PetCareTheme.softGreen,
-                    screenWidth,
-                  ),
-                ),
               ],
             ),
-            SizedBox(height: spacing),
-            // Second Row
-            Row(
-              children: [
-                Expanded(
-                  child: _buildResponsiveStatCard(
-                    'Health Records',
-                    healthRecords.toString(),
-                    Icons.medical_services_rounded,
-                    PetCareTheme.warmRed,
-                    screenWidth,
-                  ),
-                ),
-                SizedBox(width: spacing),
-                Expanded(
-                  child: _buildResponsiveStatCard(
-                    'Care Score',
-                    '95%',
-                    Icons.favorite_rounded,
-                    PetCareTheme.warmPurple,
-                    screenWidth,
-                  ),
-                ),
-              ],
-            ),
-          ],
+          ),
         );
       },
     );
   }
 
-  Widget _buildResponsiveStatCard(
-    String title,
-    String value,
-    IconData icon,
-    Color color,
-    double screenWidth,
-  ) {
-    // Calculate responsive dimensions
-    final isSmallScreen = screenWidth < 400;
-
-    return _animationsInitialized
-        ? AnimatedBuilder(
-            animation: _scaleAnimation,
-            builder: (context, child) {
-              return Transform.scale(
-                scale: _scaleAnimation.value,
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: PetCareTheme.cardWhite,
-                    borderRadius: BorderRadius.circular(24),
-                    border: Border.all(
-                      color: color.withOpacity(0.2),
-                      width: 1.5,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: PetCareTheme.shadowColor,
-                        blurRadius: 20,
-                        offset: const Offset(0, 10),
-                        spreadRadius: 2,
-                      ),
-                      BoxShadow(
-                        color: color.withOpacity(0.1),
-                        blurRadius: 8,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(24),
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          color.withOpacity(0.05),
-                          color.withOpacity(0.02),
-                          Colors.white.withOpacity(0.8),
-                        ],
-                      ),
-                    ),
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: isSmallScreen ? 12.0 : 16.0,
-                        vertical: isSmallScreen ? 16.0 : 20.0,
-                      ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          // Icon Section
-                          Container(
-                            width: isSmallScreen ? 48.0 : 56.0,
-                            height: isSmallScreen ? 48.0 : 56.0,
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                                colors: [
-                                  color.withOpacity(0.2),
-                                  color.withOpacity(0.4),
-                                ],
-                              ),
-                              borderRadius: BorderRadius.circular(16),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: color.withOpacity(0.3),
-                                  blurRadius: 8,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ],
-                            ),
-                            child: Icon(
-                              icon,
-                              color: Colors.white,
-                              size: isSmallScreen ? 24.0 : 28.0,
-                            ),
-                          ),
-
-                          SizedBox(height: isSmallScreen ? 12.0 : 16.0),
-
-                          // Value Section
-                          Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                value,
-                                style: TextStyle(
-                                  fontSize: isSmallScreen ? 24.0 : 28.0,
-                                  fontWeight: FontWeight.w900,
-                                  color: PetCareTheme.primaryBrown,
-                                  letterSpacing: -0.5,
-                                  height: 1.0,
-                                ),
-                              ),
-                              SizedBox(height: isSmallScreen ? 4.0 : 6.0),
-                              Text(
-                                title,
-                                style: TextStyle(
-                                  fontSize: isSmallScreen ? 11.0 : 12.0,
-                                  fontWeight: FontWeight.w600,
-                                  color: PetCareTheme.lightBrown.withOpacity(
-                                    0.9,
-                                  ),
-                                  letterSpacing: 0.2,
-                                  height: 1.1,
-                                ),
-                                textAlign: TextAlign.center,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              );
-            },
-          )
-        : Container(
-            decoration: BoxDecoration(
-              color: PetCareTheme.cardWhite,
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(color: color.withOpacity(0.2), width: 1.5),
-              boxShadow: [
-                BoxShadow(
-                  color: PetCareTheme.shadowColor,
-                  blurRadius: 20,
-                  offset: const Offset(0, 10),
-                  spreadRadius: 2,
-                ),
-                BoxShadow(
-                  color: color.withOpacity(0.1),
-                  blurRadius: 8,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(24),
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    color.withOpacity(0.05),
-                    color.withOpacity(0.02),
-                    Colors.white.withOpacity(0.8),
-                  ],
-                ),
-              ),
-              child: Padding(
-                padding: EdgeInsets.symmetric(
-                  horizontal: isSmallScreen ? 12.0 : 16.0,
-                  vertical: isSmallScreen ? 16.0 : 20.0,
-                ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Icon Section
-                    Container(
-                      width: isSmallScreen ? 48.0 : 56.0,
-                      height: isSmallScreen ? 48.0 : 56.0,
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [
-                            color.withOpacity(0.2),
-                            color.withOpacity(0.4),
-                          ],
-                        ),
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: [
-                          BoxShadow(
-                            color: color.withOpacity(0.3),
-                            blurRadius: 8,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: Icon(
-                        icon,
-                        color: Colors.white,
-                        size: isSmallScreen ? 24.0 : 28.0,
-                      ),
-                    ),
-
-                    SizedBox(height: isSmallScreen ? 12.0 : 16.0),
-
-                    // Value Section
-                    Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          value,
-                          style: TextStyle(
-                            fontSize: isSmallScreen ? 24.0 : 28.0,
-                            fontWeight: FontWeight.w900,
-                            color: PetCareTheme.primaryBrown,
-                            letterSpacing: -0.5,
-                            height: 1.0,
-                          ),
-                        ),
-                        SizedBox(height: isSmallScreen ? 4.0 : 6.0),
-                        Text(
-                          title,
-                          style: TextStyle(
-                            fontSize: isSmallScreen ? 11.0 : 12.0,
-                            fontWeight: FontWeight.w600,
-                            color: PetCareTheme.lightBrown.withOpacity(0.9),
-                            letterSpacing: 0.2,
-                            height: 1.1,
-                          ),
-                          textAlign: TextAlign.center,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          );
+  Widget _buildQuickStats() {
+    return Row(
+      children: [
+        Expanded(
+          child: _buildStatCard(
+            'My Pets',
+            _pets.length.toString(),
+            Icons.pets,
+            Colors.blue,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: _buildStatCard(
+            'Upcoming',
+            _upcomingAppointments.length.toString(),
+            Icons.calendar_today,
+            Colors.green,
+          ),
+        ),
+      ],
+    );
   }
 
   Widget _buildMyPetsSection() {
@@ -1169,64 +482,26 @@ class _PetOwnerDashboardState extends State<PetOwnerDashboard>
           children: [
             Text(
               'My Pets',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.w700,
-                color: PetCareTheme.textDark,
-                letterSpacing: 0.5,
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w600,
               ),
             ),
-            Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(colors: PetCareTheme.accentGradient),
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: PetCareTheme.accentGold.withOpacity(0.3),
-                    blurRadius: 8,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  onTap: () async {
-                    final result = await Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const AddPetScreen(),
-                      ),
-                    );
-                    if (result == true) {
-                      _loadDashboardData();
-                    }
-                  },
-                  borderRadius: BorderRadius.circular(12),
-                  child: const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.add_rounded, color: Colors.white, size: 20),
-                        SizedBox(width: 8),
-                        Text(
-                          'Add Pet',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 14,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
+            TextButton.icon(
+              onPressed: () async {
+                final result = await Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const AddPetScreen()),
+                );
+                if (result == true) {
+                  _loadDashboardData();
+                }
+              },
+              icon: const Icon(Icons.add),
+              label: const Text('Add Pet'),
             ),
           ],
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 12),
         _buildPetsList(),
       ],
     );
@@ -1234,56 +509,53 @@ class _PetOwnerDashboardState extends State<PetOwnerDashboard>
 
   Widget _buildPetsList() {
     print('Building pets list with ${_pets.length} pets');
-
+    
     if (_pets.isEmpty) {
       return Container(
         width: double.infinity,
-        padding: const EdgeInsets.all(40),
+        padding: const EdgeInsets.all(32),
         decoration: BoxDecoration(
-          color: PetCareTheme.cardBackground,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [PetCareTheme.cardShadow],
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
         child: Column(
           children: [
             Container(
-              width: 100,
-              height: 100,
+              width: 80,
+              height: 80,
               decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    PetCareTheme.primaryBrown.withOpacity(0.1),
-                    PetCareTheme.lightBrown.withOpacity(0.1),
-                  ],
-                ),
+                color: Colors.grey[100],
                 shape: BoxShape.circle,
               ),
               child: Icon(
-                Icons.pets_rounded,
-                size: 50,
-                color: PetCareTheme.primaryBrown.withOpacity(0.6),
+                Icons.pets,
+                size: 40,
+                color: Colors.grey[400],
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
             Text(
               'No pets added yet',
-              style: TextStyle(
-                fontSize: 20,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.w600,
-                color: PetCareTheme.textDark,
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 8),
             Text(
               'Add your first pet to get started with tracking their health and appointments',
-              style: TextStyle(
-                fontSize: 16,
-                color: PetCareTheme.textLight,
-                height: 1.4,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Colors.grey[600],
               ),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 28),
+            const SizedBox(height: 20),
             ElevatedButton.icon(
               onPressed: () async {
                 final result = await Navigator.push(
@@ -1294,19 +566,10 @@ class _PetOwnerDashboardState extends State<PetOwnerDashboard>
                   _loadDashboardData();
                 }
               },
-              icon: const Icon(Icons.add_rounded),
+              icon: const Icon(Icons.add),
               label: const Text('Add Your First Pet'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: PetCareTheme.primaryBrown,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 28,
-                  vertical: 16,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                elevation: 3,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               ),
             ),
           ],
@@ -1314,306 +577,340 @@ class _PetOwnerDashboardState extends State<PetOwnerDashboard>
       );
     }
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        // Calculate responsive height based on screen size
-        final screenWidth = constraints.maxWidth;
-        final cardHeight = screenWidth < 400 ? 300.0 : 320.0;
-
-        return SizedBox(
-          height: cardHeight,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(
-              horizontal: 4,
-            ), // Add padding to prevent edge clipping
-            itemCount: _pets.length,
-            itemBuilder: (context, index) {
-              final pet = _pets[index];
-              return Container(
-                width: screenWidth < 400 ? 180 : 200, // Responsive width
-                margin: EdgeInsets.only(
-                  right: index == _pets.length - 1
-                      ? 4
-                      : 16, // Add right margin for last item
-                  left: index == 0 ? 4 : 0, // Add left margin for first item
-                ),
-                child: _buildPetCard(pet),
-              );
-            },
-          ),
-        );
-      },
+    return SizedBox(
+      height: 220,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        itemCount: _pets.length,
+        itemBuilder: (context, index) {
+          final pet = _pets[index];
+          print('Building pet card for: ${pet.name} (ID: ${pet.id})');
+          return Container(
+            width: 170,
+            margin: const EdgeInsets.only(right: 12),
+            child: _buildPetCard(pet),
+          );
+        },
+      ),
     );
   }
 
   Widget _buildPetCard(PetModel pet) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final isSmallCard = constraints.maxWidth < 200;
-        final cardPadding = isSmallCard ? 12.0 : 16.0;
-
-        return Container(
-          height: double.infinity, // Use all available height
-          decoration: BoxDecoration(
-            color: PetCareTheme.cardBackground,
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [PetCareTheme.cardShadow],
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
           ),
-          child: Material(
-            color: Colors.transparent,
-            child: InkWell(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => PetProfileScreen(pet: pet),
-                  ),
-                );
-              },
-              borderRadius: BorderRadius.circular(20),
-              child: Padding(
-                padding: EdgeInsets.all(cardPadding),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Pet Image Section - Fixed height to prevent overflow
-                    Expanded(
-                      flex: 5,
-                      child: Container(
-                        width: double.infinity,
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [Colors.grey.shade100, Colors.grey.shade50],
-                          ),
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(16),
-                          child: _buildPetImage(pet),
-                        ),
-                      ),
-                    ),
-
-                    SizedBox(height: isSmallCard ? 12 : 16),
-
-                    // Pet Info Section - Fixed height to prevent overflow
-                    Expanded(
-                      flex: 3,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Pet Name
-                          Text(
-                            pet.name,
-                            style: TextStyle(
-                              fontSize: isSmallCard ? 16 : 18,
-                              fontWeight: FontWeight.w700,
-                              color: PetCareTheme.textDark,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-
-                          SizedBox(height: isSmallCard ? 4 : 6),
-
-                          // Pet Details
-                          Text(
-                            '${pet.breed.isNotEmpty ? pet.breed : pet.species.toString().split('.').last} • ${pet.ageString}',
-                            style: TextStyle(
-                              fontSize: isSmallCard ? 12 : 14,
-                              color: PetCareTheme.textLight,
-                              fontWeight: FontWeight.w500,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-
-                          SizedBox(height: isSmallCard ? 6 : 10),
-
-                          // Health Status Chip
-                          _buildHealthStatusChip(
-                            pet.healthStatus,
-                            isSmall: isSmallCard,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => PetProfileScreen(pet: pet),
               ),
+            );
+          },
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  flex: 3,
+                  child: Container(
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[100],
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: _buildPetImage(pet),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Expanded(
+                  flex: 2,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        pet.name,
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '${pet.breed.isNotEmpty ? pet.breed : pet.species.toString().split('.').last} • ${pet.ageString}',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Colors.grey[600],
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 6),
+                      _buildHealthStatusChip(pet.healthStatus),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 
   Widget _buildPetImage(PetModel pet) {
+    print('Building image for pet: ${pet.name}, photos: ${pet.photoUrls}');
+    
     if (pet.photoUrls.isNotEmpty) {
-      final imageUrl = pet.photoUrls.first;
-
-      // Check if it's a base64 data URL
-      if (imageUrl.startsWith('data:image/')) {
-        try {
-          // Extract base64 data from data URL
-          final base64String = imageUrl.split(',')[1];
-
-          // Check if it's a valid base64 string (not empty or too short)
-          if (base64String.isEmpty || base64String.length < 100) {
-            print(
-              '⚠️ Invalid base64 image for ${pet.name}: too short or empty',
-            );
-            return _buildPetPlaceholder(pet);
-          }
-
-          final bytes = base64Decode(base64String);
-
-          // Check if decoded bytes are valid (not too small)
-          if (bytes.length < 100) {
-            print(
-              '⚠️ Invalid image data for ${pet.name}: decoded bytes too small (${bytes.length} bytes)',
-            );
-            return _buildPetPlaceholder(pet);
-          }
-
-          return Image.memory(
-            bytes,
-            fit: BoxFit.cover,
-            width: double.infinity,
-            height: double.infinity,
-            errorBuilder: (context, error, stackTrace) {
-              print('❌ Error loading base64 image for ${pet.name}: $error');
-              return _buildPetPlaceholder(pet);
-            },
-          );
-        } catch (e) {
-          print('❌ Error decoding base64 image for ${pet.name}: $e');
-          return _buildPetPlaceholder(pet);
-        }
-      } else {
-        // Handle as network URL - Optimized for APK builds
-        return Image.network(
-          imageUrl,
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: Image.network(
+          pet.photoUrls.first,
           fit: BoxFit.cover,
           width: double.infinity,
           height: double.infinity,
-          // Optimize for APK builds
-          cacheWidth: 300, // Cache at 300px width for better performance
-          cacheHeight: 300, // Cache at 300px height for better performance
           loadingBuilder: (context, child, loadingProgress) {
             if (loadingProgress == null) return child;
             return Center(
               child: CircularProgressIndicator(
                 value: loadingProgress.expectedTotalBytes != null
                     ? loadingProgress.cumulativeBytesLoaded /
-                          loadingProgress.expectedTotalBytes!
+                        loadingProgress.expectedTotalBytes!
                     : null,
-                color: PetCareTheme.primaryBrown,
               ),
             );
           },
           errorBuilder: (context, error, stackTrace) {
-            print('❌ Error loading network image for ${pet.name}: $error');
+            print('Error loading pet image: $error');
             return _buildPetPlaceholder(pet);
           },
-        );
-      }
+        ),
+      );
     }
     return _buildPetPlaceholder(pet);
   }
 
   Widget _buildPetPlaceholder(PetModel pet) {
     IconData icon;
-    List<Color> gradientColors;
-
+    Color color = Colors.grey[400]!;
+    
     switch (pet.species) {
       case PetSpecies.dog:
-        icon = Icons.pets_rounded;
-        gradientColors = [Colors.brown.shade300, Colors.brown.shade400];
+        icon = Icons.pets;
+        color = Colors.brown[400]!;
         break;
       case PetSpecies.cat:
-        icon = Icons.pets_rounded;
-        gradientColors = [Colors.orange.shade300, Colors.orange.shade400];
+        icon = Icons.pets;
+        color = Colors.orange[400]!;
         break;
       case PetSpecies.bird:
-        icon = Icons.flutter_dash_rounded;
-        gradientColors = [Colors.blue.shade300, Colors.blue.shade400];
+        icon = Icons.flutter_dash;
+        color = Colors.blue[400]!;
         break;
       case PetSpecies.fish:
-        icon = Icons.waves_rounded;
-        gradientColors = [Colors.cyan.shade300, Colors.cyan.shade400];
+        icon = Icons.waves;
+        color = Colors.cyan[400]!;
         break;
       case PetSpecies.rabbit:
-        icon = Icons.pets_rounded;
-        gradientColors = [Colors.grey.shade300, Colors.grey.shade400];
+        icon = Icons.pets;
+        color = Colors.grey[400]!;
         break;
       default:
-        icon = Icons.pets_rounded;
-        gradientColors = [Colors.grey.shade300, Colors.grey.shade400];
+        icon = Icons.pets;
+        color = Colors.grey[400]!;
     }
-
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(colors: gradientColors),
+    
+    return Center(
+      child: Icon(
+        icon,
+        size: 40,
+        color: color,
       ),
-      child: Center(child: Icon(icon, size: 50, color: Colors.white)),
     );
   }
 
-  Widget _buildHealthStatusChip(HealthStatus status, {bool isSmall = false}) {
-    final (color, text, icon) = _getHealthStatusInfo(status);
-
-    final chipPadding = isSmall
-        ? const EdgeInsets.symmetric(horizontal: 8, vertical: 4)
-        : const EdgeInsets.symmetric(horizontal: 10, vertical: 6);
-
-    final iconSize = isSmall ? 10.0 : 12.0;
-    final fontSize = isSmall ? 10.0 : 12.0;
-    final spacing = isSmall ? 2.0 : 4.0;
+  Widget _buildHealthStatusChip(HealthStatus status) {
+    final color = _getHealthStatusColor(status);
+    final text = status.toString().split('.').last.toUpperCase();
 
     return Container(
-      padding: chipPadding,
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withOpacity(0.3), width: 1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withOpacity(0.3)),
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: iconSize, color: color),
-          SizedBox(width: spacing),
-          Flexible(
-            child: Text(
-              text,
-              style: TextStyle(
-                fontSize: fontSize,
-                fontWeight: FontWeight.w600,
-                color: color,
-              ),
-              overflow: TextOverflow.ellipsis,
-              maxLines: 1,
-            ),
-          ),
-        ],
+      child: Text(
+        text,
+        style: TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.w600,
+          color: color,
+        ),
       ),
     );
   }
 
-  (Color, String, IconData) _getHealthStatusInfo(HealthStatus status) {
-    switch (status) {
-      case HealthStatus.healthy:
-        return (Colors.green, 'HEALTHY', Icons.check_circle);
-      case HealthStatus.sick:
-        return (Colors.red, 'SICK', Icons.warning);
-      case HealthStatus.recovering:
-        return (Colors.orange, 'RECOVERING', Icons.healing);
-      case HealthStatus.critical:
-        return (Colors.red.shade800, 'CRITICAL', Icons.emergency);
-      case HealthStatus.unknown:
-        return (Colors.grey, 'UNKNOWN', Icons.help);
+  Widget _buildUpcomingAppointments() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Upcoming Appointments',
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            if (_upcomingAppointments.isNotEmpty)
+              TextButton(
+                onPressed: () => setState(() => _currentIndex = 1),
+                child: const Text('View All'),
+              ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        _buildAppointmentsList(),
+      ],
+    );
+  }
+
+  Widget _buildAppointmentsList() {
+    if (_upcomingAppointments.isEmpty) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          children: [
+            Icon(
+              Icons.calendar_today,
+              size: 48,
+              color: Colors.grey[400],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'No upcoming appointments',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Book an appointment for your pet\'s health checkup',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Colors.grey[600],
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      );
     }
+
+    return Column(
+      children: _upcomingAppointments.take(3).map((appointment) {
+        final pet = _pets.firstWhere(
+          (p) => p.id == appointment.petId,
+          orElse: () => PetModel(
+            id: '',
+            ownerId: '',
+            name: 'Unknown Pet',
+            species: PetSpecies.other,
+            breed: '',
+            gender: PetGender.unknown,
+            createdAt: DateTime.now(),
+            updatedAt: DateTime.now(),
+          ),
+        );
+
+        return Container(
+          margin: const EdgeInsets.only(bottom: 8),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: ListTile(
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            leading: CircleAvatar(
+              backgroundColor: _getAppointmentStatusColor(appointment.status),
+              child: Icon(
+                _getAppointmentTypeIcon(appointment.type),
+                color: Colors.white,
+                size: 20,
+              ),
+            ),
+            title: Text(
+              pet.name,
+              style: const TextStyle(fontWeight: FontWeight.w600),
+            ),
+            subtitle: Text(
+              '${appointment.type.toString().split('.').last} • ${appointment.timeSlot}',
+            ),
+            trailing: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  '${appointment.appointmentDate.day}/${appointment.appointmentDate.month}',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: _getAppointmentStatusColor(appointment.status).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    appointment.status.toString().split('.').last.toUpperCase(),
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                      color: _getAppointmentStatusColor(appointment.status),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      }).toList(),
+    );
   }
 
   Widget _buildQuickActions() {
@@ -1622,29 +919,28 @@ class _PetOwnerDashboardState extends State<PetOwnerDashboard>
       children: [
         Text(
           'Quick Actions',
-          style: TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.w700,
-            color: PetCareTheme.textDark,
-            letterSpacing: 0.5,
+          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+            fontWeight: FontWeight.w600,
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 12),
         Row(
           children: [
             Expanded(
               child: _buildActionCard(
-                title: 'Book Appointment',
-                icon: Icons.calendar_today_rounded,
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF42A5F5), Color(0xFF1E88E5)],
-                ),
-                onTap: () async {
+                'Book Appointment',
+                Icons.calendar_today,
+                Colors.blue,
+                () async {
                   if (_pets.isEmpty) {
-                    _showNoPetsSnackBar();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Please add a pet first before booking an appointment'),
+                      ),
+                    );
                     return;
                   }
-
+                  
                   final result = await Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -1657,94 +953,57 @@ class _PetOwnerDashboardState extends State<PetOwnerDashboard>
                 },
               ),
             ),
-            const SizedBox(width: 16),
+            const SizedBox(width: 12),
             Expanded(
               child: _buildActionCard(
-                title: 'Health Tracking',
-                icon: Icons.health_and_safety_rounded,
-                gradient: const LinearGradient(
-                  colors: [Color(0xFFFF7043), Color(0xFFE64A19)],
-                ),
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const HealthTrackingScreen(),
-                    ),
-                  );
-                },
+                'Health Tracking',
+                Icons.health_and_safety,
+                Colors.orange,
+                () => setState(() => _currentIndex = 2),
               ),
             ),
           ],
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 12),
         Row(
           children: [
             Expanded(
               child: _buildActionCard(
-                title: 'Pet Store',
-                icon: Icons.store_rounded,
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF66BB6A), Color(0xFF43A047)],
-                ),
-                onTap: () => setState(() => _currentIndex = 3),
+                'Pet Store',
+                Icons.store,
+                Colors.green,
+                () => setState(() => _currentIndex = 3),
               ),
             ),
-            const SizedBox(width: 16),
+            const SizedBox(width: 12),
             Expanded(
               child: _buildActionCard(
-                title: 'Adopt a Pet',
-                icon: Icons.pets_rounded,
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF26A69A), Color(0xFF00695C)],
-                ),
-                onTap: () => setState(() => _currentIndex = 4),
+                'Adopt a Pet',
+                Icons.pets,
+                Colors.teal,
+                () => setState(() => _currentIndex = 4),
               ),
             ),
           ],
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 12),
         Row(
           children: [
             Expanded(
               child: _buildActionCard(
-                title: 'Success Stories',
-                icon: Icons.auto_stories_rounded,
-                gradient: LinearGradient(colors: PetCareTheme.accentGradient),
-                onTap: () => setState(() => _currentIndex = 5),
+                'Success Stories',
+                Icons.celebration,
+                Colors.amber,
+                () => setState(() => _currentIndex = 5),
               ),
             ),
-            const SizedBox(width: 16),
+            const SizedBox(width: 12),
             Expanded(
               child: _buildActionCard(
-                title: 'Contact Us',
-                icon: Icons.contact_mail_rounded,
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF7E57C2), Color(0xFF5E35B1)],
-                ),
-                onTap: _showContactOptions,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        Row(
-          children: [
-            Expanded(
-              child: _buildActionCard(
-                title: 'View Appointments',
-                icon: Icons.calendar_month_rounded,
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF2196F3), Color(0xFF1976D2)],
-                ),
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const AppointmentsScreen(),
-                    ),
-                  );
-                },
+                'Contact Us',
+                Icons.contact_mail,
+                Colors.blue,
+                () => _showContactOptions(),
               ),
             ),
           ],
@@ -1753,230 +1012,48 @@ class _PetOwnerDashboardState extends State<PetOwnerDashboard>
     );
   }
 
-  Widget _buildActionCard({
-    required String title,
-    required IconData icon,
-    required LinearGradient gradient,
-    required VoidCallback onTap,
-  }) {
-    // Extract the primary color from gradient for theming
-    final primaryColor = gradient.colors.first;
-
-    return _animationsInitialized
-        ? AnimatedBuilder(
-            animation: _scaleAnimation,
-            builder: (context, child) {
-              return Transform.scale(
-                scale: _scaleAnimation.value,
-                child: Container(
-                  height: 140,
-                  decoration: BoxDecoration(
-                    color: PetCareTheme.cardWhite,
-                    borderRadius: BorderRadius.circular(24),
-                    border: Border.all(
-                      color: primaryColor.withOpacity(0.2),
-                      width: 1.5,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: PetCareTheme.shadowColor,
-                        blurRadius: 20,
-                        offset: const Offset(0, 10),
-                        spreadRadius: 2,
-                      ),
-                      BoxShadow(
-                        color: primaryColor.withOpacity(0.1),
-                        blurRadius: 8,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Material(
-                    color: Colors.transparent,
-                    child: InkWell(
-                      onTap: onTap,
-                      borderRadius: BorderRadius.circular(24),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(24),
-                          gradient: LinearGradient(
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                            colors: [
-                              primaryColor.withOpacity(0.05),
-                              primaryColor.withOpacity(0.02),
-                              Colors.white.withOpacity(0.8),
-                            ],
-                          ),
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(20),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              // Icon Section
-                              Container(
-                                width: 56,
-                                height: 56,
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    begin: Alignment.topLeft,
-                                    end: Alignment.bottomRight,
-                                    colors: [
-                                      primaryColor.withOpacity(0.2),
-                                      primaryColor.withOpacity(0.4),
-                                    ],
-                                  ),
-                                  borderRadius: BorderRadius.circular(16),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: primaryColor.withOpacity(0.3),
-                                      blurRadius: 8,
-                                      offset: const Offset(0, 4),
-                                    ),
-                                  ],
-                                ),
-                                child: Icon(
-                                  icon,
-                                  color: Colors.white,
-                                  size: 28,
-                                ),
-                              ),
-
-                              const SizedBox(height: 16),
-
-                              // Title Section
-                              Text(
-                                title,
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w700,
-                                  color: PetCareTheme.primaryBrown,
-                                  letterSpacing: 0.3,
-                                  height: 1.2,
-                                ),
-                                textAlign: TextAlign.center,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              );
-            },
-          )
-        : Container(
-            height: 140,
+  Widget _buildStatCard(String title, String value, IconData icon, Color color) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Container(
+            width: 50,
+            height: 50,
             decoration: BoxDecoration(
-              color: PetCareTheme.cardWhite,
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(
-                color: primaryColor.withOpacity(0.2),
-                width: 1.5,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: PetCareTheme.shadowColor,
-                  blurRadius: 15,
-                  offset: const Offset(0, 8),
-                  spreadRadius: 1,
-                ),
-              ],
+              color: color.withOpacity(0.1),
+              shape: BoxShape.circle,
             ),
-            child: Material(
-              color: Colors.transparent,
-              child: InkWell(
-                onTap: onTap,
-                borderRadius: BorderRadius.circular(24),
-                splashColor: primaryColor.withOpacity(0.1),
-                highlightColor: primaryColor.withOpacity(0.05),
-                child: Container(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(24),
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        primaryColor.withOpacity(0.03),
-                        Colors.white.withOpacity(0.8),
-                      ],
-                    ),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                              colors: [
-                                primaryColor.withOpacity(0.2),
-                                primaryColor.withOpacity(0.4),
-                              ],
-                            ),
-                            borderRadius: BorderRadius.circular(16),
-                            boxShadow: [
-                              BoxShadow(
-                                color: primaryColor.withOpacity(0.3),
-                                blurRadius: 8,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
-                          ),
-                          child: Icon(icon, color: Colors.white, size: 32),
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          title,
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
-                            color: PetCareTheme.textDark,
-                            letterSpacing: 0.3,
-                          ),
-                          textAlign: TextAlign.center,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
+            child: Icon(icon, color: color, size: 24),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            value,
+            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+              color: color,
             ),
-          );
-  }
-
-  void _showNoPetsSnackBar() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text(
-          'Please add a pet first before booking an appointment',
-        ),
-        backgroundColor: PetCareTheme.primaryBrown,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        action: SnackBarAction(
-          label: 'Add Pet',
-          textColor: Colors.white,
-          onPressed: () async {
-            final result = await Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const AddPetScreen()),
-            );
-            if (result == true) {
-              _loadDashboardData();
-            }
-          },
-        ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            title,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: Colors.grey[600],
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1984,43 +1061,20 @@ class _PetOwnerDashboardState extends State<PetOwnerDashboard>
   void _showContactOptions() {
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.transparent,
       builder: (BuildContext context) {
         return Container(
-          decoration: BoxDecoration(
-            color: PetCareTheme.cardBackground,
-            borderRadius: const BorderRadius.only(
-              topLeft: Radius.circular(25),
-              topRight: Radius.circular(25),
-            ),
-          ),
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(16),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade300,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              const SizedBox(height: 24),
-              Text(
+              const Text(
                 'Contact Options',
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                  color: PetCareTheme.textDark,
-                ),
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               ),
-              const SizedBox(height: 24),
-              _buildContactOption(
-                icon: Icons.contact_mail_rounded,
-                title: 'General Contact',
-                subtitle: 'Get in touch with us',
-                color: Colors.blue,
+              const SizedBox(height: 16),
+              ListTile(
+                leading: const Icon(Icons.contact_mail, color: Colors.blue),
+                title: const Text('General Contact'),
                 onTap: () {
                   Navigator.pop(context);
                   Navigator.push(
@@ -2033,11 +1087,9 @@ class _PetOwnerDashboardState extends State<PetOwnerDashboard>
                   );
                 },
               ),
-              _buildContactOption(
-                icon: Icons.volunteer_activism_rounded,
-                title: 'Volunteer Application',
-                subtitle: 'Join our volunteer team',
-                color: Colors.green,
+              ListTile(
+                leading: const Icon(Icons.volunteer_activism, color: Colors.green),
+                title: const Text('Volunteer Application'),
                 onTap: () {
                   Navigator.pop(context);
                   Navigator.push(
@@ -2050,11 +1102,9 @@ class _PetOwnerDashboardState extends State<PetOwnerDashboard>
                   );
                 },
               ),
-              _buildContactOption(
-                icon: Icons.attach_money_rounded,
-                title: 'Donation Inquiry',
-                subtitle: 'Support our cause',
-                color: Colors.orange,
+              ListTile(
+                leading: const Icon(Icons.attach_money, color: Colors.orange),
+                title: const Text('Donation Inquiry'),
                 onTap: () {
                   Navigator.pop(context);
                   Navigator.push(
@@ -2067,7 +1117,6 @@ class _PetOwnerDashboardState extends State<PetOwnerDashboard>
                   );
                 },
               ),
-              const SizedBox(height: 16),
             ],
           ),
         );
@@ -2075,49 +1124,100 @@ class _PetOwnerDashboardState extends State<PetOwnerDashboard>
     );
   }
 
-  Widget _buildContactOption({
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required Color color,
-    required VoidCallback onTap,
-  }) {
+  Widget _buildActionCard(String title, IconData icon, Color color, VoidCallback onTap) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
+        color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
-      child: ListTile(
-        onTap: onTap,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-        leading: Container(
-          width: 50,
-          height: 50,
-          decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
-            shape: BoxShape.circle,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              children: [
+                Container(
+                  width: 50,
+                  height: 50,
+                  decoration: BoxDecoration(
+                    color: color.withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(icon, color: color, size: 24),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  title,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
           ),
-          child: Icon(icon, color: color, size: 26),
-        ),
-        title: Text(
-          title,
-          style: TextStyle(
-            fontWeight: FontWeight.w600,
-            color: PetCareTheme.textDark,
-            fontSize: 16,
-          ),
-        ),
-        subtitle: Text(
-          subtitle,
-          style: TextStyle(color: PetCareTheme.textLight, fontSize: 14),
-        ),
-        trailing: Icon(
-          Icons.arrow_forward_ios_rounded,
-          size: 18,
-          color: Colors.grey.shade400,
         ),
       ),
     );
+  }
+
+  Color _getHealthStatusColor(HealthStatus status) {
+    switch (status) {
+      case HealthStatus.healthy:
+        return Colors.green;
+      case HealthStatus.sick:
+        return Colors.red;
+      case HealthStatus.recovering:
+        return Colors.orange;
+      case HealthStatus.critical:
+        return Colors.red.shade800;
+      case HealthStatus.unknown:
+      default:
+        return Colors.grey;
+    }
+  }
+
+  Color _getAppointmentStatusColor(AppointmentStatus status) {
+    switch (status) {
+      case AppointmentStatus.scheduled:
+        return Colors.blue;
+      case AppointmentStatus.confirmed:
+        return Colors.green;
+      case AppointmentStatus.inProgress:
+        return Colors.orange;
+      case AppointmentStatus.completed:
+        return Colors.green.shade700;
+      case AppointmentStatus.cancelled:
+        return Colors.red;
+      case AppointmentStatus.noShow:
+        return Colors.red.shade800;
+    }
+  }
+
+  IconData _getAppointmentTypeIcon(AppointmentType type) {
+    switch (type) {
+      case AppointmentType.checkup:
+        return Icons.health_and_safety;
+      case AppointmentType.vaccination:
+        return Icons.vaccines;
+      case AppointmentType.surgery:
+        return Icons.medical_services;
+      case AppointmentType.emergency:
+        return Icons.emergency;
+      case AppointmentType.grooming:
+        return Icons.content_cut;
+      case AppointmentType.consultation:
+        return Icons.chat;
+    }
   }
 }
